@@ -50,6 +50,8 @@ fun BleGraphScreen(viewModel: BleGraphViewModel) {
     val isConnected by viewModel.isConnected.collectAsState()
     val connectedDeviceName by viewModel.connectedDeviceName.collectAsState()
     val displayFullResolution by viewModel.displayFullResolution.collectAsState()
+    val debugData by viewModel.debugData.collectAsState()
+    val packetCounts by viewModel.packetCounts.collectAsState()
 
     // State for number of channels to display
     var numChannelsToDisplay by remember { mutableStateOf(4) }
@@ -96,6 +98,97 @@ fun BleGraphScreen(viewModel: BleGraphViewModel) {
                     text = "Connected: $connectedDeviceName",
                     style = MaterialTheme.typography.bodySmall
                 )
+            }
+        }
+
+        // Debug Panel
+        if (isConnected) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp)
+            ) {
+                Column(
+                    modifier = Modifier.padding(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Debug Information",
+                        style = MaterialTheme.typography.titleSmall
+                    )
+                    
+                    // Connection Status
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("Status:", style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            "Connected",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Green
+                        )
+                    }
+                    
+                    // Packet Counters
+                    Text(
+                        "Packets Received:",
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(start = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text("CH0: ${packetCounts.ch0}", style = MaterialTheme.typography.bodySmall)
+                        Text("CH1: ${packetCounts.ch1}", style = MaterialTheme.typography.bodySmall)
+                        Text("CH2: ${packetCounts.ch2}", style = MaterialTheme.typography.bodySmall)
+                        Text("CH3: ${packetCounts.ch3}", style = MaterialTheme.typography.bodySmall)
+                    }
+                    
+                    // Last Debug Data
+                    if (debugData != null) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Characteristic:", style = MaterialTheme.typography.bodySmall)
+                            Text(
+                                text = debugData!!.characteristicUuid.takeLast(8),
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Hex Data:", style = MaterialTheme.typography.bodySmall)
+                            Text(
+                                text = debugData!!.hexBytes,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                        
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text("Parsed Value:", style = MaterialTheme.typography.bodySmall)
+                            Text(
+                                text = debugData!!.parsedValue,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
+                    } else {
+                        Text(
+                            "Waiting for data...",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.Gray
+                        )
+                    }
+                }
             }
         }
 

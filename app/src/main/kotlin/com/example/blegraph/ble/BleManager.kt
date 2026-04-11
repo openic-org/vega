@@ -22,8 +22,8 @@ private const val TAG = "BleManager"
 private const val SAMPLE_RATE_HZ = 10000  // 10 kHz
 private const val BUFFER_DURATION_SECONDS = 2
 private const val BUFFER_SIZE = SAMPLE_RATE_HZ * BUFFER_DURATION_SECONDS  // 20,000 points = 2 seconds at 10 kHz
-private const val POINTS_PER_BATCH = 1000  // Receive 1000 points per 100ms (10 kHz * 0.1s)
-private const val BATCH_INTERVAL_MS = 100L  // 100ms between batches
+private const val POINTS_PER_BATCH = 1  // Update UI after every single data point received (for responsive visualization)
+private const val BATCH_INTERVAL_MS = 100L  // 100ms between batches (simulated data only)
 private const val NUM_CHANNELS = 4
 
 // Display window sizes (in sample points at 10 kHz)
@@ -49,6 +49,12 @@ class BleManager(private val context: Context) {
     // Multi-channel circular FIFO buffer: 100 points * 100ms = 10 seconds, 4 channels each
     private val multiChannelBuffer = com.example.blegraph.data.CircularMultiChannelBuffer(BUFFER_SIZE)
     
+    // GATT connection manager
+    private var gattManager: BleGattManager? = null
+    
+    // Counter for received data points (for batching updates)
+    private var receivedDataPoints = 0
+    
     // StateFlows for each channel
     private val _channel0Data = MutableStateFlow<List<com.example.blegraph.data.TimeSeriesPoint>>(emptyList())
     val channel0Data: StateFlow<List<com.example.blegraph.data.TimeSeriesPoint>> = _channel0Data
@@ -71,6 +77,28 @@ class BleManager(private val context: Context) {
     // Display mode: true = full resolution (1 second), false = downsampled (10 seconds)
     private val _displayFullResolution = MutableStateFlow(false)
     val displayFullResolution: StateFlow<Boolean> = _displayFullResolution
+
+    // Debug data: characteristic UUID, hex bytes, parsed value
+    data class DebugData(
+        val characteristicUuid: String,
+        val hexBytes: String,
+        val parsedValue: String,
+        val timestamp: Long = System.currentTimeMillis()
+    )
+    
+    // Packet counters for each channel
+    data class PacketCounts(
+        val ch0: Long = 0L,
+        val ch1: Long = 0L,
+        val ch2: Long = 0L,
+        val ch3: Long = 0L
+    )
+    
+    private val _debugData = MutableStateFlow<DebugData?>(null)
+    val debugData: StateFlow<DebugData?> = _debugData
+    
+    private val _packetCounts = MutableStateFlow(PacketCounts())
+    val packetCounts: StateFlow<PacketCounts> = _packetCounts
 
     private val scope = CoroutineScope(Dispatchers.Main + Job())
     private var activeScanCallback: android.bluetooth.le.ScanCallback? = null
@@ -182,11 +210,40 @@ class BleManager(private val context: Context) {
                 return
             }
 
-            _isConnected.value = true
+            // Prevent multiple simultaneous connections
+            if (gattManager != null) {
+                Log.w(TAG, "⚠️ Already connecting to a device, disconnect first before connecting to another")
+                return
+            }
+
             _connectedDeviceName.value = deviceName ?: deviceAddress
-            Log.d(TAG, "Connected to device: ${deviceName ?: deviceAddress}")
+            Log.d(TAG, "🔌 Connecting to device: ${deviceName ?: deviceAddress}")
             
-            simulateDataReception()
+            // Initialize GATT manager for this device
+            gattManager = BleGattManager(
+                context = context,
+                bluetoothAdapter = bluetoothAdapter,
+                onDataReceived = { ch0, ch1, ch2, ch3 ->
+                    onBleDataReceived(ch0, ch1, ch2, ch3)
+                },
+                onConnectionStateChange = { isConnected, message ->
+                    _isConnected.value = isConnected
+                    Log.d(TAG, "BLE Connection status: $message")
+                },
+                onError = { errorMessage ->
+                    Log.e(TAG, "BLE Error: $errorMessage")
+                },
+                onDebugData = { uuid, hexData, parsedValue ->
+                    _debugData.value = DebugData(uuid, hexData, parsedValue)
+                },
+                onPacketCountUpdate = { ch0, ch1, ch2, ch3 ->
+                    _packetCounts.value = PacketCounts(ch0, ch1, ch2, ch3)
+                }
+            )
+            
+            // Connect to the device
+            gattManager?.connect(deviceAddress)
+            
         } catch (e: Exception) {
             Log.e(TAG, "Error connecting to device: ${e.message}", e)
         }
@@ -194,13 +251,37 @@ class BleManager(private val context: Context) {
 
     fun disconnect() {
         try {
+            if (gattManager != null) {
+                Log.d(TAG, "🔌 Disconnecting from device...")
+            }
+            gattManager?.disconnect()
+            gattManager = null
             _isConnected.value = false
             _connectedDeviceName.value = null
             multiChannelBuffer.clear()
             updateChannelFlows()
-            Log.d(TAG, "Disconnected from device")
+            Log.d(TAG, "✅ Disconnected from device")
         } catch (e: Exception) {
             Log.e(TAG, "Error disconnecting: ${e.message}", e)
+        }
+    }
+
+    /**
+     * Called when BLE characteristic data is received.
+     * Buffers the data point with all 4 channels and updates display immediately.
+     * For real BLE data, we update every point to ensure responsive real-time visualization.
+     */
+    private fun onBleDataReceived(channel0: Float, channel1: Float, channel2: Float, channel3: Float) {
+        // Add data directly to buffer
+        multiChannelBuffer.addPoint(channel0, channel1, channel2, channel3)
+        
+        receivedDataPoints++
+        
+        // Update display immediately for real-time responsiveness
+        updateChannelFlows()
+        
+        if (receivedDataPoints % 100 == 0) {
+            Log.d(TAG, "BLE Data received: $receivedDataPoints total points, buffer_size=${multiChannelBuffer.size()}")
         }
     }
 

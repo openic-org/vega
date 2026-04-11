@@ -21,6 +21,12 @@ class BleGraphViewModel(private val bleManager: BleManager) : ViewModel() {
 
     // Display mode: downsampled (10s) vs full resolution (1s)
     val displayFullResolution: StateFlow<Boolean> = bleManager.displayFullResolution
+    
+    // Debug data: characteristic UUID, hex bytes, parsed value
+    val debugData: StateFlow<BleManager.DebugData?> = bleManager.debugData
+    
+    // Packet counters
+    val packetCounts: StateFlow<BleManager.PacketCounts> = bleManager.packetCounts
 
     fun startScanning() {
         bleManager.startScanning()
