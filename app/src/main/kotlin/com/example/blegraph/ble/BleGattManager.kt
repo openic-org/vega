@@ -6,442 +6,345 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothGatt
 import android.bluetooth.BluetoothGattCallback
 import android.bluetooth.BluetoothGattCharacteristic
+import android.bluetooth.BluetoothGattDescriptor
 import android.bluetooth.BluetoothProfile
 import android.content.Context
 import android.util.Log
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.util.UUID
-import kotlin.concurrent.thread
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.launch
 
 private const val TAG = "BleGattManager"
 
 /**
- * Configuration for BLE device characteristics.
- * Customize these UUIDs to match your BLE device.
+ * BLE GATT profile for the STM32WB0 Kuntur device.
+ *
+ *  Service  0xFFF0
+ *    0xFFF1  Write-without-response  (phone → STM32, reserved)
+ *    0xFFF2  Notify                  (STM32 → phone, StreamDataPacket)
  */
 object BleDeviceConfig {
-    // Health Thermometer Service (0x180D)
-    val DATA_SERVICE_UUID = UUID.fromString("0000180d-0000-1000-8000-00805f9b34fb")
-    
-    // Characteristics for 4 channels (0x2A37, 0x2A38, 0x2A39)
-    val CHANNEL0_CHAR_UUID = UUID.fromString("00002a37-0000-1000-8000-00805f9b34fb") // 0x2A37
-    val CHANNEL1_CHAR_UUID = UUID.fromString("00002a38-0000-1000-8000-00805f9b34fb") // 0x2A38
-    val CHANNEL2_CHAR_UUID = UUID.fromString("00002a39-0000-1000-8000-00805f9b34fb") // 0x2A39
-    val CHANNEL3_CHAR_UUID = UUID.fromString("00002a37-0000-1000-8000-00805f9b34fb") // 0x2A37 (reused for 4th channel)
-    
-    // Client Characteristic Configuration Descriptor
-    val CCCD_UUID = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
+    val DATA_SERVICE_UUID  = UUID.fromString("0000fff0-0000-1000-8000-00805f9b34fb")
+    val NOTIFY_CHAR_UUID   = UUID.fromString("0000fff2-0000-1000-8000-00805f9b34fb")
+    val CCCD_UUID          = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb")
+
+    /** Expected ATT MTU for 244-byte packets (packet size + 3 bytes ATT header). */
+    const val TARGET_MTU = 247
 }
 
 /**
- * Manages BLE GATT connections and characteristic subscriptions.
- * Parses incoming BLE data and feeds it to the data buffer.
+ * Parsed fields from the 8-byte packet header.
+ * @param timestampS     RTC seconds component (HH*3600 + MM*60 + SS).
+ * @param timestampSubS  Sub-second ticks (0–32767, ~30.5 µs each at 32.768 kHz LSE).
+ * @param seqNum         Rolling 0–255 packet counter; gaps indicate dropped packets.
+ * @param numPairs       Number of valid sample pairs in this packet.
+ */
+data class StreamPacketHeader(
+    val timestampS: Long,
+    val timestampSubS: Int,
+    val seqNum: Int,
+    val numPairs: Int
+)
+
+/**
+ * Manages BLE GATT connections to the STM32WB0 Kuntur device.
+ *
+ * Setup sequence on each connection:
+ *   1. discoverServices
+ *   2. requestMtu(247)        → onMtuChanged
+ *   3. setPreferredPhy(2M)    (best-effort, parallel)
+ *   4. enableNotifications    (write CCCD on 0xFFF2)
+ *
+ * @param onBatchReceived  Callback delivering decoded sample arrays per BLE packet.
+ *                         Invoked on [parserScope]'s single-threaded background dispatcher.
  */
 class BleGattManager(
     private val context: Context,
     private val bluetoothAdapter: BluetoothAdapter?,
-    private val onDataReceived: (channel0: Float, channel1: Float, channel2: Float, channel3: Float) -> Unit,
+    private val onBatchReceived: (
+        ch0: ShortArray,
+        ch1: ShortArray,
+        header: StreamPacketHeader
+    ) -> Unit,
     private val onConnectionStateChange: (isConnected: Boolean, message: String) -> Unit,
     private val onError: (errorMessage: String) -> Unit,
-    private val onDebugData: ((characteristicUuid: String, hexData: String, parsed: String) -> Unit)? = null,
-    private val onPacketCountUpdate: ((ch0: Long, ch1: Long, ch2: Long, ch3: Long) -> Unit)? = null
+    private val onDebugInfo: ((info: String) -> Unit)? = null
 ) {
-    
     private var bluetoothGatt: BluetoothGatt? = null
     private var isConnecting = false
-    private var receivedDataCount = 0L
-    
-    // Packet counters for each characteristic
-    private var channel0PacketCount = 0L
-    private var channel1PacketCount = 0L
-    private var channel2PacketCount = 0L
-    private var channel3PacketCount = 0L
-    
-    // Store last received values for each characteristic
-    private var channel0Value = 0f
-    private var channel1Value = 0f
-    private var channel2Value = 0f
-    private var channel3Value = 0f
-    
-    // Polling thread for reading characteristics if notifications don't arrive
-    private var pollingThread: Thread? = null
-    private var shouldPoll = false
-    private var readInProgress = false
-    private var characteristic0x2A37: BluetoothGattCharacteristic? = null
-    private val POLLING_INTERVAL_MS = 100L  // Poll every 100ms (disabled - 0x2A37 not readable)
-    
+    private var deviceAddress: String? = null
+
+    /** Expected sequence number for drop detection (null = first packet). */
+    private var expectedSeq: Int? = null
+    private var totalDropped = 0L
+    private var totalPackets = 0L
+
     /**
-     * Initiate connection to a BLE device.
+     * Raw packet bytes are enqueued here by [onCharacteristicChanged] and consumed
+     * by a single-threaded coroutine so the BLE callback thread returns immediately.
+     * Capacity 2048 ≈ 4 seconds of headroom at 500 pkt/s; trySend drops rather than blocks.
      */
+    private val rawPacketChannel = Channel<ByteArray>(capacity = 2048)
+
+    /**
+     * Single-threaded dispatcher: all coroutines in this scope run serially so
+     * [parseStreamPacket] state (expectedSeq, totalDropped, …) needs no locking.
+     */
+    private val parserScope = CoroutineScope(
+        Dispatchers.Default.limitedParallelism(1) + SupervisorJob()
+    )
+
+    init {
+        parserScope.launch {
+            for (rawBytes in rawPacketChannel) {
+                parseStreamPacket(rawBytes)
+            }
+        }
+    }
+
     @SuppressLint("MissingPermission")
-    fun connect(deviceAddress: String) {
+    fun connect(address: String) {
         if (isConnecting) {
             onError("Connection already in progress")
             return
         }
-        
-        val device = bluetoothAdapter?.getRemoteDevice(deviceAddress)
+        val device = bluetoothAdapter?.getRemoteDevice(address)
         if (device == null) {
-            onError("Device not found: $deviceAddress")
+            onError("Device not found: $address")
             return
         }
-        
-        isConnecting = true
-        Log.d(TAG, "Initiating GATT connection to $deviceAddress")
-        
-        bluetoothGatt = device.connectGatt(context, false, gattCallback)
+        deviceAddress = address
+        isConnecting  = true
+        Log.d(TAG, "Connecting to $address")
+        bluetoothGatt = device.connectGatt(context, false, gattCallback, BluetoothDevice.TRANSPORT_LE)
     }
-    
-    /**
-     * Disconnect from the current BLE device.
-     */
+
+    @SuppressLint("MissingPermission")
+    fun reconnect() {
+        val addr = deviceAddress ?: return
+        disconnect()
+        connect(addr)
+    }
+
+    @SuppressLint("MissingPermission")
     fun disconnect() {
-        stopPolling()  // Stop polling before disconnecting
-        bluetoothGatt?.let {
-            Log.d(TAG, "Disconnecting from device")
-            it.close()
-        }
+        rawPacketChannel.close()
+        parserScope.cancel()
+        bluetoothGatt?.close()
         bluetoothGatt = null
-        isConnecting = false
+        isConnecting  = false
+        expectedSeq   = null
     }
-    
-    /**
-     * GATT callback that handles connection state changes and characteristic reads/notifications.
-     */
+
+    // -------------------------------------------------------------------------
+    //  GATT callback
+    // -------------------------------------------------------------------------
+
     private val gattCallback = object : BluetoothGattCallback() {
-        
+
         @SuppressLint("MissingPermission")
         override fun onConnectionStateChange(gatt: BluetoothGatt, status: Int, newState: Int) {
-            super.onConnectionStateChange(gatt, status, newState)
-            
             when (newState) {
                 BluetoothProfile.STATE_CONNECTED -> {
                     isConnecting = false
-                    Log.d(TAG, "Connected to device, discovering services...")
-                    onConnectionStateChange(true, "Connected to device")
-                    
-                    // Start service discovery
+                    Log.d(TAG, "Connected – discovering services")
+                    onConnectionStateChange(true, "Connected")
                     gatt.discoverServices()
                 }
-                
                 BluetoothProfile.STATE_DISCONNECTED -> {
                     isConnecting = false
-                    Log.d(TAG, "Disconnected from device")
-                    onConnectionStateChange(false, "Disconnected from device")
-                }
-                
-                else -> {
-                    Log.w(TAG, "Connection state changed to: $newState, Status: $status")
+                    Log.d(TAG, "Disconnected (status=$status)")
+                    onConnectionStateChange(false, "Disconnected")
                 }
             }
         }
-        
+
         @SuppressLint("MissingPermission")
         override fun onServicesDiscovered(gatt: BluetoothGatt, status: Int) {
-            super.onServicesDiscovered(gatt, status)
-            
-            if (status == BluetoothGatt.GATT_SUCCESS) {
-                Log.d(TAG, "Services discovered successfully")
-                
-                // Find and subscribe to data characteristics
-                val dataService = gatt.getService(BleDeviceConfig.DATA_SERVICE_UUID)
-                if (dataService != null) {
-                    subscribeToCharacteristics(gatt, dataService)
-                } else {
-                    onError("Data service not found (UUID: ${BleDeviceConfig.DATA_SERVICE_UUID})")
-                    Log.e(TAG, "Data service not found. Available services:")
-                    gatt.services.forEach { service ->
-                        Log.e(TAG, "  Service: ${service.uuid}")
-                    }
+            if (status != BluetoothGatt.GATT_SUCCESS) {
+                onError("Service discovery failed (status=$status)")
+                return
+            }
+            Log.d(TAG, "Services discovered")
+
+            // Log available services for debugging
+            gatt.services.forEach { svc ->
+                Log.d(TAG, "  Service: ${svc.uuid}")
+                svc.characteristics.forEach { chr ->
+                    Log.d(TAG, "    Char: ${chr.uuid}  props=0x%02X".format(chr.properties))
                 }
+            }
+
+            bluetoothGatt = gatt
+
+            // Step 1: negotiate MTU – triggers onMtuChanged which enables notifications
+            Log.d(TAG, "Requesting MTU ${BleDeviceConfig.TARGET_MTU}")
+            gatt.requestMtu(BleDeviceConfig.TARGET_MTU)
+
+            // Step 2: request 2M PHY (best-effort, parallel with MTU)
+            gatt.setPreferredPhy(
+                BluetoothDevice.PHY_LE_2M_MASK,
+                BluetoothDevice.PHY_LE_2M_MASK,
+                BluetoothDevice.PHY_OPTION_NO_PREFERRED
+            )
+        }
+
+        @SuppressLint("MissingPermission")
+        override fun onMtuChanged(gatt: BluetoothGatt, mtu: Int, status: Int) {
+            Log.d(TAG, "MTU changed to $mtu (status=$status)")
+            onDebugInfo?.invoke("MTU=$mtu")
+            // Request high-priority connection interval (7.5–15 ms) for 30 kSps throughput.
+            // This replaces the STM32-side hci_le_connection_update call which is not
+            // available in the stm32wb0x_ble_stack.a library on this SDK version.
+            gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
+            Log.d(TAG, "Requested CONNECTION_PRIORITY_HIGH")
+            // Enable notifications regardless of whether target MTU was achieved
+            enableNotifications(gatt)
+        }
+
+        override fun onPhyUpdate(gatt: BluetoothGatt, txPhy: Int, rxPhy: Int, status: Int) {
+            val txName = if (txPhy == BluetoothDevice.PHY_LE_2M) "2M" else "1M"
+            val rxName = if (rxPhy == BluetoothDevice.PHY_LE_2M) "2M" else "1M"
+            Log.d(TAG, "PHY updated: TX=$txName  RX=$rxName  status=$status")
+            onDebugInfo?.invoke("PHY TX=$txName RX=$rxName")
+        }
+
+        override fun onDescriptorWrite(
+            gatt: BluetoothGatt,
+            descriptor: BluetoothGattDescriptor,
+            status: Int
+        ) {
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                Log.i(TAG, "CCCD written – notifications enabled on ${descriptor.characteristic.uuid}")
+                onConnectionStateChange(true, "Streaming")
+                onDebugInfo?.invoke("Notifications enabled")
             } else {
-                onError("Service discovery failed with status: $status")
-                Log.e(TAG, "Service discovery failed")
+                onError("CCCD write failed (status=$status)")
             }
         }
-        
+
         override fun onCharacteristicChanged(
             gatt: BluetoothGatt,
             characteristic: BluetoothGattCharacteristic,
             value: ByteArray
         ) {
-            super.onCharacteristicChanged(gatt, characteristic, value)
-            
-            Log.i(TAG, "🔔 *** NOTIFICATION RECEIVED *** from ${characteristic.uuid}: ${value.size} bytes")
-            Log.d(TAG, "   Hex: ${value.joinToString("") { "%02X".format(it) }}")
-            receivedDataCount++
-            
-            // Parse the received data based on characteristic UUID
-            parseCharacteristicData(characteristic.uuid, value)
-        }
-        
-        override fun onCharacteristicRead(
-            gatt: BluetoothGatt,
-            characteristic: BluetoothGattCharacteristic,
-            value: ByteArray,
-            status: Int
-        ) {
-            super.onCharacteristicRead(gatt, characteristic, value, status)
-            
-            readInProgress = false
-            
-            if (status == BluetoothGatt.GATT_SUCCESS) {
-                Log.d(TAG, "📖 ✅ Characteristic read succeeded from ${characteristic.uuid}: ${value.size} bytes")
-                parseCharacteristicData(characteristic.uuid, value)
-            } else {
-                Log.e(TAG, "📖 ❌ Characteristic read failed from ${characteristic.uuid} with status: $status (0=success, 2=read not permitted)")
-            }
-        }
-        
-        override fun onCharacteristicWrite(gatt: BluetoothGatt, characteristic: BluetoothGattCharacteristic, status: Int) {
-            super.onCharacteristicWrite(gatt, characteristic, status)
-            
-            if (status == BluetoothGatt.GATT_SUCCESS) {
-                Log.d(TAG, "Characteristic written successfully")
-            } else {
-                Log.e(TAG, "Characteristic write failed with status: $status")
-            }
-        }
-        
-        override fun onDescriptorWrite(gatt: BluetoothGatt, descriptor: android.bluetooth.BluetoothGattDescriptor, status: Int) {
-            super.onDescriptorWrite(gatt, descriptor, status)
-            
-            if (status == BluetoothGatt.GATT_SUCCESS) {
-                Log.d(TAG, "✅ Descriptor written successfully for characteristic: ${descriptor.characteristic.uuid}")
-                Log.i(TAG, "📊 READY TO RECEIVE NOTIFICATIONS")
-                Log.i(TAG, "🎯 Listening for data from device 0x2A37 (Heart Rate Measurement)...")
-            } else {
-                Log.e(TAG, "❌ Descriptor write failed with status: $status for characteristic: ${descriptor.characteristic.uuid}")
+            if (characteristic.uuid == BleDeviceConfig.NOTIFY_CHAR_UUID) {
+                // Copy before returning — the ByteArray is only valid for this callback.
+                // trySend is non-blocking; if the channel is full the packet is dropped
+                // (preferable to blocking the BLE callback thread and overflowing the Binder buffer).
+                val dropped = rawPacketChannel.trySend(value.copyOf()).isFailure
+                if (dropped) Log.w(TAG, "rawPacketChannel full — packet dropped")
             }
         }
     }
-    
-    /**
-     * Subscribe to notifications from data characteristics.
-     */
+
+    // -------------------------------------------------------------------------
+    //  Setup helpers
+    // -------------------------------------------------------------------------
+
     @SuppressLint("MissingPermission")
-    private fun subscribeToCharacteristics(gatt: BluetoothGatt, service: android.bluetooth.BluetoothGattService) {
-        // Only subscribe to characteristics that support notifications
-        // 0x2A37 is the measurement characteristic (supports notify)
-        // 0x2A38 and 0x2A39 are read-only characteristics (no notify support)
-        val notifiableCharacteristics = listOf(
-            BleDeviceConfig.CHANNEL0_CHAR_UUID  // 0x2A37 supports notify
-        )
-        
-        var successCount = 0
-        
-        for (charUuid in notifiableCharacteristics) {
-            val characteristic = service.getCharacteristic(charUuid)
-            if (characteristic != null) {
-                Log.d(TAG, "📍 Attempting to subscribe to characteristic: $charUuid")
-                
-                // Store reference for polling
-                characteristic0x2A37 = characteristic
-                
-                // Enable notification
-                val hasNotifyProperty = (characteristic.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0
-                val hasIndicateProperty = (characteristic.properties and BluetoothGattCharacteristic.PROPERTY_INDICATE) != 0
-                
-                Log.d(TAG, "  Properties - Notify: $hasNotifyProperty, Indicate: $hasIndicateProperty")
-                
-                if (hasNotifyProperty || hasIndicateProperty) {
-                    Log.d(TAG, "📍 Enabling notifications for characteristic: $charUuid")
-                    
-                    // CRITICAL: Enable client-side notification delivery on Android FIRST
-                    val notificationEnabled = gatt.setCharacteristicNotification(characteristic, true)
-                    Log.d(TAG, "  ✓ setCharacteristicNotification result: $notificationEnabled")
-                    
-                    // Then write CCCD to tell device to send notifications
-                    val descriptor = characteristic.getDescriptor(BleDeviceConfig.CCCD_UUID)
-                    if (descriptor != null) {
-                        descriptor.value = android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-                        gatt.writeDescriptor(descriptor)
-                        successCount++
-                        Log.d(TAG, "  ✓ CCCD write requested for $charUuid")
-                    } else {
-                        Log.w(TAG, "❌ CCCD descriptor not found for characteristic: $charUuid")
-                    }
-                } else {
-                    Log.w(TAG, "❌ Characteristic does not support notify or indicate: $charUuid")
-                }
-            } else {
-                Log.w(TAG, "❌ Characteristic not found: $charUuid")
-            }
-        }
-        
-        if (successCount > 0) {
-            Log.i(TAG, "✅ Successfully subscribed to $successCount characteristic(s)")
-            Log.i(TAG, "⏳ Waiting for device notifications on 0x2A37...")
-            Log.i(TAG, "ℹ️  0x2A37 is NOTIFICATION-ONLY (not readable) - Device must actively send data")
-            Log.i(TAG, "💡 If no data arrives, ensure BLE device is in measurement/active mode")
-            
-            // NOTE: Polling disabled - 0x2A37 doesn't support READ operations
-            bluetoothGatt = gatt
-            
-            onConnectionStateChange(true, "Receiving data from $successCount channel")
-        } else {
-            onError("No characteristics subscribed")
-        }
-    }
-    
-    /**
-     * Parse incoming BLE characteristic data.
-     * Extracts uint16_t values and updates channel data.
-     */
-    private fun parseCharacteristicData(characteristicUuid: UUID, data: ByteArray) {
-        receivedDataCount++
-        
-        // Log raw data as hex
-        val hexData = data.joinToString(" ") { String.format("%02X", it) }
-        val charName = when (characteristicUuid) {
-            BleDeviceConfig.CHANNEL0_CHAR_UUID -> "CH0/3 (0x2A37)"
-            BleDeviceConfig.CHANNEL1_CHAR_UUID -> "CH1 (0x2A38)"
-            BleDeviceConfig.CHANNEL2_CHAR_UUID -> "CH2 (0x2A39)"
-            else -> "UNKNOWN"
-        }
-        
-        Log.d(TAG, "[$receivedDataCount] $charName - Raw bytes: $hexData (${data.size} bytes)")
-        
-        if (data.size < 2) {
-            Log.w(TAG, "ERROR: Received data too short: ${data.size} bytes, expected at least 2")
-            onDebugData?.invoke(characteristicUuid.toString(), hexData, "ERROR: Too short")
+    private fun enableNotifications(gatt: BluetoothGatt) {
+        val service = gatt.getService(BleDeviceConfig.DATA_SERVICE_UUID)
+        if (service == null) {
+            onError("Stream service 0xFFF0 not found on device")
             return
         }
-        
-        // Parse as uint16_t (2 bytes, little-endian)
-        val value = bytesToUInt16(data, 0).toFloat()
-        val parsedValue = "uint16: $value"
-        
-        // Update the appropriate channel based on characteristic UUID
-        val dataReceived = when (characteristicUuid) {
-            BleDeviceConfig.CHANNEL0_CHAR_UUID -> {
-                channel0PacketCount++
-                channel0Value = value
-                channel3Value = value  // Reuse 0x2A37 for both channel 0 and 3
-                Log.d(TAG, "$charName: $value (hex: $hexData)")
-                true
-            }
-            BleDeviceConfig.CHANNEL1_CHAR_UUID -> {
-                channel1PacketCount++
-                channel1Value = value
-                Log.d(TAG, "$charName: $value (hex: $hexData)")
-                true
-            }
-            BleDeviceConfig.CHANNEL2_CHAR_UUID -> {
-                channel2PacketCount++
-                channel2Value = value
-                Log.d(TAG, "$charName: $value (hex: $hexData)")
-                true
-            }
-            else -> {
-                Log.w(TAG, "Unknown characteristic: $characteristicUuid")
-                false
+        val char = service.getCharacteristic(BleDeviceConfig.NOTIFY_CHAR_UUID)
+        if (char == null) {
+            onError("Notify char 0xFFF2 not found in stream service")
+            return
+        }
+        val hasNotify = (char.properties and BluetoothGattCharacteristic.PROPERTY_NOTIFY) != 0
+        if (!hasNotify) {
+            onError("0xFFF2 does not have NOTIFY property (properties=0x%02X)".format(char.properties))
+            return
+        }
+        // Android-side: route notifications to our callback
+        gatt.setCharacteristicNotification(char, true)
+
+        // Device-side: write CCCD to ask STM32 to send notifications
+        val cccd = char.getDescriptor(BleDeviceConfig.CCCD_UUID)
+        if (cccd == null) {
+            onError("CCCD descriptor not found on 0xFFF2")
+            return
+        }
+        @Suppress("DEPRECATION")
+        cccd.value = BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+        @Suppress("DEPRECATION")
+        gatt.writeDescriptor(cccd)
+        Log.d(TAG, "CCCD write requested for 0xFFF2")
+    }
+
+    // -------------------------------------------------------------------------
+    //  Packet parser
+    // -------------------------------------------------------------------------
+
+    /**
+     * Parse a raw BLE notification payload into a [StreamPacketHeader] and two
+     * [ShortArray]s of int16 ADC samples, then deliver via [onBatchReceived].
+     *
+     * Packet layout (little-endian):
+     *   offset 0 : uint32  timestamp_s
+     *   offset 4 : uint16  timestamp_sub_s
+     *   offset 6 : uint8   seq_num
+     *   offset 7 : uint8   num_pairs
+     *   offset 8 : int16[] samples  (interleaved ch0, ch1)
+     */
+    private fun parseStreamPacket(data: ByteArray) {
+        if (data.size < 8) {
+            Log.w(TAG, "Packet too small: ${data.size} bytes")
+            return
+        }
+
+        val buf = ByteBuffer.wrap(data).order(ByteOrder.LITTLE_ENDIAN)
+
+        val timestampS    = buf.int.toLong() and 0xFFFFFFFFL
+        val timestampSubS = buf.short.toInt() and 0xFFFF
+        val seqNum        = buf.get().toInt() and 0xFF
+        val numPairs      = buf.get().toInt() and 0xFF
+
+        // Drop detection
+        totalPackets++
+        expectedSeq?.let { exp ->
+            val gap = (seqNum - exp + 256) % 256
+            if (gap != 0) {
+                totalDropped += gap
+                Log.w(TAG, "Seq gap: expected $exp got $seqNum (dropped ~$gap pkt, total=$totalDropped)")
+                onDebugInfo?.invoke("Drops: $totalDropped / $totalPackets")
             }
         }
-        
-        // Send debug callback for UI display
-        onDebugData?.invoke(characteristicUuid.toString(), hexData, parsedValue)
-        
-        // Send packet count update
-        onPacketCountUpdate?.invoke(channel0PacketCount, channel1PacketCount, channel2PacketCount, channel3PacketCount)
-        
-        // Send data update when any characteristic changes
-        if (dataReceived) {
-            Log.d(TAG, "Data updated: CH0=$channel0Value, CH1=$channel1Value, CH2=$channel2Value, CH3=$channel3Value")
-            onDataReceived(channel0Value, channel1Value, channel2Value, channel3Value)
+        expectedSeq = (seqNum + 1) % 256
+
+        val minSize = 8 + numPairs * 4
+        if (data.size < minSize) {
+            Log.w(TAG, "Packet truncated: got ${data.size}, need $minSize")
+            return
         }
-    }
-    
-    /**
-     * Convert 2 bytes to uint16 (little-endian).
-     */
-    private fun bytesToUInt16(data: ByteArray, offset: Int): Int {
-        return (data[offset].toInt() and 0xFF) or
-               ((data[offset + 1].toInt() and 0xFF) shl 8)
-    }
-    
-    /**
-     * Start polling thread to read characteristic if notifications don't arrive.
-     */
-    @SuppressLint("MissingPermission")
-    private fun startPolling() {
-        stopPolling()  // Stop any existing polling
-        
-        shouldPoll = true
-        readInProgress = false
-        pollingThread = thread(isDaemon = true, name = "BlePollingThread") {
-            Log.i(TAG, "🔄 Polling thread started - reading characteristic every ${POLLING_INTERVAL_MS}ms with proper sequencing")
-            var attemptCount = 0
-            var loopCount = 0
-            var queueRejectedCount = 0
-            
-            while (shouldPoll) {
-                loopCount++
-                try {
-                    if (loopCount % 5 == 1) {
-                        Log.d(TAG, "🔄 Polling loop iteration #$loopCount, readInProgress=$readInProgress")
-                    }
-                    
-                    Thread.sleep(POLLING_INTERVAL_MS)
-                    
-                    if (shouldPoll && !readInProgress) {  // Only read if no read is in flight
-                        attemptCount++
-                        Log.d(TAG, "📖 [Attempt #$attemptCount] Checking GATT state: GATT=${bluetoothGatt != null}, Char=${characteristic0x2A37 != null}")
-                        
-                        if (bluetoothGatt != null && characteristic0x2A37 != null) {
-                            Log.d(TAG, "📖 [Attempt #$attemptCount] Issuing read request for 0x2A37...")
-                            readInProgress = true  // Mark read as in flight
-                            val success = bluetoothGatt?.readCharacteristic(characteristic0x2A37!!)
-                            if (success == true) {
-                                Log.d(TAG, "✅ [Attempt #$attemptCount] Read queued successfully")
-                            } else {
-                                Log.w(TAG, "⚠️  [Attempt #$attemptCount] Read rejected - GATT queue may be full")
-                                readInProgress = false  // Reset flag since operation wasn't queued
-                                queueRejectedCount++
-                                if (queueRejectedCount % 10 == 0) {
-                                    Log.w(TAG, "⚠️  Queue rejections so far: $queueRejectedCount - Device may not be responding")
-                                }
-                            }
-                        } else {
-                            Log.w(TAG, "❌ [Attempt #$attemptCount] Cannot read: GATT=${bluetoothGatt != null}, Char=${characteristic0x2A37 != null}")
-                        }
-                    } else if (readInProgress && loopCount % 20 == 1) {
-                        Log.d(TAG, "⏳ [Loop #$loopCount] Waiting for read response...")
-                    }
-                } catch (e: InterruptedException) {
-                    Log.d(TAG, "Polling thread interrupted at loop iteration #$loopCount")
-                    break
-                } catch (e: Exception) {
-                    Log.e(TAG, "❌ Error during polling at iteration #$loopCount: ${e.message}", e)
-                    readInProgress = false
-                }
-            }
-            
-            Log.i(TAG, "🔄 Polling thread stopped (Total rejections: $queueRejectedCount)")
+
+        val ch0 = ShortArray(numPairs)
+        val ch1 = ShortArray(numPairs)
+        for (i in 0 until numPairs) {
+            ch0[i] = buf.short
+            ch1[i] = buf.short
         }
-    }
-    
-    /**
-     * Stop the polling thread.
-     */
-    private fun stopPolling() {
-        shouldPoll = false
-        pollingThread?.interrupt()
-        pollingThread = null
+
+        val header = StreamPacketHeader(timestampS, timestampSubS, seqNum, numPairs)
+        onBatchReceived(ch0, ch1, header)
     }
 }
 
-/**
- * Extension function to enable/disable notifications for a characteristic.
- */
 @SuppressLint("MissingPermission")
 fun BluetoothGatt.setNotificationEnabled(characteristic: BluetoothGattCharacteristic, enabled: Boolean) {
     val cccd = characteristic.getDescriptor(BleDeviceConfig.CCCD_UUID) ?: return
-    
-    if (enabled) {
-        cccd.value = android.bluetooth.BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
-    } else {
-        cccd.value = android.bluetooth.BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE
-    }
-    
+    @Suppress("DEPRECATION")
+    cccd.value = if (enabled) BluetoothGattDescriptor.ENABLE_NOTIFICATION_VALUE
+                 else         BluetoothGattDescriptor.DISABLE_NOTIFICATION_VALUE
+    @Suppress("DEPRECATION")
     writeDescriptor(cccd)
 }

@@ -52,6 +52,8 @@ fun BleGraphScreen(viewModel: BleGraphViewModel) {
     val displayFullResolution by viewModel.displayFullResolution.collectAsState()
     val debugData by viewModel.debugData.collectAsState()
     val packetCounts by viewModel.packetCounts.collectAsState()
+    val recordingInfo by viewModel.recordingInfo.collectAsState()
+    val isRecording = recordingInfo.isRecording
 
     // State for number of channels to display
     var numChannelsToDisplay by remember { mutableStateOf(4) }
@@ -263,8 +265,55 @@ fun BleGraphScreen(viewModel: BleGraphViewModel) {
                     containerColor = if (displayFullResolution) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
                 )
             ) {
-                Text(if (displayFullResolution) "0.5s" else "2s")
+                Text(if (displayFullResolution) "0.5s" else "10s")
             }
+
+            OutlinedButton(
+                onClick = {
+                    if (isRecording) viewModel.stopRecording()
+                    else viewModel.startRecording()
+                },
+                enabled = isConnected,
+                modifier = Modifier.weight(1f),
+                colors = ButtonDefaults.outlinedButtonColors(
+                    containerColor = if (isRecording) Color(0xFFFFCDD2) else Color.Transparent
+                )
+            ) {
+                val label = if (isRecording) {
+                    val m = recordingInfo.elapsedSec / 60
+                    val s = recordingInfo.elapsedSec % 60
+                    "■ %d:%02d".format(m, s)
+                } else "● REC"
+                Text(label)
+            }
+        }
+
+        // Recording advisory / live status
+        val recStatusText = when {
+            isRecording -> {
+                val m = recordingInfo.elapsedSec / 60
+                val s = recordingInfo.elapsedSec % 60
+                "Recording  %d:%02d / 10:00  •  ~%d MB written".format(m, s, recordingInfo.estimatedMb)
+            }
+            recordingInfo.autoStopped ->
+                "Recording stopped automatically  •  %d:%02d  •  ~%d MB  •  saved to Downloads".format(
+                    recordingInfo.elapsedSec / 60, recordingInfo.elapsedSec % 60, recordingInfo.estimatedMb
+                )
+            recordingInfo.elapsedSec > 0 ->
+                "Last recording: %d:%02d  •  ~%d MB  •  saved to Downloads".format(
+                    recordingInfo.elapsedSec / 60, recordingInfo.elapsedSec % 60, recordingInfo.estimatedMb
+                )
+            isConnected ->
+                "Max recording: 10 min  •  ~410 MB  •  auto-stops if < 200 MB free"
+            else -> null
+        }
+        if (recStatusText != null) {
+            Text(
+                text = recStatusText,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (isRecording) Color(0xFFB71C1C) else Color.Gray,
+                modifier = Modifier.padding(horizontal = 4.dp)
+            )
         }
 
         // Scanning indicator
@@ -303,7 +352,8 @@ fun BleGraphScreen(viewModel: BleGraphViewModel) {
 
         // Multi-channel graphs
         if (isConnected || channel0Data.isNotEmpty()) {
-            val timeWindow = if (displayFullResolution) "0.5 second" else "2 seconds"
+            val windowDurationSec = if (displayFullResolution) 0.5f else 10.0f
+            val timeWindow = if (displayFullResolution) "0.5 s full-rate" else "10 s decimated"
             Text(
                 text = "Signal Data - $numChannelsToDisplay Channel${if (numChannelsToDisplay > 1) "s" else ""} ($timeWindow, ${channel0Data.size} points)",
                 style = MaterialTheme.typography.titleMedium
@@ -314,6 +364,7 @@ fun BleGraphScreen(viewModel: BleGraphViewModel) {
                 channel2 = channel2Data,
                 channel3 = channel3Data,
                 numChannels = numChannelsToDisplay,
+                windowDurationSec = windowDurationSec,
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
@@ -366,57 +417,47 @@ fun MultiChannelGraphDisplay(
     channel2: List<com.example.blegraph.data.TimeSeriesPoint>,
     channel3: List<com.example.blegraph.data.TimeSeriesPoint>,
     numChannels: Int = 4,
+    windowDurationSec: Float = 0.3f,
     modifier: Modifier = Modifier
 ) {
     androidx.compose.foundation.layout.Column(
         modifier = modifier.fillMaxSize(),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
+        verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
         if (numChannels >= 1) {
-            // Channel 0 - Red
             TimeSeriesGraph(
                 dataPoints = channel0,
                 channelName = "Channel 0",
                 lineColor = Color.Red,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
+                windowDurationSec = windowDurationSec,
+                modifier = Modifier.fillMaxWidth().weight(1f)
             )
         }
-
         if (numChannels >= 2) {
-            // Channel 1 - Green
             TimeSeriesGraph(
                 dataPoints = channel1,
                 channelName = "Channel 1",
                 lineColor = Color.Green,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
+                windowDurationSec = windowDurationSec,
+                modifier = Modifier.fillMaxWidth().weight(1f)
             )
         }
-
         if (numChannels >= 3) {
-            // Channel 2 - Blue
             TimeSeriesGraph(
                 dataPoints = channel2,
                 channelName = "Channel 2",
                 lineColor = Color.Blue,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
+                windowDurationSec = windowDurationSec,
+                modifier = Modifier.fillMaxWidth().weight(1f)
             )
         }
-
         if (numChannels >= 4) {
-            // Channel 3 - Magenta
             TimeSeriesGraph(
                 dataPoints = channel3,
                 channelName = "Channel 3",
                 lineColor = Color.Magenta,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
+                windowDurationSec = windowDurationSec,
+                modifier = Modifier.fillMaxWidth().weight(1f)
             )
         }
     }

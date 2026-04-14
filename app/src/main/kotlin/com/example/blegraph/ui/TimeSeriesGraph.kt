@@ -1,9 +1,13 @@
 package com.example.blegraph.ui
 
+import android.graphics.Paint
+import android.graphics.Typeface
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -11,205 +15,212 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.blegraph.data.TimeSeriesPoint
 
+/**
+ * Fixed-window time-series graph.
+ *
+ * The x-axis always spans exactly [windowDurationSec] seconds. Data is right-anchored:
+ * the most-recent sample is at the right edge. Before the buffer fills the window, the
+ * signal appears on the right and blank space is on the left (oscilloscope-style).
+ *
+ * X positions are derived from [TimeSeriesPoint.timestampUs] (µs since MCU boot).
+ * Y positions are auto-scaled to the visible data with a 5 % margin so peaks never
+ * touch the axis lines. Five labelled tick marks show the actual ADC values.
+ *
+ * @param dataPoints        Points to render (already windowed + decimated by BleManager).
+ * @param channelName       Label drawn above the graph.
+ * @param lineColor         Waveform color.
+ * @param windowDurationSec Width of the visible time window in seconds (e.g. 0.3 or 3.0).
+ */
 @Composable
 fun TimeSeriesGraph(
     dataPoints: List<TimeSeriesPoint>,
     channelName: String = "Signal",
     lineColor: Color = Color.Blue,
+    windowDurationSec: Float,
     modifier: Modifier = Modifier
 ) {
-    Column(
-        modifier = modifier.fillMaxSize()
-    ) {
-        // Channel name label
+    val windowDurationUs = (windowDurationSec * 1_000_000f).toLong().coerceAtLeast(1L)
+
+    // Reused across frames — created once per composition site.
+    val yLabelPaint = remember {
+        Paint().apply {
+            color     = android.graphics.Color.DKGRAY
+            textSize  = 14f
+            textAlign = Paint.Align.RIGHT
+            isAntiAlias = true
+            typeface  = Typeface.MONOSPACE
+        }
+    }
+
+    Column(modifier = modifier.fillMaxSize()) {
+        // Channel label
         Text(
             text = channelName,
             style = MaterialTheme.typography.labelMedium,
-            modifier = Modifier.padding(start = 16.dp, top = 8.dp)
+            modifier = Modifier.padding(start = 16.dp, top = 4.dp)
         )
-        
+
+        // Graph canvas
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
                 .background(Color.White)
-                .padding(16.dp)
+                .padding(horizontal = 8.dp, vertical = 4.dp)
         ) {
             Canvas(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color(0xFFF5F5F5))
             ) {
-                if (dataPoints.isEmpty()) return@Canvas
+                val w = size.width
+                val h = size.height
 
-                val width = size.width
-                val height = size.height
-                val padding = 40f
+                // Asymmetric padding: left is wider to accommodate y-axis labels.
+                val leftPad  = 64f
+                val rightPad = 12f
+                val vPad     = 20f
+                val plotW = w - leftPad - rightPad
+                val plotH = h - 2 * vPad
 
-                // Draw background grid
-                drawGrid(padding, width, height)
+                drawGrid(leftPad, rightPad, vPad, w, h)
 
-                // Calculate min and max values
-                val minValue = dataPoints.minOf { it.value }
-                val maxValue = dataPoints.maxOf { it.value }
-                val valueRange = if (maxValue == minValue) 1f else maxValue - minValue
+                // Axes
+                drawLine(Color.Black, Offset(leftPad, vPad),     Offset(leftPad, h - vPad), strokeWidth = 2f)
+                drawLine(Color.Black, Offset(leftPad, h - vPad), Offset(w - rightPad, h - vPad), strokeWidth = 2f)
 
-                // Draw axes
-                // Y-axis
-                drawLine(
-                    color = Color.Black,
-                    start = Offset(padding, padding),
-                    end = Offset(padding, height - padding),
-                    strokeWidth = 2f
-                )
-
-                // X-axis
-                drawLine(
-                    color = Color.Black,
-                    start = Offset(padding, height - padding),
-                    end = Offset(width - padding, height - padding),
-                    strokeWidth = 2f
-                )
-
-                // Draw data points and line
-                val pointSpacing = (width - 2 * padding) / (dataPoints.size - 1).coerceAtLeast(1)
-                
-                // Skip drawing circles for very dense data (more than 1000 points)
-                // to reduce rendering overhead. Lines are sufficient for visualization.
-                val shouldDrawCircles = dataPoints.size <= 1000
-
-                for (i in 0 until dataPoints.size - 1) {
-                    val current = dataPoints[i]
-                    val next = dataPoints[i + 1]
-
-                    val x1 = padding + i * pointSpacing
-                    val y1 = height - padding - ((current.value - minValue) / valueRange) * (height - 2 * padding)
-
-                    val x2 = padding + (i + 1) * pointSpacing
-                    val y2 = height - padding - ((next.value - minValue) / valueRange) * (height - 2 * padding)
-
-                    // Draw line between points
-                    drawLine(
-                        color = lineColor,
-                        start = Offset(x1, y1),
-                        end = Offset(x2, y2),
-                        strokeWidth = 2f
-                    )
+                // X-axis tick marks (5 evenly-spaced)
+                val numXTicks = 5
+                for (i in 0 until numXTicks) {
+                    val x = leftPad + (i.toFloat() / (numXTicks - 1)) * plotW
+                    drawLine(Color.Gray, Offset(x, h - vPad), Offset(x, h - vPad + 5f), strokeWidth = 1f)
                 }
 
-                // Draw circles only if not too dense
-                if (shouldDrawCircles) {
-                    for (i in dataPoints.indices) {
-                        val point = dataPoints[i]
-                        val x = padding + i * pointSpacing
-                        val y = height - padding - ((point.value - minValue) / valueRange) * (height - 2 * padding)
-
-                        drawCircle(
-                            color = lineColor,
-                            radius = 3f,
-                            center = Offset(x, y)
-                        )
+                if (dataPoints.size < 2) {
+                    // Draw unlabelled y-ticks even when there's no data yet
+                    for (i in 0..4) {
+                        val y = h - vPad - (i / 4f) * plotH
+                        drawLine(Color.Gray, Offset(leftPad - 5f, y), Offset(leftPad, y), strokeWidth = 1f)
                     }
+                    return@Canvas
                 }
 
-                // Draw Y-axis labels
-                for (i in 0..4) {
-                    val value = minValue + (i / 4f) * valueRange
-                    val y = height - padding - (i / 4f) * (height - 2 * padding)
+                // ── Y-scale ──────────────────────────────────────────────────
+                // Auto-fit to visible data + 5 % vertical margin so peaks/troughs
+                // never fall exactly on the axis lines.
+                val rawMin = dataPoints.minOf { it.value }
+                val rawMax = dataPoints.maxOf { it.value }
+                val rawRange = if (rawMax == rawMin) 1f else rawMax - rawMin
+                val margin   = rawRange * 0.05f
+                val yMin     = rawMin - margin
+                val yMax     = rawMax + margin
+                val yRange   = yMax - yMin
 
-                    drawLine(
-                        color = Color.Gray,
-                        start = Offset(padding - 5f, y),
-                        end = Offset(padding, y),
-                        strokeWidth = 1f
-                    )
-                }
+                // ── X-scale ──────────────────────────────────────────────────
+                val lastUs  = dataPoints.last().timestampUs
+                val firstUs = lastUs - windowDurationUs
 
-                // Draw X-axis time labels
-                if (dataPoints.isNotEmpty()) {
-                    val numLabels = 5
-                    for (i in 0 until numLabels) {
-                        val index = (i * dataPoints.size / (numLabels - 1)).coerceAtMost(dataPoints.size - 1)
-                        val x = padding + index * pointSpacing
-                        val textY = height - padding + 20f
+                fun timestampToX(us: Long): Float =
+                    leftPad + ((us - firstUs).toFloat() / windowDurationUs) * plotW
 
-                        // Draw tick mark
+                fun valueToY(v: Float): Float =
+                    h - vPad - ((v - yMin) / yRange) * plotH
+
+                // ── Y-axis ticks + labels ─────────────────────────────────────
+                val numYTicks = 5
+                drawContext.canvas.nativeCanvas.apply {
+                    for (i in 0 until numYTicks) {
+                        val frac  = i.toFloat() / (numYTicks - 1)
+                        val y     = h - vPad - frac * plotH
+                        val value = yMin + frac * yRange
+
+                        // Tick mark
                         drawLine(
-                            color = Color.Gray,
-                            start = Offset(x, height - padding),
-                            end = Offset(x, height - padding + 5f),
+                            Color.Gray,
+                            Offset(leftPad - 5f, y),
+                            Offset(leftPad, y),
                             strokeWidth = 1f
                         )
+
+                        // Label (right-aligned, vertically centred on the tick)
+                        drawText(
+                            formatYLabel(value),
+                            leftPad - 8f,
+                            y + yLabelPaint.textSize * 0.35f,
+                            yLabelPaint
+                        )
                     }
+                }
+
+                // ── Waveform ──────────────────────────────────────────────────
+                for (i in 0 until dataPoints.size - 1) {
+                    val x1 = timestampToX(dataPoints[i].timestampUs)
+                    val y1 = valueToY(dataPoints[i].value)
+                    val x2 = timestampToX(dataPoints[i + 1].timestampUs)
+                    val y2 = valueToY(dataPoints[i + 1].value)
+                    if (x2 < leftPad || x1 > w - rightPad) continue
+                    drawLine(lineColor, Offset(x1, y1), Offset(x2, y2), strokeWidth = 2f)
                 }
             }
         }
 
-        // X-axis time labels below the graph
-        if (dataPoints.isNotEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(40.dp)
-                    .background(Color.White)
-                    .padding(vertical = 4.dp)
-            ) {
-                androidx.compose.foundation.layout.Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = androidx.compose.foundation.layout.Arrangement.SpaceBetween
-                ) {
-                    val numLabels = 5
-                    for (i in 0 until numLabels) {
-                        val index = (i * dataPoints.size / (numLabels - 1)).coerceAtMost(dataPoints.size - 1)
-                        val sampleIndex = dataPoints[index].sampleIndex
-                        val timeSeconds = sampleIndex * 0.1  // 100ms per sample
-                        Text(
-                            text = String.format("%.1fs", timeSeconds),
-                            style = MaterialTheme.typography.labelSmall,
-                            fontSize = 10.sp,
-                            modifier = Modifier.padding(horizontal = 8.dp)
-                        )
-                    }
-                }
+        // X-axis time labels: 0.0 s (left edge) → windowDurationSec (right edge)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(16.dp)
+                .background(Color.White)
+                .padding(start = (8 + 4).dp, end = 8.dp),   // align with leftPad offset
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            val numLabels = 5
+            val fmt = if (windowDurationSec >= 1f) "%.1fs" else "%.2fs"
+            for (i in 0 until numLabels) {
+                val timeSec = (i.toFloat() / (numLabels - 1)) * windowDurationSec
+                Text(
+                    text = fmt.format(timeSec),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontSize = 9.sp
+                )
             }
         }
     }
 }
 
-private fun DrawScope.drawGrid(padding: Float, width: Float, height: Float) {
-    val gridSpacing = 50f
-    val strokeWidth = 0.5f
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
-    // Vertical grid lines
-    var x = padding
-    while (x < width - padding) {
-        drawLine(
-            color = Color.LightGray,
-            start = Offset(x, padding),
-            end = Offset(x, height - padding),
-            strokeWidth = strokeWidth
-        )
+/**
+ * Format a y-axis tick value compactly.
+ * Uses "k" suffix for |value| ≥ 10 000 to keep labels narrow.
+ */
+private fun formatYLabel(value: Float): String = when {
+    kotlin.math.abs(value) >= 10_000f -> "%.1fk".format(value / 1_000f)
+    else                               -> "%.0f".format(value)
+}
+
+private fun DrawScope.drawGrid(
+    leftPad: Float, rightPad: Float, vPad: Float,
+    width: Float, height: Float
+) {
+    val gridSpacing = 50f
+    var x = leftPad
+    while (x <= width - rightPad) {
+        drawLine(Color.LightGray, Offset(x, vPad), Offset(x, height - vPad), strokeWidth = 0.5f)
         x += gridSpacing
     }
-
-    // Horizontal grid lines
-    var y = padding
-    while (y < height - padding) {
-        drawLine(
-            color = Color.LightGray,
-            start = Offset(padding, y),
-            end = Offset(width - padding, y),
-            strokeWidth = strokeWidth
-        )
+    var y = vPad
+    while (y <= height - vPad) {
+        drawLine(Color.LightGray, Offset(leftPad, y), Offset(width - rightPad, y), strokeWidth = 0.5f)
         y += gridSpacing
     }
 }

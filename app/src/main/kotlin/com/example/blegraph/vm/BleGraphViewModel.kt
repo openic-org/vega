@@ -28,6 +28,9 @@ class BleGraphViewModel(private val bleManager: BleManager) : ViewModel() {
     // Packet counters
     val packetCounts: StateFlow<BleManager.PacketCounts> = bleManager.packetCounts
 
+    // CSV recording
+    val recordingInfo: StateFlow<BleManager.RecordingInfo> = bleManager.recordingInfo
+
     fun startScanning() {
         bleManager.startScanning()
     }
@@ -55,4 +58,7 @@ class BleGraphViewModel(private val bleManager: BleManager) : ViewModel() {
     fun toggleDisplayMode() {
         bleManager.toggleDisplayMode()
     }
+
+    fun startRecording() = bleManager.startRecording()
+    fun stopRecording()  = bleManager.stopRecording()
 }
