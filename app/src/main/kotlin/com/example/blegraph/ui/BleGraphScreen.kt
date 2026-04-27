@@ -1,7 +1,6 @@
 package com.example.blegraph.ui
 
 import android.Manifest
-import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -34,7 +33,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.core.content.ContextCompat
 import com.example.blegraph.vm.BleGraphViewModel
 import com.example.blegraph.data.BluetoothDevice
 
@@ -53,9 +51,9 @@ fun BleGraphScreen(viewModel: BleGraphViewModel) {
     val debugData by viewModel.debugData.collectAsState()
     val packetCounts by viewModel.packetCounts.collectAsState()
     val recordingInfo by viewModel.recordingInfo.collectAsState()
+    val dataRate by viewModel.dataRate.collectAsState()
     val isRecording = recordingInfo.isRecording
 
-    // State for number of channels to display
     var numChannelsToDisplay by remember { mutableStateOf(4) }
     var channelDropdownExpanded by remember { mutableStateOf(false) }
 
@@ -83,178 +81,115 @@ fun BleGraphScreen(viewModel: BleGraphViewModel) {
         modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        // Header with connection status
+        // ── Header ──────────────────────────────────────────────────────────
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
-                text = "BLE Time-Series Graph",
+                text = "Vega",
                 style = MaterialTheme.typography.headlineSmall
             )
             if (isConnected) {
                 Text(
-                    text = "Connected: $connectedDeviceName",
-                    style = MaterialTheme.typography.bodySmall
+                    text = connectedDeviceName ?: "",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Green
                 )
             }
         }
 
-        // Debug Panel
+        // ── Debug panel (connected only) ─────────────────────────────────────
         if (isConnected) {
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp)
-            ) {
+            Card(modifier = Modifier.fillMaxWidth()) {
                 Column(
-                    modifier = Modifier.padding(12.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Text(
-                        text = "Debug Information",
-                        style = MaterialTheme.typography.titleSmall
-                    )
-                    
-                    // Connection Status
+                    Text("Debug Info", style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary)
+
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
-                        Text("Status:", style = MaterialTheme.typography.bodySmall)
-                        Text(
-                            "Connected",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.Green
-                        )
-                    }
-                    
-                    // Packet Counters
-                    Text(
-                        "Packets Received:",
-                        style = MaterialTheme.typography.labelSmall
-                    )
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(start = 8.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("CH0: ${packetCounts.ch0}", style = MaterialTheme.typography.bodySmall)
-                        Text("CH1: ${packetCounts.ch1}", style = MaterialTheme.typography.bodySmall)
-                        Text("CH2: ${packetCounts.ch2}", style = MaterialTheme.typography.bodySmall)
-                        Text("CH3: ${packetCounts.ch3}", style = MaterialTheme.typography.bodySmall)
-                    }
-                    
-                    // Last Debug Data
-                    if (debugData != null) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Characteristic:", style = MaterialTheme.typography.bodySmall)
-                            Text(
-                                text = debugData!!.characteristicUuid.takeLast(8),
-                                style = MaterialTheme.typography.bodySmall
-                            )
+                        // Left column
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            val streaming = packetCounts.ch0 > 0
+                            DebugItem("Status", if (streaming) "Streaming" else "Connected",
+                                valueColor = if (streaming) Color(0xFF2E7D32) else Color.Gray)
+                            DebugItem("Packets", packetCounts.ch0.toString())
+                            DebugItem("Char", "0xFFF2 (notify)")
+                            debugData?.let { d ->
+                                if (d.parsedValue.isNotEmpty())
+                                    DebugItem("Info", d.parsedValue)
+                            }
                         }
-                        
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Hex Data:", style = MaterialTheme.typography.bodySmall)
-                            Text(
-                                text = debugData!!.hexBytes,
-                                style = MaterialTheme.typography.bodySmall
-                            )
+                        // Right column
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            val pps  = dataRate.packetsPerSecond
+                            val kbps = dataRate.kbitsPerSecond
+                            if (pps > 0f) {
+                                DebugItem("Rate", "%.1f pkt/s".format(pps))
+                                DebugItem("Thru", "%.0f kbit/s".format(kbps))
+                            } else {
+                                DebugItem("Rate", "—")
+                                DebugItem("Thru", "—")
+                            }
                         }
-                        
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween
-                        ) {
-                            Text("Parsed Value:", style = MaterialTheme.typography.bodySmall)
-                            Text(
-                                text = debugData!!.parsedValue,
-                                style = MaterialTheme.typography.bodySmall
-                            )
-                        }
-                    } else {
-                        Text(
-                            "Waiting for data...",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.Gray
-                        )
                     }
                 }
             }
         }
 
-        // Scan controls
+        // ── Controls — single row (4 buttons disconnected, 5 connected) ─────
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            horizontalArrangement = Arrangement.spacedBy(4.dp)
         ) {
             Button(
                 onClick = {
                     if (isScanning) viewModel.stopScanning()
                     else viewModel.startScanning()
                 },
-                modifier = Modifier
-                    .weight(1f)
-            ) {
-                if (isScanning) {
-                    Text("Stop Scanning")
-                } else {
-                    Text("Scan")
-                }
-            }
-
-            Button(
-                onClick = { viewModel.generateSimulatedData() },
                 modifier = Modifier.weight(1f)
             ) {
-                Text("Simulate")
+                Text(if (isScanning) "Stop" else "Scan",
+                    style = MaterialTheme.typography.labelSmall)
             }
 
             if (isConnected) {
                 Button(
                     onClick = { viewModel.disconnect() },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error
+                    ),
                     modifier = Modifier.weight(1f)
                 ) {
-                    Text("Disconnect")
+                    Text("Disconnect", style = MaterialTheme.typography.labelSmall)
                 }
             }
-        }
 
-        // Channel selection and display resolution controls
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            androidx.compose.material3.OutlinedButton(
-                onClick = { channelDropdownExpanded = true },
-                modifier = Modifier.weight(1f)
-            ) {
-                Text("Channels: $numChannelsToDisplay")
-            }
-
-            DropdownMenu(
-                expanded = channelDropdownExpanded,
-                onDismissRequest = { channelDropdownExpanded = false }
-            ) {
-                for (numChannels in 1..4) {
-                    DropdownMenuItem(
-                        text = { Text("$numChannels Channel${if (numChannels > 1) "s" else ""}") },
-                        onClick = {
-                            numChannelsToDisplay = numChannels
-                            channelDropdownExpanded = false
-                        }
-                    )
+            androidx.compose.foundation.layout.Box(modifier = Modifier.weight(1f)) {
+                OutlinedButton(
+                    onClick = { channelDropdownExpanded = true },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Text("CH: $numChannelsToDisplay", style = MaterialTheme.typography.labelSmall)
+                }
+                DropdownMenu(
+                    expanded = channelDropdownExpanded,
+                    onDismissRequest = { channelDropdownExpanded = false }
+                ) {
+                    for (n in 1..4) {
+                        DropdownMenuItem(
+                            text = { Text("$n channel${if (n > 1) "s" else ""}") },
+                            onClick = { numChannelsToDisplay = n; channelDropdownExpanded = false }
+                        )
+                    }
                 }
             }
 
@@ -262,10 +197,12 @@ fun BleGraphScreen(viewModel: BleGraphViewModel) {
                 onClick = { viewModel.toggleDisplayMode() },
                 modifier = Modifier.weight(1f),
                 colors = ButtonDefaults.outlinedButtonColors(
-                    containerColor = if (displayFullResolution) MaterialTheme.colorScheme.primaryContainer else Color.Transparent
+                    containerColor = if (displayFullResolution)
+                        MaterialTheme.colorScheme.primaryContainer else Color.Transparent
                 )
             ) {
-                Text(if (displayFullResolution) "0.5s" else "10s")
+                Text(if (displayFullResolution) "0.5s" else "10s",
+                    style = MaterialTheme.typography.labelSmall)
             }
 
             OutlinedButton(
@@ -284,27 +221,25 @@ fun BleGraphScreen(viewModel: BleGraphViewModel) {
                     val s = recordingInfo.elapsedSec % 60
                     "■ %d:%02d".format(m, s)
                 } else "● REC"
-                Text(label)
+                Text(label, style = MaterialTheme.typography.labelSmall)
             }
         }
 
-        // Recording advisory / live status
+        // ── Recording status line ────────────────────────────────────────────
         val recStatusText = when {
             isRecording -> {
                 val m = recordingInfo.elapsedSec / 60
                 val s = recordingInfo.elapsedSec % 60
-                "Recording  %d:%02d / 10:00  •  ~%d MB written".format(m, s, recordingInfo.estimatedMb)
+                "Recording  %d:%02d / 10:00  •  ~%d MB".format(m, s, recordingInfo.estimatedMb)
             }
             recordingInfo.autoStopped ->
-                "Recording stopped automatically  •  %d:%02d  •  ~%d MB  •  saved to Downloads".format(
-                    recordingInfo.elapsedSec / 60, recordingInfo.elapsedSec % 60, recordingInfo.estimatedMb
-                )
+                "Stopped automatically  •  %d:%02d  •  ~%d MB  •  saved to Downloads".format(
+                    recordingInfo.elapsedSec / 60, recordingInfo.elapsedSec % 60, recordingInfo.estimatedMb)
             recordingInfo.elapsedSec > 0 ->
                 "Last recording: %d:%02d  •  ~%d MB  •  saved to Downloads".format(
-                    recordingInfo.elapsedSec / 60, recordingInfo.elapsedSec % 60, recordingInfo.estimatedMb
-                )
+                    recordingInfo.elapsedSec / 60, recordingInfo.elapsedSec % 60, recordingInfo.estimatedMb)
             isConnected ->
-                "Max recording: 10 min  •  ~410 MB  •  auto-stops if < 200 MB free"
+                "Max 10 min  •  auto-stops if < 200 MB free"
             else -> null
         }
         if (recStatusText != null) {
@@ -312,27 +247,23 @@ fun BleGraphScreen(viewModel: BleGraphViewModel) {
                 text = recStatusText,
                 style = MaterialTheme.typography.bodySmall,
                 color = if (isRecording) Color(0xFFB71C1C) else Color.Gray,
-                modifier = Modifier.padding(horizontal = 4.dp)
+                modifier = Modifier.padding(horizontal = 2.dp)
             )
         }
 
-        // Scanning indicator
+        // ── Scanning indicator ───────────────────────────────────────────────
         if (isScanning) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp),
+                modifier = Modifier.fillMaxWidth().padding(4.dp),
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.padding(end = 8.dp)
-                )
-                Text("Scanning for devices...")
+                CircularProgressIndicator(modifier = Modifier.padding(end = 8.dp))
+                Text("Scanning for devices…")
             }
         }
 
-        // Devices list
+        // ── Device list ──────────────────────────────────────────────────────
         if (scannedDevices.isNotEmpty() && !isConnected) {
             Text(
                 text = "Available Devices (${scannedDevices.size})",
@@ -350,13 +281,14 @@ fun BleGraphScreen(viewModel: BleGraphViewModel) {
             }
         }
 
-        // Multi-channel graphs
+        // ── Graph ────────────────────────────────────────────────────────────
         if (isConnected || channel0Data.isNotEmpty()) {
-            val windowDurationSec = if (displayFullResolution) 0.5f else 10.0f
-            val timeWindow = if (displayFullResolution) "0.5 s full-rate" else "10 s decimated"
+            val windowSec = if (displayFullResolution) 0.5f else 10.0f
+            val windowLabel = if (displayFullResolution) "0.5 s" else "10 s"
             Text(
-                text = "Signal Data - $numChannelsToDisplay Channel${if (numChannelsToDisplay > 1) "s" else ""} ($timeWindow, ${channel0Data.size} points)",
-                style = MaterialTheme.typography.titleMedium
+                text = "$numChannelsToDisplay ch  •  $windowLabel  •  ${channel0Data.size} pts",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray
             )
             MultiChannelGraphDisplay(
                 channel0 = channel0Data,
@@ -364,44 +296,49 @@ fun BleGraphScreen(viewModel: BleGraphViewModel) {
                 channel2 = channel2Data,
                 channel3 = channel3Data,
                 numChannels = numChannelsToDisplay,
-                windowDurationSec = windowDurationSec,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
+                windowDurationSec = windowSec,
+                modifier = Modifier.fillMaxWidth().weight(1f)
             )
         }
     }
 }
 
 @Composable
+private fun DebugItem(label: String, value: String, valueColor: Color = Color.Unspecified) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Text(
+            text = "$label:",
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.Gray
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.labelSmall,
+            color = valueColor
+        )
+    }
+}
+
+@Composable
 fun DeviceCard(device: BluetoothDevice, onConnect: () -> Unit) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(8.dp)
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 0.dp, vertical = 4.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+            modifier = Modifier.fillMaxWidth().padding(12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = device.name ?: "Unknown Device",
                     style = MaterialTheme.typography.titleSmall
                 )
-                Text(
-                    text = device.address,
-                    style = MaterialTheme.typography.bodySmall
-                )
-                Text(
-                    text = "RSSI: ${device.rssi} dBm",
-                    style = MaterialTheme.typography.bodySmall
-                )
+                Text(text = device.address, style = MaterialTheme.typography.bodySmall)
+                Text(text = "RSSI: ${device.rssi} dBm", style = MaterialTheme.typography.bodySmall)
             }
             Button(onClick = onConnect) {
                 Text("Connect")
@@ -417,48 +354,32 @@ fun MultiChannelGraphDisplay(
     channel2: List<com.example.blegraph.data.TimeSeriesPoint>,
     channel3: List<com.example.blegraph.data.TimeSeriesPoint>,
     numChannels: Int = 4,
-    windowDurationSec: Float = 0.3f,
+    windowDurationSec: Float = 10f,
     modifier: Modifier = Modifier
 ) {
-    androidx.compose.foundation.layout.Column(
+    Column(
         modifier = modifier.fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(4.dp)
     ) {
-        if (numChannels >= 1) {
-            TimeSeriesGraph(
-                dataPoints = channel0,
-                channelName = "Channel 0",
-                lineColor = Color.Red,
-                windowDurationSec = windowDurationSec,
-                modifier = Modifier.fillMaxWidth().weight(1f)
-            )
-        }
-        if (numChannels >= 2) {
-            TimeSeriesGraph(
-                dataPoints = channel1,
-                channelName = "Channel 1",
-                lineColor = Color.Green,
-                windowDurationSec = windowDurationSec,
-                modifier = Modifier.fillMaxWidth().weight(1f)
-            )
-        }
-        if (numChannels >= 3) {
-            TimeSeriesGraph(
-                dataPoints = channel2,
-                channelName = "Channel 2",
-                lineColor = Color.Blue,
-                windowDurationSec = windowDurationSec,
-                modifier = Modifier.fillMaxWidth().weight(1f)
-            )
-        }
-        if (numChannels >= 4) {
-            TimeSeriesGraph(
-                dataPoints = channel3,
-                channelName = "Channel 3",
-                lineColor = Color.Magenta,
-                windowDurationSec = windowDurationSec,
-                modifier = Modifier.fillMaxWidth().weight(1f)
-            )
-        }
+        if (numChannels >= 1) TimeSeriesGraph(
+            dataPoints = channel0, channelName = "CH0", lineColor = Color.Red,
+            windowDurationSec = windowDurationSec,
+            modifier = Modifier.fillMaxWidth().weight(1f)
+        )
+        if (numChannels >= 2) TimeSeriesGraph(
+            dataPoints = channel1, channelName = "CH1", lineColor = Color.Green,
+            windowDurationSec = windowDurationSec,
+            modifier = Modifier.fillMaxWidth().weight(1f)
+        )
+        if (numChannels >= 3) TimeSeriesGraph(
+            dataPoints = channel2, channelName = "CH2", lineColor = Color.Blue,
+            windowDurationSec = windowDurationSec,
+            modifier = Modifier.fillMaxWidth().weight(1f)
+        )
+        if (numChannels >= 4) TimeSeriesGraph(
+            dataPoints = channel3, channelName = "CH3", lineColor = Color.Magenta,
+            windowDurationSec = windowDurationSec,
+            modifier = Modifier.fillMaxWidth().weight(1f)
+        )
     }
 }

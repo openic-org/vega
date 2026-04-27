@@ -162,14 +162,38 @@ fun TimeSeriesGraph(
                     }
                 }
 
-                // ── Waveform ──────────────────────────────────────────────────
-                for (i in 0 until dataPoints.size - 1) {
-                    val x1 = timestampToX(dataPoints[i].timestampUs)
-                    val y1 = valueToY(dataPoints[i].value)
-                    val x2 = timestampToX(dataPoints[i + 1].timestampUs)
-                    val y2 = valueToY(dataPoints[i + 1].value)
-                    if (x2 < leftPad || x1 > w - rightPad) continue
-                    drawLine(lineColor, Offset(x1, y1), Offset(x2, y2), strokeWidth = 2f)
+                // ── Waveform (min-max envelope per pixel column) ─────────────
+                //
+                // When multiple samples map to the same screen pixel column (which
+                // happens at any sample density > 1 pt/pixel), drawing line-segments
+                // produces an opaque filled band that hides the signal shape.
+                //
+                // Instead we bucket every data point into its pixel column, track
+                // the min and max y within each bucket, then draw one vertical
+                // segment per column.  This preserves the true waveform envelope
+                // (peaks and troughs are always visible) regardless of how many
+                // raw samples land in each pixel.
+                val plotWInt = plotW.toInt().coerceAtLeast(1)
+                val colMin = FloatArray(plotWInt) {  Float.MAX_VALUE }
+                val colMax = FloatArray(plotWInt) { -Float.MAX_VALUE }
+
+                for (pt in dataPoints) {
+                    val col = ((pt.timestampUs - firstUs).toFloat() / windowDurationUs * plotW)
+                        .toInt().coerceIn(0, plotWInt - 1)
+                    val y = valueToY(pt.value)
+                    if (y < colMin[col]) colMin[col] = y
+                    if (y > colMax[col]) colMax[col] = y
+                }
+
+                for (col in 0 until plotWInt) {
+                    if (colMin[col] == Float.MAX_VALUE) continue   // no data in this column
+                    val x = leftPad + col.toFloat()
+                    if (colMin[col] == colMax[col]) {
+                        // Single sample in this column — draw a small dot
+                        drawCircle(lineColor, radius = 1.5f, center = Offset(x, colMin[col]))
+                    } else {
+                        drawLine(lineColor, Offset(x, colMin[col]), Offset(x, colMax[col]), strokeWidth = 1.5f)
+                    }
                 }
             }
         }

@@ -215,6 +215,7 @@ class BleGattManager(
             onDebugInfo?.invoke("PHY TX=$txName RX=$rxName")
         }
 
+        @SuppressLint("MissingPermission")
         override fun onDescriptorWrite(
             gatt: BluetoothGatt,
             descriptor: BluetoothGattDescriptor,
@@ -222,6 +223,17 @@ class BleGattManager(
         ) {
             if (status == BluetoothGatt.GATT_SUCCESS) {
                 Log.i(TAG, "CCCD written – notifications enabled on ${descriptor.characteristic.uuid}")
+
+                // Re-assert HIGH priority now that the full setup is done (MTU + PHY + CCCD).
+                // Some devices only honour this after the link is fully configured.
+                gatt.requestConnectionPriority(BluetoothGatt.CONNECTION_PRIORITY_HIGH)
+                Log.d(TAG, "Re-requested CONNECTION_PRIORITY_HIGH after CCCD write")
+
+                // Note: Android negotiates LL Data Length Extension (DLE) automatically
+                // at connection time — no explicit API call needed on the Android side.
+                // The STM32 now has CFG_BLE_CONTROLLER_DATA_LENGTH_EXTENSION_ENABLED=1
+                // so it will accept Android's DLE negotiation and use 251-byte LL PDUs.
+
                 onConnectionStateChange(true, "Streaming")
                 onDebugInfo?.invoke("Notifications enabled")
             } else {

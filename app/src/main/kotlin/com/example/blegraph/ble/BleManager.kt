@@ -27,20 +27,56 @@ import kotlinx.coroutines.launch
 
 private const val TAG = "BleManager"
 
-// Sampling rate and buffer configuration for the STM32 stream (30 kSps per channel)
-private const val SAMPLE_RATE_HZ              = 30_000
-private const val BUFFER_DURATION_SECONDS     = 10
-private const val BUFFER_SIZE                 = SAMPLE_RATE_HZ * BUFFER_DURATION_SECONDS  // 300 000 points (10 s)
-private const val NUM_CHANNELS                = 4
+// ── Stream mode ───────────────────────────────────────────────────────────────
+// Must match STREAM_ACTIVE_MODE in STM32 stream_app.h.
+// Change DELIVERED_SPS below (and STREAM_ACTIVE_MODE on the STM32) to switch.
+//
+//   STREAM_MODE_ANDROID_BLE    Burst pipeline.  VTIMER 5 ms (actual ~1.93 ms).
+//                              ~7 725 SPS.  Device name: "Kuntur-A".
+//
+//   STREAM_MODE_LENOVO_SMOOTH  1 pkt/CI, no burst.  VTIMER 36 ms (~13.9 ms).
+//                              ~4 000 SPS — smooth plotting on Lenovo TB305FU.
+//                              Device name: "Kuntur-S".
+//
+//   STREAM_MODE_NORDIC_HF      Nordic nRF52840 dongle. Target 30 000 SPS (future).
+//                              Device name: "Kuntur-N".
+private const val STREAM_MODE_ANDROID_BLE   = 0
+private const val STREAM_MODE_LENOVO_SMOOTH = 2
+private const val STREAM_MODE_NORDIC_HF     = 1
 
-// Display windows
-private const val FULL_RESOLUTION_WINDOW_POINTS  = 15_000   // 0.5 s at 30 kSps (full data rate, no decimation)
-private const val DOWNSAMPLED_WINDOW_POINTS      = 300_000  // 10.0 s at 30 kSps (full buffer, decimated)
-private const val DOWNSAMPLING_FACTOR_DISPLAY    = 100      // 300 000 / 100 = 3 000 points on screen
+// ── Sampling rates ────────────────────────────────────────────────────────────
+// ADC_RATE_HZ: STM32 ADC clock — used for intra-packet timestamp spacing only.
+// Samples within each packet are always spaced at 1_000_000 / ADC_RATE_HZ µs
+// regardless of which stream mode is active.
+private const val ADC_RATE_HZ = 30_000L
+
+// DELIVERED_SPS: samples that actually arrive at Android per second.
+// Drives buffer sizing and display-window point counts.
+// Change this line (and STREAM_ACTIVE_MODE on the STM32) to switch modes.
+// private const val DELIVERED_SPS = 7_725L    // STREAM_MODE_ANDROID_BLE
+private const val DELIVERED_SPS   = 4_000L    // STREAM_MODE_LENOVO_SMOOTH ← active
+// private const val DELIVERED_SPS = 30_000L  // STREAM_MODE_NORDIC_HF
+
+// Legacy alias — keeps existing code using SAMPLE_RATE_HZ unchanged.
+// Points to ADC_RATE_HZ so intra-packet timestamps remain correct.
+private const val SAMPLE_RATE_HZ = ADC_RATE_HZ
+
+private const val BUFFER_DURATION_SECONDS = 10
+// Buffer holds BUFFER_DURATION_SECONDS of DELIVERED data (not ADC-rate data).
+private const val BUFFER_SIZE             = (DELIVERED_SPS * BUFFER_DURATION_SECONDS).toInt()
+private const val NUM_CHANNELS            = 4
+
+// Display windows — sized to DELIVERED_SPS so both modes fill the screen correctly.
+// Full-res : last 0.5 s of delivered samples  (no decimation)
+// Downsampled: last 5 s of delivered samples  (no decimation needed at this rate)
+private const val FULL_RESOLUTION_WINDOW_POINTS = (DELIVERED_SPS / 2L).toInt()  // 0.5 s
+private const val DOWNSAMPLED_WINDOW_POINTS     = (DELIVERED_SPS * 5L).toInt()  // 5 s
+private const val DOWNSAMPLING_FACTOR_DISPLAY   = 1
 
 // Recording limits
-// Write rate: 30 000 sps × ~23 bytes/row ≈ 690 KB/s ≈ 41 MB/min
-private const val MAX_RECORDING_SECONDS  = 10 * 60              // 10-minute hard cap → max ~410 MB
+// Write rate Android BLE: ~7 725 sps × ~23 bytes/row ≈ 178 KB/s ≈ 10.7 MB/min
+// Write rate Nordic HF  : ~30 000 sps × ~23 bytes/row ≈ 690 KB/s ≈ 41.4 MB/min
+private const val MAX_RECORDING_SECONDS  = 10 * 60              // 10-minute hard cap
 private const val MIN_FREE_STORAGE_BYTES = 200L * 1_024 * 1_024 // stop if < 200 MB free
 private const val BYTES_PER_SAMPLE_ROW   = 23L                  // conservative estimate for MB counter
 
@@ -50,9 +86,8 @@ private const val UI_REFRESH_INTERVAL_MS      = 33L
 // Auto-reconnect: wait this long after a disconnect before attempting
 private const val RECONNECT_DELAY_MS          = 1_500L
 
-// Legacy simulation constants (Android-side demo, separate from STM32 simulation)
-private const val BATCH_INTERVAL_MS           = 100L
-private const val POINTS_PER_BATCH            = 1000
+// BLE packet payload size in bytes (8-byte header + 59 pairs × 4 bytes)
+private const val BYTES_PER_BLE_PACKET        = 244
 
 class BleManager(private val context: Context) {
     private val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
@@ -111,6 +146,12 @@ class BleManager(private val context: Context) {
         val ch3: Long = 0L
     )
 
+    /** Measured BLE data rate, updated every ~2 s over a rolling window. */
+    data class DataRate(
+        val packetsPerSecond: Float = 0f,
+        val kbitsPerSecond: Float   = 0f
+    )
+
     /**
      * Live state of an in-progress or just-finished recording.
      *
@@ -132,6 +173,13 @@ class BleManager(private val context: Context) {
     private val _packetCounts = MutableStateFlow(PacketCounts())
     val packetCounts: StateFlow<PacketCounts> = _packetCounts
 
+    private val _dataRate = MutableStateFlow(DataRate())
+    val dataRate: StateFlow<DataRate> = _dataRate
+
+    // Rate calculation: rolling window updated every ~2 s
+    private var rateWindowStartMs      = 0L
+    private var rateWindowStartPackets = 0L
+
     // Auto-reconnect state
     private var lastDeviceAddress: String? = null
     private var lastDeviceName: String?    = null
@@ -139,6 +187,12 @@ class BleManager(private val context: Context) {
 
     // UI refresh throttle
     private var lastUiUpdateMs = 0L
+    /** Timestamp of the last sample written in the previous BLE packet (µs).
+     *  Used to clamp the next packet's base timestamp so it is never earlier
+     *  than one sample-period after the previous packet ended, preventing the
+     *  −4881 µs backwards-jump artefact caused by HAL_GetTick() 1 ms
+     *  resolution combining with BLE CI jitter on the STM32 side. */
+    private var lastPacketEndUs = 0L
 
     // Packet statistics
     private var totalBlePackets = 0L
@@ -258,6 +312,8 @@ class BleManager(private val context: Context) {
     fun connectToDevice(deviceAddress: String, deviceName: String?) {
         try {
             if (!hasBluetoothPermissions()) return
+
+            stopScanning()
 
             val device = bluetoothAdapter?.getRemoteDevice(deviceAddress)
             if (device == null) {
@@ -436,7 +492,12 @@ class BleManager(private val context: Context) {
             gattManager = null
             _isConnected.value = false
             _connectedDeviceName.value = null
+            _scannedDevices.value = emptyList()
             multiChannelBuffer.clear()
+            lastPacketEndUs        = 0L
+            rateWindowStartMs      = 0L
+            rateWindowStartPackets = 0L
+            _dataRate.value        = DataRate()
             updateChannelFlows()
             Log.d(TAG, "Disconnected")
         } catch (e: Exception) {
@@ -451,26 +512,59 @@ class BleManager(private val context: Context) {
      *
      * Timestamp formula (little-endian STM32 HAL_GetTick-based clock):
      *   packetBaseUs = timestampS × 1_000_000 + timestampSubS × 1_000 / 32
-     *   sampleUs     = packetBaseUs + i × 1_000_000 / 30_000
+     *   sampleUs     = packetBaseUs + i × 1_000_000 / SAMPLE_RATE_HZ
      *
      * timestampSubS encodes ms%1000 × 32 (range 0–31999), so dividing by 32 gives ms,
      * then × 1000 converts to µs.
+     *
+     * Monotonicity clamp: HAL_GetTick() has 1 ms resolution, and BLE CI jitter can
+     * cause a packet's MCU timestamp to be slightly earlier than the extrapolated
+     * end of the previous packet (observed as −4881 µs jumps in CSV analysis).
+     * We clamp so that each packet starts at least one sample-period after the
+     * previous packet ended, keeping timestamps strictly monotonically increasing.
      */
     private fun onBatchDataReceived(ch0: ShortArray, ch1: ShortArray, header: StreamPacketHeader) {
         totalBlePackets++
 
-        val packetBaseUs = header.timestampS * 1_000_000L +
-                           header.timestampSubS.toLong() * 1_000L / 32L
+        val rawBaseUs = header.timestampS * 1_000_000L +
+                        header.timestampSubS.toLong() * 1_000L / 32L
+        val samplePeriodUs = 1_000_000L / SAMPLE_RATE_HZ
+        val packetBaseUs = if (lastPacketEndUs > 0L && rawBaseUs < lastPacketEndUs + samplePeriodUs)
+                               lastPacketEndUs + samplePeriodUs
+                           else
+                               rawBaseUs
 
         // Feed all pairs from this packet into channels 0 and 1 (ch2/ch3 = 0)
         // and optionally stream each sample to the active CSV recording.
-        val writer = recordingWriter   // local ref — safe even if stopRecording() runs concurrently
+        //
+        // We capture a local ref to avoid the race where stopRecording() closes the
+        // writer between our null-check and the actual write call.  If the writer
+        // was closed concurrently we catch the IOException and clear the local ref so
+        // we stop trying to write (the recording has already been finalised).
+        val writer = recordingWriter
+        var writeOk = writer != null
         for (i in ch0.indices) {
             val sampleUs = packetBaseUs + i.toLong() * 1_000_000L / SAMPLE_RATE_HZ
             multiChannelBuffer.addPoint(ch0[i].toFloat(), ch1[i].toFloat(), 0f, 0f, sampleUs)
-            writer?.write("$sampleUs,${ch0[i]},${ch1[i]}\n")
+            if (writeOk) {
+                try {
+                    writer!!.write("$sampleUs,${ch0[i]},${ch1[i]}\n")
+                } catch (e: java.io.IOException) {
+                    // Writer was closed by stopRecording() racing with this coroutine.
+                    // Clear our flag so we stop writing for the rest of this packet.
+                    writeOk = false
+                    Log.w(TAG, "CSV write skipped — writer closed mid-packet: ${e.message}")
+                }
+            }
         }
-        if (writer != null) recordingSamplesWritten += ch0.size
+        if (writeOk) recordingSamplesWritten += ch0.size
+        // Track the end of this packet so the next packet's base can be clamped.
+        // Use the same per-sample formula as the loop (i * 1_000_000 / SAMPLE_RATE_HZ)
+        // rather than (size-1) * samplePeriodUs — integer division makes them differ
+        // by up to (size-1) µs, which would create spurious short gaps at boundaries.
+        if (ch0.isNotEmpty()) {
+            lastPacketEndUs = packetBaseUs + (ch0.size - 1).toLong() * 1_000_000L / SAMPLE_RATE_HZ
+        }
 
         // Throttle UI refresh to ~30 fps
         val now = System.currentTimeMillis()
@@ -478,6 +572,21 @@ class BleManager(private val context: Context) {
             lastUiUpdateMs = now
             updateChannelFlows()
             _packetCounts.value = PacketCounts(ch0 = totalBlePackets)
+
+            // Update data rate over a ~2-second rolling window
+            if (rateWindowStartMs == 0L) {
+                rateWindowStartMs      = now
+                rateWindowStartPackets = totalBlePackets
+            } else {
+                val elapsed = now - rateWindowStartMs
+                if (elapsed >= 2_000L) {
+                    val pps  = (totalBlePackets - rateWindowStartPackets).toFloat() / (elapsed / 1_000f)
+                    val kbps = pps * BYTES_PER_BLE_PACKET * 8f / 1_000f
+                    _dataRate.value        = DataRate(pps, kbps)
+                    rateWindowStartMs      = now
+                    rateWindowStartPackets = totalBlePackets
+                }
+            }
         }
 
         if (totalBlePackets % 500L == 0L) {
@@ -513,18 +622,6 @@ class BleManager(private val context: Context) {
     }
 
     /**
-     * Add a multi-channel data point to the circular buffer.
-     * Call this for each 100ms interval with values from all 4 channels.
-     * Automatically maintains exactly 100 points (10 seconds at 100ms intervals).
-     * When full, oldest data (FIFO) is replaced.
-     */
-    fun addMultiChannelDataPoint(channel0: Float, channel1: Float, channel2: Float, channel3: Float, timestampUs: Long) {
-        multiChannelBuffer.addPoint(channel0, channel1, channel2, channel3, timestampUs)
-        updateChannelFlows()
-        Log.d(TAG, "Multi-channel data added: [%.1f, %.1f, %.1f, %.1f], buffer_size=${multiChannelBuffer.size()}".format(channel0, channel1, channel2, channel3))
-    }
-
-    /**
      * Update all channel StateFlows from the multi-channel buffer.
      * Uses window size and downsampling based on display mode:
      * - Full Resolution: 5,000 points (0.5 seconds @ 10 kHz), no downsampling
@@ -546,79 +643,4 @@ class BleManager(private val context: Context) {
         }
     }
 
-    /**
-     * Simulate real-time multi-channel data reception at 10 kHz.
-     * Each batch (every 100ms) contains 1000 data points (4 channels each).
-     * Maintains continuous 10-second window of data (100,000 points per channel).
-     */
-    private fun simulateDataReception() {
-        scope.launch {
-            multiChannelBuffer.clear()
-            updateChannelFlows()
-            
-            var globalCounter = 0
-            
-            while (_isConnected.value) {
-                // Generate batch of POINTS_PER_BATCH (1000) points
-                for (batch in 0 until POINTS_PER_BATCH) {
-                    val timeIndex = globalCounter + batch
-                    val sampleUs  = timeIndex.toLong() * 1_000_000L / SAMPLE_RATE_HZ
-
-                    // Generate 4 different sine waves with different phases for each channel
-                    val ch0 = (Math.sin(timeIndex * 0.002) * 40 + 50).toFloat()
-                    val ch1 = (Math.sin(timeIndex * 0.002 + Math.PI / 2) * 40 + 50).toFloat()
-                    val ch2 = (Math.sin(timeIndex * 0.002 + Math.PI) * 40 + 50).toFloat()
-                    val ch3 = (Math.sin(timeIndex * 0.002 + 3 * Math.PI / 2) * 40 + 50).toFloat()
-
-                    multiChannelBuffer.addPoint(ch0, ch1, ch2, ch3, sampleUs)
-                }
-                
-                globalCounter += POINTS_PER_BATCH
-                // Update display only once per batch (not per point)
-                updateChannelFlows()
-                Log.d(TAG, "Batch received: $POINTS_PER_BATCH points added, total: ${multiChannelBuffer.size()}")
-                delay(BATCH_INTERVAL_MS)
-            }
-        }
-    }
-
-    /**
-     * Generate multi-channel simulated data points (100,000 per channel at 10 kHz = 10 seconds total).
-     * Processes data in batches of 1000 points (1 batch per 100ms).
-     * Creates 4 different sine waves with individual characteristics.
-     */
-    fun generateSimulatedData() {
-        Log.d(TAG, "Generating $BUFFER_SIZE multi-channel simulated data points (${BUFFER_SIZE / SAMPLE_RATE_HZ} seconds at $SAMPLE_RATE_HZ Hz)")
-        multiChannelBuffer.clear()
-        updateChannelFlows()
-        
-        scope.launch {
-            var pointsGenerated = 0
-            
-            while (pointsGenerated < BUFFER_SIZE) {
-                // Generate batch of POINTS_PER_BATCH points
-                val batchSize = minOf(POINTS_PER_BATCH, BUFFER_SIZE - pointsGenerated)
-                
-                for (i in 0 until batchSize) {
-                    val timeIndex = pointsGenerated + i
-                    val sampleUs  = timeIndex.toLong() * 1_000_000L / SAMPLE_RATE_HZ
-
-                    // Generate 4 different sine waves with different frequencies and noise
-                    val ch0 = (Math.sin(timeIndex * 0.001) * 30 + 50 + (Math.random() * 3 - 1.5)).toFloat()
-                    val ch1 = (Math.cos(timeIndex * 0.001) * 30 + 50 + (Math.random() * 3 - 1.5)).toFloat()
-                    val ch2 = (Math.sin(timeIndex * 0.0015) * 30 + 50 + (Math.random() * 3 - 1.5)).toFloat()
-                    val ch3 = (Math.cos(timeIndex * 0.0015) * 30 + 50 + (Math.random() * 3 - 1.5)).toFloat()
-
-                    multiChannelBuffer.addPoint(ch0, ch1, ch2, ch3, sampleUs)
-                }
-                
-                pointsGenerated += batchSize
-                // Update display only once per batch (not per point)
-                updateChannelFlows()
-                Log.d(TAG, "Generated batch: $pointsGenerated/$BUFFER_SIZE points")
-                delay(10) // Small delay between batches to simulate real-time reception
-            }
-            Log.d(TAG, "Simulation complete: ${multiChannelBuffer.size()} points generated for each of $NUM_CHANNELS channels")
-        }
-    }
 }

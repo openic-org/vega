@@ -30,6 +30,7 @@ class BleGraphViewModel(private val bleManager: BleManager) : ViewModel() {
 
     // CSV recording
     val recordingInfo: StateFlow<BleManager.RecordingInfo> = bleManager.recordingInfo
+    val dataRate: StateFlow<BleManager.DataRate> = bleManager.dataRate
 
     fun startScanning() {
         bleManager.startScanning()
@@ -49,10 +50,6 @@ class BleGraphViewModel(private val bleManager: BleManager) : ViewModel() {
 
     fun hasBluetoothPermissions(): Boolean {
         return bleManager.hasBluetoothPermissions()
-    }
-
-    fun generateSimulatedData() {
-        bleManager.generateSimulatedData()
     }
 
     fun toggleDisplayMode() {
