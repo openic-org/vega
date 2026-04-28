@@ -218,6 +218,17 @@ static const struct bt_le_conn_param fast_conn_params =
 
 /* ── Connection callbacks ───────────────────────────────────────────────────── */
 
+static void le_param_updated_cb(struct bt_conn *conn, uint16_t interval,
+                                  uint16_t latency, uint16_t timeout)
+{
+    LOG_INF("CI updated: %.2f ms  latency=%d  timeout=%d ms",
+            (double)interval * 1.25, latency, timeout * 10);
+}
+
+BT_CONN_CB_DEFINE(param_callbacks) = {
+    .le_param_updated = le_param_updated_cb,
+};
+
 static void connected_cb(struct bt_conn *conn, uint8_t err)
 {
     if (err) {
@@ -228,7 +239,15 @@ static void connected_cb(struct bt_conn *conn, uint8_t err)
     }
 
     current_conn = bt_conn_ref(conn);
-    LOG_INF("Connected");
+
+    /* Log initial connection parameters */
+    struct bt_conn_info info;
+    if (bt_conn_get_info(conn, &info) == 0 && info.le.interval) {
+        LOG_INF("Connected: initial CI=%.2f ms",
+                (double)info.le.interval * 1.25);
+    } else {
+        LOG_INF("Connected");
+    }
     gpio_pin_set_dt(&led_ble, 1);
 
     /* Request tightest CI — STM32 will also CPUP from its side */
@@ -326,14 +345,13 @@ static void scan_cb(const bt_addr_le_t *addr, int8_t rssi,
 
 static const struct device *cdc_dev;
 
-/* Zephyr 4.x: uart_irq_callback_user_data_set requires user_data parameter */
-static void uart_line_ctrl_cb(const struct device *dev, void *user_data)
+static void poll_dtr(void)
 {
-    ARG_UNUSED(user_data);
-    /* Called when PC opens/closes the virtual COM port */
-    uint32_t dtr;
-    if (uart_line_ctrl_get(dev, UART_LINE_CTRL_DTR, &dtr) == 0) {
-        usb_dtr = (bool)dtr;
+    uint32_t dtr = 0;
+    uart_line_ctrl_get(cdc_dev, UART_LINE_CTRL_DTR, &dtr);
+    bool new_dtr = (bool)dtr;
+    if (new_dtr != usb_dtr) {
+        usb_dtr = new_dtr;
         gpio_pin_set_dt(&led_usb, usb_dtr ? 1 : 0);
         LOG_INF("DTR %s", usb_dtr ? "set" : "cleared");
     }
@@ -367,11 +385,16 @@ static void usb_tx_fn(void *p1, void *p2, void *p3)
     uint8_t pkt[PACKET_SIZE];
 
     while (true) {
-        /* Block until a BLE packet arrives */
-        k_msgq_get(&ble_msgq, pkt, K_FOREVER);
+        /* Poll DTR every 200 ms while idle */
+        if (k_msgq_get(&ble_msgq, pkt, K_MSEC(200)) != 0) {
+            poll_dtr();
+            continue;
+        }
+
+        poll_dtr();
 
         if (!usb_dtr) {
-            /* PC hasn't opened the port yet — discard */
+            /* PC hasn't opened the port — discard packet */
             continue;
         }
 
@@ -407,8 +430,7 @@ int main(void)
     /* Give host time to enumerate */
     k_sleep(K_MSEC(1000));
 
-    /* Register line control callback (DTR detect) — Zephyr 4.x API */
-    uart_irq_callback_user_data_set(cdc_dev, uart_line_ctrl_cb, NULL);
+    /* DTR is polled in the USB TX thread; no IRQ callback needed */
 
     /* Start USB TX thread */
     k_thread_create(&usb_tx_thread, usb_tx_stack,

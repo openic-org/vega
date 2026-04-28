@@ -15,7 +15,8 @@ from serial_reader import SerialReader
 from graph_widget  import GraphWidget
 from csv_recorder  import CsvRecorder
 
-DELIVERED_SPS = 30_000
+# Measured at ~4 500 SPS with current CI (~13 ms). Update when CI is tightened to 7.5 ms.
+DELIVERED_SPS = 5_000
 
 
 class MainWindow(QMainWindow):
