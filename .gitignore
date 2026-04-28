@@ -28,3 +28,17 @@ replay_pid*
 
 # large files
 java_pid*.hprof
+
+# Build output dirs
+build/
+android-app/build/
+android-app/app/build/
+android-app/.gradle/
+android-app/.idea/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+pc-app/.venv/

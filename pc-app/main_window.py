@@ -1,0 +1,232 @@
+"""
+MainWindow — top-level PyQt6 window for the Vega PC app.
+"""
+
+import time
+from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtWidgets import (
+    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
+    QLabel, QPushButton, QComboBox, QGroupBox, QGridLayout,
+    QFileDialog, QStatusBar,
+)
+from PyQt6.QtGui import QFont
+
+from serial_reader import SerialReader
+from graph_widget  import GraphWidget
+from csv_recorder  import CsvRecorder
+
+DELIVERED_SPS = 30_000
+
+
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Vega — PC Data Viewer")
+        self.resize(1200, 700)
+
+        self._reader   = SerialReader(self)
+        self._recorder = CsvRecorder()
+        self._rate_ts  = 0.0
+        self._rate_pkts = 0
+
+        self._build_ui()
+        self._connect_signals()
+
+        # Rate + recording update timer
+        self._status_timer = QTimer(self)
+        self._status_timer.setInterval(2000)
+        self._status_timer.timeout.connect(self._update_status)
+        self._status_timer.start()
+
+        self._refresh_ports()
+
+    # ── UI construction ───────────────────────────────────────────────────────
+
+    def _build_ui(self):
+        central = QWidget()
+        self.setCentralWidget(central)
+        root = QVBoxLayout(central)
+        root.setContentsMargins(8, 8, 8, 8)
+        root.setSpacing(6)
+
+        root.addLayout(self._build_controls())
+        root.addWidget(self._build_debug_panel())
+        self._graph = GraphWidget(DELIVERED_SPS)
+        root.addWidget(self._graph, stretch=1)
+
+        self.setStatusBar(QStatusBar())
+        self.statusBar().showMessage("Disconnected")
+
+    def _build_controls(self) -> QHBoxLayout:
+        row = QHBoxLayout()
+        row.setSpacing(6)
+
+        self._port_combo = QComboBox()
+        self._port_combo.setMinimumWidth(160)
+        row.addWidget(QLabel("Port:"))
+        row.addWidget(self._port_combo)
+
+        self._btn_refresh = QPushButton("↻")
+        self._btn_refresh.setFixedWidth(32)
+        self._btn_refresh.clicked.connect(self._refresh_ports)
+        row.addWidget(self._btn_refresh)
+
+        self._btn_connect = QPushButton("Connect")
+        self._btn_connect.setCheckable(True)
+        row.addWidget(self._btn_connect)
+
+        self._btn_rec = QPushButton("● REC")
+        self._btn_rec.setCheckable(True)
+        self._btn_rec.setEnabled(False)
+        row.addWidget(self._btn_rec)
+
+        self._lbl_rec_path = QLabel("")
+        self._lbl_rec_path.setStyleSheet("color: #B71C1C; font-size: 11px;")
+        row.addWidget(self._lbl_rec_path, stretch=1)
+
+        return row
+
+    def _build_debug_panel(self) -> QGroupBox:
+        box = QGroupBox("Debug Info")
+        box.setMaximumHeight(90)
+        grid = QGridLayout(box)
+        grid.setHorizontalSpacing(24)
+        grid.setVerticalSpacing(2)
+
+        def lbl(text, bold=False):
+            l = QLabel(text)
+            if bold:
+                f = l.font(); f.setBold(True); l.setFont(f)
+            l.setStyleSheet("font-size: 11px;")
+            return l
+
+        # Left column
+        grid.addWidget(lbl("Status:"),   0, 0)
+        grid.addWidget(lbl("Packets:"),  1, 0)
+        grid.addWidget(lbl("Dropped:"),  2, 0)
+
+        self._lbl_status  = lbl("—")
+        self._lbl_packets = lbl("—")
+        self._lbl_dropped = lbl("—")
+        grid.addWidget(self._lbl_status,  0, 1)
+        grid.addWidget(self._lbl_packets, 1, 1)
+        grid.addWidget(self._lbl_dropped, 2, 1)
+
+        # Right column
+        grid.addWidget(lbl("Rate:"),       0, 2)
+        grid.addWidget(lbl("Throughput:"), 1, 2)
+        grid.addWidget(lbl("Char:"),       2, 2)
+
+        self._lbl_rate  = lbl("—")
+        self._lbl_thru  = lbl("—")
+        self._lbl_char  = lbl("0xFFF2 (notify)")
+        grid.addWidget(self._lbl_rate, 0, 3)
+        grid.addWidget(self._lbl_thru, 1, 3)
+        grid.addWidget(self._lbl_char, 2, 3)
+
+        grid.setColumnStretch(1, 1)
+        grid.setColumnStretch(3, 1)
+        return box
+
+    # ── Signal wiring ─────────────────────────────────────────────────────────
+
+    def _connect_signals(self):
+        self._btn_connect.clicked.connect(self._toggle_connection)
+        self._btn_rec.clicked.connect(self._toggle_recording)
+        self._reader.batch_received.connect(self._on_batch)
+        self._reader.connection_changed.connect(self._on_connection_changed)
+        self._reader.error.connect(self._on_error)
+
+    # ── Slots ─────────────────────────────────────────────────────────────────
+
+    def _refresh_ports(self):
+        current = self._port_combo.currentText()
+        self._port_combo.clear()
+        ports = SerialReader.list_ports()
+        self._port_combo.addItems(ports)
+        if current in ports:
+            self._port_combo.setCurrentText(current)
+
+    def _toggle_connection(self, checked: bool):
+        if checked:
+            port = self._port_combo.currentText()
+            if not port:
+                self._btn_connect.setChecked(False)
+                self.statusBar().showMessage("No port selected")
+                return
+            self._reader.set_port(port)
+            self._reader.start()
+            self._btn_connect.setText("Disconnect")
+        else:
+            self._reader.stop()
+            self._btn_connect.setText("Connect")
+
+    def _toggle_recording(self, checked: bool):
+        if checked:
+            path = self._recorder.start(".")
+            self._btn_rec.setText("■ Stop")
+            self._lbl_rec_path.setText(f"Recording → {path}")
+        else:
+            self._recorder.stop()
+            self._btn_rec.setText("● REC")
+            info = self._recorder.info
+            self._lbl_rec_path.setText(
+                f"Saved  {info.elapsed_sec}s  ~{info.estimated_mb} MB  → {info.file_path}"
+            )
+
+    def _on_batch(self, packet):
+        self._graph.add_batch(packet.timestamps_us, packet.ch0, packet.ch1)
+
+        # CSV
+        if self._recorder.info.is_recording:
+            ok = self._recorder.write_batch(packet.timestamps_us, packet.ch0, packet.ch1)
+            if not ok and self._recorder.info.auto_stopped:
+                self._btn_rec.setChecked(False)
+                self._toggle_recording(False)
+
+    def _on_connection_changed(self, connected: bool, port: str):
+        if connected:
+            self._lbl_status.setText(f"Connected ({port})")
+            self._lbl_status.setStyleSheet("font-size: 11px; color: green;")
+            self._btn_rec.setEnabled(True)
+            self._graph.clear()
+            self._rate_ts   = time.time()
+            self._rate_pkts = 0
+            self.statusBar().showMessage(f"Connected on {port}")
+        else:
+            self._lbl_status.setText("Disconnected")
+            self._lbl_status.setStyleSheet("font-size: 11px; color: gray;")
+            self._btn_rec.setEnabled(False)
+            if self._recorder.info.is_recording:
+                self._btn_rec.setChecked(False)
+                self._toggle_recording(False)
+            self.statusBar().showMessage("Disconnected")
+
+    def _on_error(self, msg: str):
+        self._btn_connect.setChecked(False)
+        self._btn_connect.setText("Connect")
+        self.statusBar().showMessage(f"Error: {msg}")
+
+    def _update_status(self):
+        """Called every 2 s — update packet count, rate, recording status."""
+        pkts = self._reader.total_packets
+        self._lbl_packets.setText(str(pkts))
+        self._lbl_dropped.setText(str(self._reader.dropped_packets))
+
+        now = time.time()
+        elapsed = now - self._rate_ts
+        if elapsed >= 2.0 and self._rate_ts > 0:
+            delta = pkts - self._rate_pkts
+            pps   = delta / elapsed
+            kbps  = pps * 244 * 8 / 1000
+            self._lbl_rate.setText(f"{pps:.1f} pkt/s")
+            self._lbl_thru.setText(f"{kbps:.0f} kbit/s")
+            self._rate_ts   = now
+            self._rate_pkts = pkts
+
+        if self._recorder.info.is_recording:
+            info = self._recorder.info
+            m, s = divmod(info.elapsed_sec, 60)
+            self._lbl_rec_path.setText(
+                f"Recording  {m}:{s:02d} / 10:00  •  ~{info.estimated_mb} MB"
+            )

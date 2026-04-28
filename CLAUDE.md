@@ -4,11 +4,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Vega** is an Android app (Kotlin + Jetpack Compose) that receives real-time ADC samples from an STM32WB0 "Kuntur" device over BLE and plots them as a multi-channel time-series graph. The BLE link runs at ~7,725 SPS (2 channels, int16) with 244-byte notification packets.
+**Vega** is a real-time ADC visualisation system for the STM32WB0 "Kuntur" device. It has two front-ends that share the same BLE packet format and CSV recording format:
+
+- **`android-app/`** — Kotlin + Jetpack Compose app for the Lenovo TB305FU tablet (BLE direct)
+- **`pc-app/`** — PyQt6 desktop app for Linux/Windows/macOS (nRF52840 BLE→USB bridge)
+
+Shared: `log/`, `CLAUDE.md`, `BLE_CONFIGURATION.md`.
 
 ## Build & Run
 
+### Android app
 ```bash
+cd android-app
+
 # Build debug APK
 ./gradlew assembleDebug
 
@@ -17,14 +25,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Run unit tests
 ./gradlew test
-
-# Run instrumented tests (requires connected device)
-./gradlew connectedAndroidTest
 ```
+Requirements: Android device API ≥ 31, USB debugging enabled. Target/compile SDK = 34.
 
-Requirements: Android device with API ≥ 31, USB debugging enabled. Target/compile SDK = 34.
+### PC app
+```bash
+cd pc-app
+pip install -r requirements.txt
+python main.py
+```
+Requirements: Python ≥ 3.11, PyQt6, pyqtgraph, pyserial, numpy.
 
 ## Architecture
+
+### Android app (`android-app/`)
 
 Data flows in one direction through three layers:
 
@@ -47,6 +61,19 @@ BleGraphScreen / TimeSeriesGraph  — Compose UI + Canvas graph
 **`CircularMultiChannelBuffer`** (`data/Models.kt`) — thread-safe ring buffer holding up to `BUFFER_SIZE` 4-channel points. All public methods are `@Synchronized`. `getChannelWindow()` is the primary read path, extracting a single channel's last N points with optional downsampling.
 
 **`BleGraphViewModel`** (`vm/BleGraphViewModel.kt`) — delegates everything to `BleManager`; exists to decouple lifecycle from the Activity. No custom `ViewModelFactory` — `BleManager` is constructed in `MainActivity` and injected manually.
+
+### PC app (`pc-app/`)
+
+```
+STM32WB0 (BLE peripheral "Kuntur-N", STREAM_MODE_NORDIC_HF)
+    ↓  BLE 2M PHY, 244-byte notify packets
+nRF52840 DK / Dongle   — BLE central, USB CDC ACM bridge
+    ↓  USB serial, framed: 0xAA 0x55 + uint16 length + 244-byte payload
+SerialReader (QThread) — re-sync on magic, parse, emit batch_received signal
+    ↓  ParsedPacket(ch0, ch1, timestamps_us)
+GraphWidget            — circular numpy buffer, pyqtgraph 30 fps plot
+CsvRecorder            — timestamp_us,ch0,ch1  (identical format to Android)
+```
 
 ## BLE Device Protocol
 
