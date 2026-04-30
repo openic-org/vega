@@ -40,8 +40,8 @@ LOG_MODULE_REGISTER(vega_bridge, LOG_LEVEL_INF);
 #define FRAME_SIZE       (FRAME_HDR_SIZE + PACKET_SIZE)
 #define QUEUE_DEPTH      32U
 
-/* USB TX ring buffer: holds 16 complete frames without blocking */
-#define USB_TX_RB_SIZE   (FRAME_SIZE * 16U)
+/* USB TX ring buffer: holds 32 complete frames; headroom for 5-pkt/CI bursts */
+#define USB_TX_RB_SIZE   (FRAME_SIZE * 32U)
 
 static const char TARGET_NAME[] = "Kuntur-N";
 
@@ -66,6 +66,20 @@ static void leds_init(void)
 /* ── BLE→USB message queue ──────────────────────────────────────────────────── */
 
 K_MSGQ_DEFINE(ble_msgq, PACKET_SIZE, QUEUE_DEPTH, 4);
+
+/* ── Throughput + inter-packet dt histogram ─────────────────────────────────── */
+
+static atomic_t s_pkt_rx = ATOMIC_INIT(0);
+
+/* Inter-packet dt histogram (all consecutive pairs, ms granularity).
+ * Buckets: 0=[0-1ms]  1=[1-2ms]  2=[2-3ms]  3=[3-5ms]  4=[5-10ms]  5=[10+ms]
+ * At 2M PHY, same-CI packets arrive ~1.4ms apart (bucket 1).
+ * CI-boundary gaps depend on pkt/CI:
+ *   4 pkt/CI → ~3.3ms gap (bucket 3)
+ *   1 pkt/CI → ~7.5ms gap (bucket 4)
+ * Updated by notify_cb; read (unsynchronised) by usb_tx_fn.            */
+static uint32_t s_dt_hist[6];
+static const uint32_t s_dt_limits[6] = {1, 2, 3, 5, 10, UINT32_MAX};
 
 /* ── USB CDC state ──────────────────────────────────────────────────────────── */
 
@@ -174,11 +188,23 @@ static uint8_t notify_cb(struct bt_conn *conn,
         return BT_GATT_ITER_CONTINUE;
     }
 
+    /* Inter-packet dt histogram. */
+    static uint32_t s_last_pkt_ms;
+    uint32_t now_ms = k_uptime_get_32();
+    if (s_last_pkt_ms != 0) {
+        uint32_t dt = now_ms - s_last_pkt_ms;
+        for (int b = 0; b < 6; b++) {
+            if (dt < s_dt_limits[b]) { s_dt_hist[b]++; break; }
+        }
+    }
+    s_last_pkt_ms = now_ms;
+
     if (k_msgq_put(&ble_msgq, data, K_NO_WAIT) != 0) {
         gpio_pin_set_dt(&led_err, 1);
         LOG_WRN("BLE queue full — packet dropped");
     } else {
         gpio_pin_toggle_dt(&led_data);
+        atomic_inc(&s_pkt_rx);
     }
 
     return BT_GATT_ITER_CONTINUE;
@@ -287,16 +313,33 @@ static const struct bt_le_conn_param fast_conn_params =
 static void le_param_updated_cb(struct bt_conn *conn, uint16_t interval,
                                   uint16_t latency, uint16_t timeout)
 {
-    /* Avoid %f — picolibc in Zephyr log doesn't support it.
-     * interval is in units of 1.25 ms: multiply by 5 and divide by 4. */
-    uint32_t ci_ms_x100 = (uint32_t)interval * 125U;  /* × 1.25 ms, ×100 */
+    uint32_t ci_ms_x100 = (uint32_t)interval * 125U;
     LOG_INF("CI updated: %u.%02u ms  latency=%d  timeout=%d ms",
             ci_ms_x100 / 100U, ci_ms_x100 % 100U, latency, timeout * 10);
+
+    /* CI is now at 7.5 ms (interval=6) — safe to request 2M PHY.
+     * Remote LE features are guaranteed exchanged by the time CI update completes. */
+    if (interval <= 8) {
+        static const struct bt_conn_le_phy_param phy_2m = {
+            .options    = BT_CONN_LE_PHY_OPT_NONE,
+            .pref_tx_phy = BT_GAP_LE_PHY_2M,
+            .pref_rx_phy = BT_GAP_LE_PHY_2M,
+        };
+        int err = bt_conn_le_phy_update(conn, &phy_2m);
+        if (err) {
+            LOG_WRN("PHY 2M request failed: %d — staying on 1M", err);
+        } else {
+            LOG_INF("PHY update to 2M requested");
+        }
+    }
 }
 
-BT_CONN_CB_DEFINE(param_callbacks) = {
-    .le_param_updated = le_param_updated_cb,
-};
+static void le_phy_updated_cb(struct bt_conn *conn,
+                               struct bt_conn_le_phy_info *param)
+{
+    /* 1=1M, 2=2M, 3=Coded */
+    LOG_INF("PHY updated: TX=%u RX=%u", param->tx_phy, param->rx_phy);
+}
 
 static void connected_cb(struct bt_conn *conn, uint8_t err)
 {
@@ -319,11 +362,9 @@ static void connected_cb(struct bt_conn *conn, uint8_t err)
     }
     gpio_pin_set_dt(&led_ble, 1);
 
-    /* Request 7.5 ms CI as central — STM32 CPUP is suppressed in NORDIC_HF */
+    /* Request 7.5 ms CI as central — STM32 CPUP is suppressed in NORDIC_HF.
+     * 2M PHY is requested in le_param_updated_cb once CI is confirmed. */
     bt_conn_le_param_update(conn, &fast_conn_params);
-
-    /* Note: bt_conn_le_phy_update() fails with SDC in NCS 3.3 central role.
-     * 1M PHY is sufficient for 30 kSPS at 7.5 ms CI (~1 ms/pkt, 7 pkts/CI). */
 
     /* Exchange MTU before discovery */
     mtu_params.func = mtu_exchange_cb;
@@ -351,8 +392,10 @@ static void disconnected_cb(struct bt_conn *conn, uint8_t reason)
 }
 
 BT_CONN_CB_DEFINE(conn_callbacks) = {
-    .connected    = connected_cb,
-    .disconnected = disconnected_cb,
+    .connected        = connected_cb,
+    .disconnected     = disconnected_cb,
+    .le_param_updated = le_param_updated_cb,
+    .le_phy_updated   = le_phy_updated_cb,
 };
 
 /* ── Scan callback ──────────────────────────────────────────────────────────── */
@@ -402,18 +445,34 @@ static struct k_thread usb_tx_thread;
 static void usb_tx_fn(void *p1, void *p2, void *p3)
 {
     uint8_t pkt[PACKET_SIZE];
+    int64_t last_log = k_uptime_get();
 
     while (true) {
         if (k_msgq_get(&ble_msgq, pkt, K_MSEC(200)) != 0) {
             poll_dtr();
-            continue;
+        } else {
+            poll_dtr();
+            if (usb_dtr) {
+                usb_write_frame(pkt, PACKET_SIZE);
+            }
         }
-        poll_dtr();
-        if (!usb_dtr) {
-            /* PC port not open — discard, don't fill the ring buffer */
-            continue;
+
+        int64_t now = k_uptime_get();
+        int64_t elapsed = now - last_log;
+        if (elapsed >= 5000) {
+            uint32_t n = (uint32_t)atomic_set(&s_pkt_rx, 0);
+            uint32_t pkt_s  = (uint32_t)(n * 1000U / (uint32_t)elapsed);
+            uint32_t sps    = pkt_s * 59U;
+            LOG_INF("Throughput: %u pkt/s  %u SPS", pkt_s, sps);
+
+            /* Inter-packet dt histogram: bucket[ms range] = count of consecutive pairs.
+             * At 2M PHY: same-CI pairs ~1.4ms (bucket[1]); CI gaps vary with pkt/CI:
+             *   4 pkt/CI → 3.3ms gap (bucket[3]);  1 pkt/CI → 7.5ms gap (bucket[4]) */
+            LOG_INF("dt hist (ms): [0-1]=%u [1-2]=%u [2-3]=%u [3-5]=%u [5-10]=%u [10+]=%u",
+                    s_dt_hist[0], s_dt_hist[1], s_dt_hist[2],
+                    s_dt_hist[3], s_dt_hist[4], s_dt_hist[5]);
+            last_log = now;
         }
-        usb_write_frame(pkt, PACKET_SIZE);
     }
 }
 
