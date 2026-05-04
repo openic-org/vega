@@ -220,5 +220,7 @@ $(BUILD_DIR):
 clean:
 	rm -rf $(BUILD_DIR)
 
+PROGRAMMER ?= /opt/st/STM32CubeProgrammer/bin/STM32_Programmer_CLI
+
 flash: $(BUILD_DIR)/$(TARGET).elf
-	STM32_Programmer_CLI -c port=SWD freq=4000 -w $< -v -rst
+	$(PROGRAMMER) -c port=SWD freq=4000 -w $< -v -rst

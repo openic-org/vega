@@ -6,9 +6,10 @@ the 0xAA 0x55 magic prefix, and emits decoded packets to the UI thread.
 import serial
 import serial.tools.list_ports
 from PyQt6.QtCore import QThread, pyqtSignal
-from packet_parser import parse, ParsedPacket, MAGIC, PACKET_SIZE
+import numpy as np
+from packet_parser import parse, ParsedPacket, MAGIC, PACKET_SIZE, ADC_RATE_HZ
 
-BAUD_RATE   = 115200   # CDC ACM ignores baud, but pyserial requires a value
+BAUD_RATE   = 2000000  # must match WB09KE bridge USART1; ST-LINK VCP is baud-sensitive
 READ_TIMEOUT = 1.0     # seconds
 
 
@@ -33,6 +34,12 @@ class SerialReader(QThread):
         self.total_packets  = 0
         self.dropped_packets = 0
         self._expected_seq: int | None = None
+
+        # Monotonicity clamp: tracks the last timestamp emitted so that
+        # backwards jumps caused by BLE burst delivery / 1 ms RTC resolution
+        # are replaced with a forward-continuing sequence.
+        self._last_ts_us: int = 0
+        self._step_us: int = 1_000_000 // ADC_RATE_HZ  # 33 µs at 30 kSPS
 
     def set_port(self, port_name: str):
         self._port_name = port_name
@@ -98,6 +105,20 @@ class SerialReader(QThread):
                 if packet is None:
                     continue
 
+                # Monotonicity clamp: if this packet's first timestamp doesn't
+                # strictly follow the previous one, rebase it forward.  This
+                # fixes backwards jumps from BLE burst delivery where multiple
+                # packets share the same RTC base timestamp.  Genuine forward
+                # gaps (missed CIs) are left untouched.
+                if self._last_ts_us > 0 and packet.timestamps_us[0] <= self._last_ts_us:
+                    new_base = self._last_ts_us + self._step_us
+                    packet.timestamps_us = (
+                        new_base
+                        + np.arange(len(packet.timestamps_us), dtype=np.int64)
+                        * self._step_us
+                    )
+                self._last_ts_us = int(packet.timestamps_us[-1])
+
                 # Drop detection
                 seq = packet.header.seq_num
                 if self._expected_seq is not None:
@@ -111,6 +132,7 @@ class SerialReader(QThread):
 
         if self._port and self._port.is_open:
             self._port.close()
+        self._last_ts_us = 0
         self.connection_changed.emit(False, self._port_name)
 
     @staticmethod

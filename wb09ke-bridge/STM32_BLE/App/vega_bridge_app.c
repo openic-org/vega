@@ -246,8 +246,9 @@ static void vega_bridge_discover_all(void)
     uint16_t conn = s_ctx.conn_handle;
     tBleStatus ret;
 
-    /* MTU exchange — fire and forget; response handled in Bridge_EventHandler */
-    aci_gatt_clt_exchange_config(conn);
+    /* MTU exchange — must complete before service discovery (0x88 if concurrent) */
+    ret = aci_gatt_clt_exchange_config(conn);
+    if (ret == BLE_STATUS_SUCCESS) gatt_cmd_resp_wait();
 
     /* 1. Discover all primary services */
     ret = aci_gatt_clt_disc_all_primary_services(conn, BLE_GATT_UNENHANCED_ATT_L2CAP_CID);
