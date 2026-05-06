@@ -1,6 +1,6 @@
-# Vega — Real-Time ADC Visualisation System
+# Vega — Real-Time FPGA Data Visualisation System
 
-Vega streams 30 000 samples per second from a **STM32WB09KE** ("Kuntur") MCU over Bluetooth Low Energy and displays both channels live.  Two front-ends are provided: an Android tablet app and a Linux/macOS/Windows desktop app.
+Vega streams 30 000 samples per second from a **STM32WB09KE** ("Kuntur") headstage over Bluetooth Low Energy and displays both channels live.  Two front-ends are provided: a Linux/macOS/Windows desktop app (primary) and an Android tablet app.
 
 ---
 
@@ -8,7 +8,7 @@ Vega streams 30 000 samples per second from a **STM32WB09KE** ("Kuntur") MCU ove
 
 | Component | Part | Role |
 |---|---|---|
-| Sensor node | NUCLEO-WB09KE (Kuntur firmware) | BLE peripheral — samples ADC, encodes & notifies |
+| Sensor node | NUCLEO-WB09KE (Kuntur firmware) | BLE peripheral — receives FPGA data, encodes & notifies |
 | BLE-to-USB bridge | NUCLEO-WB09KE (bridge firmware) | BLE central — forwards notify packets over UART |
 | Host PC | Any | Runs the PyQt6 desktop app |
 | Android tablet | Lenovo TB305FU (API 31+) | Runs the Android app (BLE direct, no bridge needed) |
@@ -26,7 +26,6 @@ vega/
 ├── wb09ke-bridge/      NUCLEO-WB09KE BLE-to-UART bridge firmware
 ├── log/                Session logs
 ├── CLAUDE.md           Developer notes for Claude Code
-├── BLE_CONFIGURATION.md  BLE packet format reference
 ├── LICENSE
 └── README.md           ← you are here
 ```
@@ -49,7 +48,7 @@ cd android-app
 ```
 
 1. Open the app and grant Bluetooth permissions.
-2. Tap **Scan** — the Kuntur device appears as `Kuntur-N`.
+2. Tap **Scan** — the Kuntur device appears as `Kuntur-Headstage`.
 3. Tap it to connect.  Live waveforms appear immediately.
 4. Tap **Record** to save a CSV to the device Downloads folder.
 
@@ -105,15 +104,15 @@ STM32_Programmer_CLI -c port=SWD sn=<serial> \
 - **Service**: `0xFFF0`
 - **Notify characteristic**: `0xFFF2`
 
-Each notify packet carries an 8-byte header followed by up to 59 interleaved `int16` CH0/CH1 sample pairs:
+Each notify packet carries an 8-byte header followed by 59 interleaved signed `int16_t` CH0/CH1 sample pairs (244 bytes total):
 
 | Bytes | Field | Description |
 |---|---|---|
 | 0–3 | `timestamp_s` | `uint32` — whole seconds (H×3600 + M×60 + S) |
 | 4–5 | `timestamp_sub_s` | `uint16` — (32767 − SSR) × 32000 / 32768 |
 | 6 | `seq_num` | `uint8` — rolling 0–255, for drop detection |
-| 7 | `num_pairs` | `uint8` — number of CH0/CH1 pairs that follow |
-| 8+ | samples | interleaved `int16` ch0, ch1, ch0, ch1, … |
+| 7 | `num_pairs` | `uint8` — number of CH0/CH1 pairs that follow (normally 59) |
+| 8–243 | samples | 59 × (`int16_t` ch0, `int16_t` ch1), interleaved, signed, little-endian |
 
 Timestamp decode: `base_us = timestamp_s × 1_000_000 + timestamp_sub_s × 1000 / 32`
 
@@ -127,7 +126,7 @@ timestamp_us,ch0,ch1
 ...
 ```
 
-One row per sample at the full ADC rate (~178 KB/s at 30 kSPS × 2 channels).  Files are named `vega_YYYYMMDD_HHmmss.csv`.
+One row per sample at the full sample rate (~178 KB/s at 30 kSPS × 2 channels).  Files are named `vega_YYYYMMDD_HHmmss.csv`.
 
 ---
 
@@ -140,15 +139,17 @@ Two helper modules are included for offline analysis:
 
 ---
 
-## Stream Modes
+## Stream Mode
 
-Three modes are available.  Both the STM32 firmware and the Android app constant must be changed together when switching:
+One mode is active: **`STREAM_MODE_WB09KE_HF`**.
 
-| Mode | STM32 `STREAM_ACTIVE_MODE` | Android `DELIVERED_SPS` | Device name | Result |
-|---|---|---|---|---|
-| `STREAM_MODE_LENOVO_SMOOTH` | 2 | 4 000 | `Kuntur-S` | ~4 000 SPS, smooth |
-| `STREAM_MODE_ANDROID_BLE` | 0 | 7 725 | `Kuntur-A` | ~7 725 SPS |
-| `STREAM_MODE_NORDIC_HF` | 1 | 30 000 | `Kuntur-N` | 30 000 SPS |
+| Parameter | Value |
+|---|---|
+| STM32 constant | `STREAM_MODE_WB09KE_HF` |
+| Device name | `Kuntur-Headstage` |
+| Sample rate | 30 000 SPS per channel |
+| Bridge | NUCLEO-WB09KE → USB UART (`wb09ke-bridge/`) |
+| Android `DELIVERED_SPS` | `30_000L` |
 
 ---
 
