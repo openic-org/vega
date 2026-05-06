@@ -50,7 +50,7 @@ class GraphWidget(QWidget):
         for i, (color, label) in enumerate(zip(colors, labels)):
             plot = pg.PlotWidget(title=label)
             plot.showGrid(x=False, y=True, alpha=0.3)
-            plot.setLabel("left", "ADC", units="LSB")
+            plot.setLabel("left", "Signal", units="LSB")
             plot.enableAutoRange(axis="y", enable=True)
             plot.setMouseEnabled(x=False, y=False)
             curve = plot.plot(pen=pg.mkPen(color, width=1))

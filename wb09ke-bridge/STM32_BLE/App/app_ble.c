@@ -1,7 +1,7 @@
 /*
  * app_ble.c — BLE GAP/GATT central for the Vega WB09KE bridge.
  *
- * Scans for the advertisement name "Kuntur-N", connects, and hands off to
+ * Scans for the advertisement name "Kuntur-Headstage", connects, and hands off to
  * vega_bridge_app.c for GATT discovery and notification forwarding.
  *
  * On-connect LL parameter sequence (strictly sequential, event-triggered):
@@ -522,7 +522,7 @@ static void Scan_Request(void)
                                              SCAN_INT_MS(500U), SCAN_WIN_MS(500U));
     (void)result;
     aci_gap_start_procedure(GAP_GENERAL_DISCOVERY_PROC, LE_1M_PHY_BIT, 0, 0);
-    DT_INFO_MSG("Scanning for \"Kuntur-N\"\r\n");
+    DT_INFO_MSG("Scanning for \"Kuntur-Headstage\"\r\n");
 }
 
 static void Connect_Request(void)
@@ -579,7 +579,7 @@ static void PHY_Update_Task(void)
 static uint8_t analyse_adv_report(uint8_t adv_data_size, uint8_t *p_adv_data,
                                    uint8_t address_type, uint8_t *p_address)
 {
-    static const char target[] = "Kuntur-N";
+    static const char target[] = "Kuntur-Headstage";
     const uint8_t target_len  = (uint8_t)(sizeof(target) - 1U);
     uint8_t i = 0;
 

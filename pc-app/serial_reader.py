@@ -7,7 +7,7 @@ import serial
 import serial.tools.list_ports
 from PyQt6.QtCore import QThread, pyqtSignal
 import numpy as np
-from packet_parser import parse, ParsedPacket, MAGIC, PACKET_SIZE, ADC_RATE_HZ
+from packet_parser import parse, ParsedPacket, MAGIC, PACKET_SIZE, SAMPLE_RATE_HZ
 
 BAUD_RATE   = 2000000  # must match WB09KE bridge USART1; ST-LINK VCP is baud-sensitive
 READ_TIMEOUT = 1.0     # seconds
@@ -39,7 +39,7 @@ class SerialReader(QThread):
         # backwards jumps caused by BLE burst delivery / 1 ms RTC resolution
         # are replaced with a forward-continuing sequence.
         self._last_ts_us: int = 0
-        self._step_us: int = 1_000_000 // ADC_RATE_HZ  # 33 µs at 30 kSPS
+        self._step_us: int = 1_000_000 // SAMPLE_RATE_HZ  # 33 µs at 30 kSPS
 
     def set_port(self, port_name: str):
         self._port_name = port_name

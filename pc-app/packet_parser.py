@@ -10,7 +10,7 @@ Packet layout (little-endian, 244 bytes total):
 
 Timestamp decode:
   packet_base_us = timestamp_s × 1_000_000 + timestamp_sub_s × 1_000 // 32
-  sample_us[i]   = packet_base_us + i × 1_000_000 // ADC_RATE_HZ
+  sample_us[i]   = packet_base_us + i × 1_000_000 // SAMPLE_RATE_HZ
 """
 
 import struct
@@ -19,7 +19,7 @@ from dataclasses import dataclass
 
 HEADER_FMT   = "<IHBBs"   # not used directly — parsed field by field
 HEADER_SIZE  = 8
-ADC_RATE_HZ  = 30_000
+SAMPLE_RATE_HZ  = 30_000
 MAGIC        = bytes([0xAA, 0x55])
 PACKET_SIZE  = 244
 
@@ -61,7 +61,7 @@ def parse(data: bytes) -> ParsedPacket | None:
     ch1 = samples[1::2].copy()
 
     i = np.arange(num_pairs, dtype=np.int64)
-    timestamps_us = packet_base_us + i * 1_000_000 // ADC_RATE_HZ
+    timestamps_us = packet_base_us + i * 1_000_000 // SAMPLE_RATE_HZ
 
     return ParsedPacket(
         header=PacketHeader(timestamp_s, timestamp_sub_s, seq_num, num_pairs),

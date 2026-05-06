@@ -38,7 +38,7 @@ GAP_THRESH   = 2.0             # multiples of expected Δt to call a gap
 ZOOM_START_S = 3.0
 ZOOM_WIDTH_S = 0.20
 
-TITLE = "Vega ADC recording — analysis"
+TITLE = "Vega FPGA recording — analysis"
 
 # ── LOAD & PREPARE ───────────────────────────────────────────────────────────
 

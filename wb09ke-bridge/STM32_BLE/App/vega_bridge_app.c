@@ -1,7 +1,7 @@
 /*
  * vega_bridge_app.c — GATT client for the Vega WB09KE BLE-to-UART bridge.
  *
- * Connects as central/client to the Kuntur STM32WB09 peripheral ("Kuntur-N"),
+ * Connects as central/client to the Kuntur STM32WB09 peripheral ("Kuntur-Headstage"),
  * discovers service 0xFFF0 and its notify characteristic 0xFFF2, enables
  * notifications, then forwards every received 244-byte StreamDataPacket_t to
  * the PC over UART using the same framing the nRF52840 bridge used:
@@ -85,7 +85,7 @@ static void log_throughput(void)
     if (now - last_ms >= 5000U) {
         uint32_t elapsed = now - last_ms;
         uint32_t pkt_s = (pkt_count * 1000U) / elapsed;
-        /* Assumes 59 ADC pairs per packet at 30 kSPS */
+        /* Assumes 59 FPGA sample pairs per packet at 30 kSPS */
         printf("Bridge: %lu pkt/s  %lu SPS\r\n",
                (unsigned long)pkt_s, (unsigned long)(pkt_s * 59U));
         pkt_count  = 0;
