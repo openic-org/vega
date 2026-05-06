@@ -42,3 +42,6 @@ __pycache__/
 *.pyo
 .venv/
 pc-app/.venv/
+
+# PC app recordings (local test captures)
+pc-app/vega_*.csv

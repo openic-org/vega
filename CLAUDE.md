@@ -7,9 +7,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Vega** is a real-time ADC visualisation system for the STM32WB0 "Kuntur" device. It has two front-ends that share the same BLE packet format and CSV recording format:
 
 - **`android-app/`** — Kotlin + Jetpack Compose app for the Lenovo TB305FU tablet (BLE direct)
-- **`pc-app/`** — PyQt6 desktop app for Linux/Windows/macOS (nRF52840 BLE→USB bridge)
+- **`pc-app/`** — PyQt6 desktop app for Linux/Windows/macOS (WB09KE BLE→UART bridge)
+- **`wb09ke-bridge/`** — NUCLEO-WB09KE firmware acting as BLE central → USB UART bridge for the PC app
 
-Shared: `log/`, `CLAUDE.md`, `BLE_CONFIGURATION.md`.
+Shared: `log/`, `CLAUDE.md`.
 
 ## Build & Run
 
@@ -67,7 +68,7 @@ BleGraphScreen / TimeSeriesGraph  — Compose UI + Canvas graph
 ```
 STM32WB0 (BLE peripheral "Kuntur-N", STREAM_MODE_NORDIC_HF)
     ↓  BLE 2M PHY, 244-byte notify packets
-nRF52840 DK / Dongle   — BLE central, USB CDC ACM bridge
+NUCLEO-WB09KE          — BLE central, USB CDC ACM bridge (wb09ke-bridge/)
     ↓  USB serial, framed: 0xAA 0x55 + uint16 length + 244-byte payload
 SerialReader (QThread) — re-sync on magic, parse, emit batch_received signal
     ↓  ParsedPacket(ch0, ch1, timestamps_us)
