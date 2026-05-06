@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Vega** is a real-time ADC visualisation system for the STM32WB0 "Kuntur" device. It has two front-ends that share the same BLE packet format and CSV recording format:
+**Vega** is a real-time FPGA data visualisation system for the STM32WB0 "Kuntur" device. It has two front-ends that share the same BLE packet format and CSV recording format:
 
 - **`android-app/`** — Kotlin + Jetpack Compose app for the Lenovo TB305FU tablet (BLE direct)
 - **`pc-app/`** — PyQt6 desktop app for Linux/Windows/macOS (WB09KE BLE→UART bridge)
@@ -57,7 +57,7 @@ BleGraphScreen / TimeSeriesGraph  — Compose UI + Canvas graph
 
 **`BleGattManager`** (`ble/BleGattManager.kt`) — owns the raw Android GATT stack. Connection sequence: `discoverServices` → `requestMtu(247)` → `setPreferredPhy(2M)` → write CCCD to enable notify on 0xFFF2. Raw packets are queued to a `Channel<ByteArray>(2048)` and consumed by a single-threaded coroutine (`parserScope`) so the BLE callback thread is never blocked. `parseStreamPacket` decodes the 8-byte header + interleaved int16 pairs.
 
-**`BleManager`** (`ble/BleManager.kt`) — orchestrates scanning, connection, data buffering, CSV recording, and auto-reconnect. Key constants at the top of the file control sampling rates and buffer sizes — change `DELIVERED_SPS` and `STREAM_MODE` comments together when switching between Android-BLE (~7,725 SPS) and future Nordic-HF (30,000 SPS) modes.
+**`BleManager`** (`ble/BleManager.kt`) — orchestrates scanning, connection, data buffering, CSV recording, and auto-reconnect. Key constants at the top of the file control sampling rates and buffer sizes — change `DELIVERED_SPS` and `STREAM_MODE` comments together when switching between Android-BLE (~7,725 SPS) and WB09KE-HF (30,000 SPS) modes.
 
 **`CircularMultiChannelBuffer`** (`data/Models.kt`) — thread-safe ring buffer holding up to `BUFFER_SIZE` 4-channel points. All public methods are `@Synchronized`. `getChannelWindow()` is the primary read path, extracting a single channel's last N points with optional downsampling.
 
@@ -66,7 +66,7 @@ BleGraphScreen / TimeSeriesGraph  — Compose UI + Canvas graph
 ### PC app (`pc-app/`)
 
 ```
-STM32WB0 (BLE peripheral "Kuntur-N", STREAM_MODE_NORDIC_HF)
+STM32WB0 (BLE peripheral "Kuntur-N", STREAM_MODE_WB09KE_HF)
     ↓  BLE 2M PHY, 244-byte notify packets
 NUCLEO-WB09KE          — BLE central, USB CDC ACM bridge (wb09ke-bridge/)
     ↓  USB serial, framed: 0xAA 0x55 + uint16 length + 244-byte payload
@@ -92,7 +92,7 @@ CsvRecorder            — timestamp_us,ch0,ch1  (identical format to Android)
 
 ## CSV Recording
 
-Recordings are written to the device's Downloads folder via MediaStore. Format: `timestamp_us,ch0,ch1` at the full ADC rate (30,000 SPS × 2 channels ≈ ~178 KB/s). Auto-stop triggers at 10 minutes or < 200 MB free storage. File names: `vega_YYYYMMDD_HHmmss.csv`.
+Recordings are written to the device's Downloads folder via MediaStore. Format: `timestamp_us,ch0,ch1` at the full sample rate (30,000 SPS × 2 channels ≈ ~178 KB/s). Auto-stop triggers at 10 minutes or < 200 MB free storage. File names: `vega_YYYYMMDD_HHmmss.csv`.
 
 ## Stream Modes
 
@@ -102,7 +102,7 @@ Switch by changing **both** `STREAM_ACTIVE_MODE` in `STM32_BLE/App/stream_app.h`
 |---|---|---|---|---|---|---|
 | `STREAM_MODE_LENOVO_SMOOTH` | 2 | 36 U (~13.9 ms) | Off — 1 pkt/CI | `4_000L` | Kuntur-S | ~4 000 SPS, smooth graph ← **active** |
 | `STREAM_MODE_ANDROID_BLE` | 0 | 5 U (~1.93 ms) | On — burst | `7_725L` | Kuntur-A | ~7 725 SPS, bursty delivery |
-| `STREAM_MODE_NORDIC_HF` | 1 | 2 U (~0.77 ms) | On — burst | `30_000L` | Kuntur-N | 30 000 SPS target (future) |
+| `STREAM_MODE_WB09KE_HF` | 1 | 2 U (~0.77 ms) | On — burst | `30_000L` | Kuntur-N | 30 000 SPS |
 
 The burst pipeline (`BLEStack_Process_Schedule` + immediate `UTIL_SEQ_SetTask` after each send) is what creates multi-packet-per-CI bursts. Disabled in LENOVO_SMOOTH so the VTIMER alone paces delivery at ~1 pkt/CI.
 
@@ -129,7 +129,7 @@ Key application files (under `STM32_BLE/App/`):
 **STM32 streaming pipeline**:
 ```
 VTIMER (StreamSendTimerCb) → UTIL_SEQ task (StreamSendTask)
-  ├─ Ring buffer has ≥59 pairs → send real ADC data
+  ├─ Ring buffer has ≥59 pairs → send real FPGA data
   └─ Ring buffer empty        → send simulation (10-bit sawtooth: CH0=N, CH1=(N+512)%1024)
 → STREAM_NotifyData() → aci_gatt_srv_notify on 0xFFF2
 → BLEStack_Process_Schedule() + self-reschedule (multi-packet per CI)
@@ -149,7 +149,7 @@ TX flow control: if `aci_gatt_srv_notify` returns `0x88` (pool full), `s_txFlowO
 
 **UART debug**: USART1 at 115200 8N1, TX on PA1. `APP_DBG_MSG` / `printf` route through `__io_putchar` → `HAL_UART_Transmit`. On startup there is a 5-second delay to allow ST-LINK debugger attach before the BLE stack starts.
 
-**Ingesting real ADC data**: call `STREAM_APP_IngestSamples(ch0, ch1, numPairs)` from the SPI DMA completion handler. The ring buffer is ISR-safe (atomic index increments only). When the ring buffer has ≥59 pairs, `StreamSendTask` automatically switches from simulation to real data — no other code change needed.
+**Ingesting real FPGA data**: call `STREAM_APP_IngestSamples(ch0, ch1, numPairs)` from the SPI DMA completion handler. The ring buffer is ISR-safe (atomic index increments only). When the ring buffer has ≥59 pairs, `StreamSendTask` automatically switches from simulation to real data — no other code change needed.
 
 ## Logcat Tags
 
