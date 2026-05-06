@@ -86,7 +86,7 @@ CsvRecorder            — timestamp_us,ch0,ch1  (identical format to Android)
   - bytes 4–5: `uint16` timestamp_sub_s (ms%1000 × 32, range 0–31999)
   - byte 6: `uint8` seq_num (rolling 0–255, for drop detection)
   - byte 7: `uint8` num_pairs
-  - bytes 8+: interleaved `int16` ch0, ch1 pairs
+  - bytes 8–243: 59 pairs × (`int16_t` ch0 + `int16_t` ch1), interleaved, signed, little-endian = 236 bytes
 - **Timestamp formula**: `packetBaseUs = timestampS × 1_000_000 + timestampSubS × 1_000 / 32`
 - A monotonicity clamp in `onBatchDataReceived` prevents backwards jumps caused by HAL_GetTick() 1 ms resolution + BLE CI jitter.
 
