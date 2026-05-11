@@ -2,6 +2,8 @@
 MainWindow — top-level PyQt6 window for the Vega PC app.
 """
 
+import csv
+import datetime
 import time
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import (
@@ -29,6 +31,12 @@ class MainWindow(QMainWindow):
         self._recorder = CsvRecorder()
         self._rate_ts  = 0.0
         self._rate_pkts = 0
+
+        # GPIO bench logging — opened on BLE connect, closed on disconnect
+        self._bench_log: "csv.writer | None" = None
+        self._bench_file = None
+        self._bench_start = 0.0
+        self._bench_path = ""
 
         self._build_ui()
         self._connect_signals()
@@ -194,6 +202,13 @@ class MainWindow(QMainWindow):
             self._rate_ts   = time.time()
             self._rate_pkts = 0
             self.statusBar().showMessage(f"Connected on {port}")
+            # Open bench log for this session
+            ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            self._bench_path = f"bench_{ts}.csv"
+            self._bench_file = open(self._bench_path, "w", newline="")
+            self._bench_log  = csv.writer(self._bench_file)
+            self._bench_log.writerow(["elapsed_s", "kbps", "pps"])
+            self._bench_start = time.time()
         else:
             self._lbl_status.setText("Disconnected")
             self._lbl_status.setStyleSheet("font-size: 11px; color: gray;")
@@ -201,7 +216,13 @@ class MainWindow(QMainWindow):
             if self._recorder.info.is_recording:
                 self._btn_rec.setChecked(False)
                 self._toggle_recording(False)
-            self.statusBar().showMessage("Disconnected")
+            if self._bench_file:
+                self._bench_file.close()
+                self._bench_file = None
+                self._bench_log  = None
+                self.statusBar().showMessage(f"Disconnected  — bench log: {self._bench_path}")
+            else:
+                self.statusBar().showMessage("Disconnected")
 
     def _on_error(self, msg: str):
         self._btn_connect.setChecked(False)
@@ -224,6 +245,13 @@ class MainWindow(QMainWindow):
             self._lbl_thru.setText(f"{kbps:.0f} kbit/s")
             self._rate_ts   = now
             self._rate_pkts = pkts
+            if self._bench_log:
+                self._bench_log.writerow([
+                    f"{now - self._bench_start:.1f}",
+                    f"{kbps:.1f}",
+                    f"{pps:.1f}",
+                ])
+                self._bench_file.flush()
 
         if self._recorder.info.is_recording:
             info = self._recorder.info
