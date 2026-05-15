@@ -29,8 +29,9 @@ class MainWindow(QMainWindow):
 
         self._reader   = SerialReader(self)
         self._recorder = CsvRecorder()
-        self._rate_ts  = 0.0
+        self._rate_ts   = 0.0
         self._rate_pkts = 0
+        self._drops_prev = 0   # drops seen at previous status update — tracks per-interval rate
 
         # GPIO bench logging — opened on BLE connect, closed on disconnect
         self._bench_log: "csv.writer | None" = None
@@ -230,21 +231,29 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage(f"Error: {msg}")
 
     def _update_status(self):
-        """Called every 2 s — update packet count, rate, recording status."""
-        pkts = self._reader.total_packets
+        """Called every 2 s — update packet count, rate, drop counter, status bar."""
+        pkts  = self._reader.total_packets
+        drops = self._reader.dropped_packets
         self._lbl_packets.setText(str(pkts))
-        self._lbl_dropped.setText(str(self._reader.dropped_packets))
+
+        # Colour drop label red as soon as any drop is detected; stays red.
+        self._lbl_dropped.setText(str(drops))
+        if drops > 0:
+            self._lbl_dropped.setStyleSheet("font-size: 11px; color: #B71C1C; font-weight: bold;")
 
         now = time.time()
         elapsed = now - self._rate_ts
         if elapsed >= 2.0 and self._rate_ts > 0:
-            delta = pkts - self._rate_pkts
-            pps   = delta / elapsed
-            kbps  = pps * 244 * 8 / 1000
+            delta        = pkts - self._rate_pkts
+            drop_delta   = drops - self._drops_prev
+            pps          = delta / elapsed
+            kbps         = pps * 244 * 8 / 1000
+            sps          = pps * 59
             self._lbl_rate.setText(f"{pps:.1f} pkt/s")
             self._lbl_thru.setText(f"{kbps:.0f} kbit/s")
-            self._rate_ts   = now
-            self._rate_pkts = pkts
+            self._rate_ts    = now
+            self._rate_pkts  = pkts
+            self._drops_prev = drops
             if self._bench_log:
                 self._bench_log.writerow([
                     f"{now - self._bench_start:.1f}",
@@ -252,6 +261,13 @@ class MainWindow(QMainWindow):
                     f"{pps:.1f}",
                 ])
                 self._bench_file.flush()
+
+            # Status bar: compact one-liner with drops prominently shown
+            port = self._port_combo.currentText()
+            drop_str = f"drops: {drops}" if drop_delta == 0 else f"drops: {drops} (+{drop_delta})"
+            self.statusBar().showMessage(
+                f"{port}  |  {pps:.0f} pkt/s  {sps:.0f} SPS  {kbps:.0f} kbit/s  |  {drop_str}"
+            )
 
         if self._recorder.info.is_recording:
             info = self._recorder.info
