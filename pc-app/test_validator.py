@@ -33,6 +33,7 @@ def run(port_name: str, duration: float, max_drops: int, verbose: bool) -> int:
     print(f"Opening {port_name} at {BAUD_RATE} baud ...")
     try:
         port = serial.Serial(port_name, baudrate=BAUD_RATE, timeout=1.0)
+        port.reset_input_buffer()   # discard data the kernel buffered before port-open
     except serial.SerialException as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 1
