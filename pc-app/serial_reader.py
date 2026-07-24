@@ -67,8 +67,8 @@ class SerialReader(QThread):
         while self._running:
             try:
                 chunk = self._port.read(512)
-            except serial.SerialException as e:
-                self.error.emit(f"Serial read error: {e}")
+            except (serial.SerialException, OSError, TypeError):
+                # OSError/TypeError: port fd closed by stop() while read() was blocked
                 break
 
             if not chunk:
@@ -130,8 +130,11 @@ class SerialReader(QThread):
                 self.total_packets += 1
                 self.batch_received.emit(packet)
 
-        if self._port and self._port.is_open:
-            self._port.close()
+        try:
+            if self._port and self._port.is_open:
+                self._port.close()
+        except OSError:
+            pass  # already closed by stop()
         self._last_ts_us = 0
         self.connection_changed.emit(False, self._port_name)
 
