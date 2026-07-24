@@ -32,8 +32,13 @@ BAUD_RATE = 2_000_000
 def run(port_name: str, duration: float, max_drops: int, verbose: bool) -> int:
     print(f"Opening {port_name} at {BAUD_RATE} baud ...")
     try:
-        port = serial.Serial(port_name, baudrate=BAUD_RATE, timeout=1.0)
-        port.reset_input_buffer()   # discard data the kernel buffered before port-open
+        port = serial.Serial(port_name, baudrate=BAUD_RATE, timeout=0.1)
+        # Drain any data the kernel buffered before port-open.
+        # reset_input_buffer() is unreliable on Linux USB CDC ACM; read-and-discard
+        # is the only method that reliably empties the kernel USB receive buffer.
+        while port.read(4096):
+            pass
+        port.timeout = 1.0
     except serial.SerialException as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 1
