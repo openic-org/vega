@@ -16,6 +16,7 @@
  * All throughput monitoring is done on the PC side (test_validator.py).
  */
 
+#include "app_conf.h"  /* must be first — defines DT_INFO_MSG as no-op before app_ble.h can set it to printf */
 #include "main.h"
 #include "app_common.h"
 #include "ble.h"

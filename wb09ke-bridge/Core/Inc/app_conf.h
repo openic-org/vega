@@ -432,7 +432,9 @@ typedef enum
 #endif
 
 /* USER CODE BEGIN Traces */
-
+/* DT_INFO_MSG is defined in the reference app_ble.h as printf() — silence it
+ * here so connection-sequence log lines do not corrupt the data UART stream. */
+#define DT_INFO_MSG(...)
 /* USER CODE END Traces */
 
 /******************************************************************************
