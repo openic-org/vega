@@ -22,6 +22,7 @@ HEADER_SIZE  = 8
 SAMPLE_RATE_HZ  = 30_000
 MAGIC        = bytes([0xAA, 0x55])
 PACKET_SIZE  = 244
+FIFO_EMPTY_SENTINEL = np.int16(-32768)  # 0x8000 — FPGA FIFO underrun marker
 
 
 @dataclass
@@ -34,10 +35,11 @@ class PacketHeader:
 
 @dataclass
 class ParsedPacket:
-    header:       PacketHeader
-    ch0:          np.ndarray   # int16, shape (num_pairs,)
-    ch1:          np.ndarray   # int16, shape (num_pairs,)
-    timestamps_us: np.ndarray  # int64, shape (num_pairs,)
+    header:         PacketHeader
+    ch0:            np.ndarray   # int16, shape (num_pairs,)
+    ch1:            np.ndarray   # int16, shape (num_pairs,)
+    timestamps_us:  np.ndarray   # int64, shape (num_pairs,)
+    fifo_underruns: int          # samples where ch0 == 0x8000 (FPGA FIFO empty)
 
 
 def parse(data: bytes) -> ParsedPacket | None:
@@ -63,9 +65,12 @@ def parse(data: bytes) -> ParsedPacket | None:
     i = np.arange(num_pairs, dtype=np.int64)
     timestamps_us = packet_base_us + i * 1_000_000 // SAMPLE_RATE_HZ
 
+    fifo_underruns = int(np.sum(ch0 == FIFO_EMPTY_SENTINEL))
+
     return ParsedPacket(
         header=PacketHeader(timestamp_s, timestamp_sub_s, seq_num, num_pairs),
         ch0=ch0,
         ch1=ch1,
         timestamps_us=timestamps_us,
+        fifo_underruns=fifo_underruns,
     )

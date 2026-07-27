@@ -64,9 +64,10 @@ class CsvRecorder:
             self.stop(auto_stopped=True)
             return False
 
-        for t, c0, c1 in zip(timestamps_us, ch0, ch1):
+        valid = ch0 != -32768  # skip FPGA FIFO underrun sentinels (0x8000)
+        for t, c0, c1 in zip(timestamps_us[valid], ch0[valid], ch1[valid]):
             self._file.write(f"{t},{c0},{c1}\n")
-        self._rows_written += len(timestamps_us)
+        self._rows_written += int(valid.sum())
         return True
 
     def stop(self, auto_stopped: bool = False):
