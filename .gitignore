@@ -44,4 +44,4 @@ __pycache__/
 pc-app/.venv/
 
 # PC app recordings (local test captures)
-pc-app/vega_*.csv
+pc-app/recordings/vega_*.csv
