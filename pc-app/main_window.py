@@ -5,6 +5,7 @@ MainWindow — top-level PyQt6 window for the Vega PC app.
 import csv
 import datetime
 import time
+from pathlib import Path
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -16,6 +17,9 @@ from PyQt6.QtGui import QFont
 from serial_reader import SerialReader
 from graph_widget  import GraphWidget
 from csv_recorder  import CsvRecorder
+
+RECORDINGS_DIR = Path(__file__).parent / "recordings"
+BENCH_DIR      = Path(__file__).parent / "bench"
 
 # Measured at ~4 500 SPS with current CI (~13 ms). Update when CI is tightened to 7.5 ms.
 DELIVERED_SPS = 5_000
@@ -174,7 +178,8 @@ class MainWindow(QMainWindow):
 
     def _toggle_recording(self, checked: bool):
         if checked:
-            path = self._recorder.start(".")
+            RECORDINGS_DIR.mkdir(exist_ok=True)
+            path = self._recorder.start(str(RECORDINGS_DIR))
             self._btn_rec.setText("■ Stop")
             self._lbl_rec_path.setText(f"Recording → {path}")
         else:
@@ -191,7 +196,9 @@ class MainWindow(QMainWindow):
 
         # CSV
         if self._recorder.info.is_recording:
-            ok = self._recorder.write_batch(packet.timestamps_us, packet.ch0, packet.ch1)
+            ok = self._recorder.write_batch(
+                packet.timestamps_us, packet.ch0, packet.ch1, packet.header.seq_num
+            )
             if not ok and self._recorder.info.auto_stopped:
                 self._btn_rec.setChecked(False)
                 self._toggle_recording(False)
@@ -208,7 +215,8 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(f"Connected on {port}")
             # Open bench log for this session
             ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            self._bench_path = f"bench_{ts}.csv"
+            BENCH_DIR.mkdir(exist_ok=True)
+            self._bench_path = str(BENCH_DIR / f"bench_{ts}.csv")
             self._bench_file = open(self._bench_path, "w", newline="")
             self._bench_log  = csv.writer(self._bench_file)
             self._bench_log.writerow(["elapsed_s", "kbps", "pps"])
