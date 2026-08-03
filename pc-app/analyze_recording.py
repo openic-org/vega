@@ -29,8 +29,13 @@ def compute_stats(path: Path) -> dict:
     has_seq = "seq_num" in header
 
     names = ["t", "ch0", "ch1", "seq"] if has_seq else ["t", "ch0", "ch1"]
-    data = np.genfromtxt(path, delimiter=",", skip_header=1,
-                          dtype=np.int64, names=names)
+    # loadtxt (not genfromtxt) is required for multi-hour recordings: genfromtxt
+    # builds a Python tuple per row before converting, which balloons to 10-20x
+    # the file size in RAM. A 3 GB / 112M-row recording OOM-killed the terminal
+    # under genfromtxt; loadtxt's C-level reader stays close to the array's
+    # native size instead.
+    dtype = np.dtype({"names": names, "formats": [np.int64] * len(names)})
+    data = np.loadtxt(path, delimiter=",", skiprows=1, dtype=dtype)
     t   = data["t"]
     ch0 = data["ch0"].astype(np.int16)
     ch1 = data["ch1"].astype(np.int16)

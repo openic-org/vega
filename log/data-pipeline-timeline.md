@@ -41,7 +41,7 @@ sequenceDiagram
             MCU->>MCU: seq_num++, BLE_STACK_Tick(), loop immediately
         else pool full (0x88)
             BLE-->>MCU: BLE_STATUS_INSUFFICIENT_RESOURCES
-            Note over MCU,BLE: ★ INTERRUPT POINT 1 — TX flow-off.<br/>Packet buffered into ring (fixed 2026-07-30);<br/>s_txFlowOff=1; MCU returns to scheduler.
+            Note over MCU,BLE: ★ INTERRUPT POINT 1 — TX flow-off.<br/>Packet buffered into ring (fixed 2026-07-30)<br/>s_txFlowOff=1. MCU returns to scheduler.
         end
     end
 
