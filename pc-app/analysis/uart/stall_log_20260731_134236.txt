@@ -1,0 +1,1237 @@
+>>== HCI_DISCONNECTION_COMPLETE_EVT_CODE
+     - Connection Handle:   0x801
+     - Reason:    0x08
+STREAM: disconnected, sending stopped.
+==>> Success: aci_gap_set_advertising_configuration
+==>> Success: aci_gap_set_advertising_data
+==>> Success: aci_gap_set_advertising_enable
+STREAM: LONG STALL - flow-off #6 took 5008937 us to resume (longest=5008937 us) resumed_at=15.04954
+>>== hci_le_connection_complete_event - Connection handle: 0x0802
+     - Connection established with @:f2:95:aa:c8:51:6a
+     - Connection Interval:   7.50 ms
+     - Connection latency:    0
+     - Supervision Timeout: 5000 ms
+STREAM: connected (handle 0x0802)
+  DLE 251 requested.
+DLE UPDATE: MaxTxOctets=251 MaxRxOctets=27
+  2M PHY requested.
+DLE UPDATE: MaxTxOctets=251 MaxRxOctets=251
+  Warning: hci_le_set_phy 2M request failed: 0x07
+DLE UPDATE: MaxTxOctets=251 MaxRxOctets=251
+  2M PHY requested.
+PHY update: TX=2M RX=2M status=0x00
+CPUP: skipped (WB09KE_HF — central controls CI).
+PHY update: TX=2M RX=2M status=0x00
+CPUP: skipped (WB09KE_HF — central controls CI).
+STREAM: CCCD enabled (conn=0x0802) – seq+counter reset to 0
+STREAM: flow-off #1 (batch=1436 tot=1436)
+STREAM: LONG STALL - flow-off #1 took 6687 us to resume (longest=5008937 us) resumed_at=18.08288
+STREAM: pool-avail #1  flowoffs=1  notifs=1436  batch_now=0
+STREAM: ring drained to 0 at 18.08800 (backlog was 59 pairs)
+STREAM: post-drain +  5875 us  SKP ch0=-13092 step=+19676  (ring=59 fpga=0)
+STREAM: flow-off #2 (batch=1953 tot=3389)
+STREAM: LONG STALL - flow-off #2 took 4687 us to resume (longest=5008937 us) resumed_at=22.04776
+STREAM: ring drained to 0 at 22.05098 (backlog was 59 pairs)
+STREAM: post-drain +  5906 us  SKP ch0=-29988 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain +  7843 us  SKP ch0=-29933 step=  +55  (ring=0 fpga=59)
+STREAM: flow-off #3 (batch=917 tot=4306)
+STREAM: LONG STALL - flow-off #3 took 4437 us to resume (longest=5008937 us) resumed_at=23.31843
+STREAM: ring drained to 0 at 24.00166 (backlog was 59 pairs)
+STREAM: post-drain +  5875 us  SKP ch0= 24109 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #4 (batch=555 tot=4861)
+STREAM: LONG STALL - flow-off #4 took 4343 us to resume (longest=5008937 us) resumed_at=25.03796
+STREAM: ring drained to 0 at 25.04117 (backlog was 59 pairs)
+STREAM: flow-off #5 (batch=560 tot=5421)
+STREAM: post-drain +  6125 us  SKP ch0= -8682 step=   +0  (ring=59 fpga=0)
+STREAM: LONG STALL - flow-off #5 took 11812 us to resume (longest=5008937 us) resumed_at=26.08077
+STREAM: ring drained to 0 at 26.08401 (backlog was 59 pairs)
+STREAM: post-drain +  5875 us  SKP ch0= 24358 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43156 us  SKP ch0= 25608 step= +188  (ring=0 fpga=59)
+STREAM: flow-off #6 (batch=1170 tot=6591)
+STREAM: LONG STALL - flow-off #6 took 4468 us to resume (longest=5008937 us) resumed_at=28.19155
+STREAM: ring drained to 0 at 28.19475 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0= 28221 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain +  8093 us  SKP ch0= 28275 step=  +54  (ring=0 fpga=59)
+STREAM: flow-off #7 (batch=1590 tot=8181)
+STREAM: LONG STALL - flow-off #7 took 4593 us to resume (longest=5008937 us) resumed_at=31.24776
+STREAM: ring drained to 0 at 31.25100 (backlog was 59 pairs)
+STREAM: flow-off #8 (batch=42 tot=8223)
+STREAM: post-drain +  5968 us  SKP ch0= -9660 step=   +0  (ring=59 fpga=0)
+STREAM: LONG STALL - flow-off #8 took 11906 us to resume (longest=5008937 us) resumed_at=31.28298
+STREAM: ring drained to 0 at 31.28623 (backlog was 59 pairs)
+STREAM: flow-off #9 (batch=400 tot=8623)
+STREAM: post-drain +  5843 us  SKP ch0= -7182 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43125 us  SKP ch0= -5717 step= +403  (ring=0 fpga=59)
+STREAM: post-drain + 45031 us  SKP ch0= -5657 step=  +60  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #9 took 26593 us to resume (longest=5008937 us) resumed_at=32.22920
+STREAM: ring drained to 0 at 32.23240 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0= 16763 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43281 us  SKP ch0= 18702 step= +877  (ring=0 fpga=59)
+STREAM: flow-off #10 (batch=647 tot=9270)
+STREAM: LONG STALL - flow-off #10 took 4468 us to resume (longest=5008937 us) resumed_at=34.00931
+STREAM: ring drained to 0 at 34.01263 (backlog was 59 pairs)
+STREAM: flow-off #11 (batch=404 tot=9674)
+STREAM: post-drain +  5875 us  SKP ch0= -9589 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43218 us  SKP ch0= -8300 step= +227  (ring=0 fpga=59)
+STREAM: post-drain + 45125 us  SKP ch0= -8240 step=  +60  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #11 took 26750 us to resume (longest=5008937 us) resumed_at=34.27829
+STREAM: ring drained to 0 at 34.28156 (backlog was 59 pairs)
+STREAM: flow-off #12 (batch=82 tot=9756)
+STREAM: post-drain +  5843 us  SKP ch0= 14416 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43156 us  SKP ch0= 16363 step= +885  (ring=0 fpga=59)
+STREAM: post-drain + 45000 us  SKP ch0= 16423 step=  +60  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #12 took 26718 us to resume (longest=5008937 us) resumed_at=35.02360
+STREAM: ring drained to 0 at 35.02689 (backlog was 59 pairs)
+STREAM: flow-off #13 (batch=31 tot=9787)
+STREAM: post-drain +  6000 us  SKP ch0= 20081 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43062 us  SKP ch0= 22359 step=+1216  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #13 took 19250 us to resume (longest=5008937 us) resumed_at=35.05431
+STREAM: ring drained to 0 at 35.05758 (backlog was 59 pairs)
+STREAM: flow-off #14 (batch=85 tot=9872)
+STREAM: post-drain +  5906 us  SKP ch0= 23067 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43218 us  SKP ch0= 25171 step=+1042  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #14 took 19218 us to resume (longest=5008937 us) resumed_at=35.11920
+STREAM: ring drained to 0 at 35.12248 (backlog was 59 pairs)
+STREAM: post-drain +  5843 us  SKP ch0= 29065 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43218 us  SKP ch0= 31124 step= +997  (ring=0 fpga=59)
+STREAM: flow-off #15 (batch=222 tot=10094)
+STREAM: LONG STALL - flow-off #15 took 4656 us to resume (longest=5008937 us) resumed_at=35.27056
+STREAM: ring drained to 0 at 35.27380 (backlog was 59 pairs)
+STREAM: flow-off #16 (batch=54 tot=10148)
+STREAM: post-drain +  5875 us  SKP ch0=-22041 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 42968 us  SKP ch0=-20531 step= +448  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #16 took 19406 us to resume (longest=5008937 us) resumed_at=35.31577
+STREAM: ring drained to 0 at 35.31904 (backlog was 59 pairs)
+STREAM: flow-off #17 (batch=344 tot=10492)
+STREAM: post-drain +  5844 us  SKP ch0=-18466 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43188 us  SKP ch0=-16387 step=+1017  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #17 took 19687 us to resume (longest=5008937 us) resumed_at=36.22460
+STREAM: ring drained to 0 at 36.22780 (backlog was 59 pairs)
+STREAM: flow-off #18 (batch=346 tot=10838)
+STREAM: post-drain +  6156 us  SKP ch0=  2788 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43125 us  SKP ch0=  4601 step= +751  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #18 took 19437 us to resume (longest=5008937 us) resumed_at=37.13448
+STREAM: ring drained to 0 at 37.13775 (backlog was 59 pairs)
+STREAM: post-drain +  5843 us  SKP ch0= 23894 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43062 us  SKP ch0= 25689 step= +733  (ring=0 fpga=59)
+STREAM: flow-off #19 (batch=362 tot=11200)
+STREAM: LONG STALL - flow-off #19 took 4687 us to resume (longest=5008937 us) resumed_at=38.05448
+STREAM: ring drained to 0 at 38.05775 (backlog was 59 pairs)
+STREAM: flow-off #20 (batch=692 tot=11892)
+STREAM: post-drain +  5843 us  SKP ch0=-19306 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43125 us  SKP ch0=-17835 step= +409  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #20 took 19437 us to resume (longest=5008937 us) resumed_at=39.18319
+STREAM: ring drained to 0 at 39.18646 (backlog was 59 pairs)
+STREAM: post-drain +  5843 us  SKP ch0= 21872 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43218 us  SKP ch0= 23312 step= +378  (ring=0 fpga=59)
+STREAM: flow-off #21 (batch=233 tot=12125)
+STREAM: LONG STALL - flow-off #21 took 4687 us to resume (longest=5008937 us) resumed_at=40.02166
+STREAM: ring drained to 0 at 40.02493 (backlog was 59 pairs)
+STREAM: post-drain +  5843 us  SKP ch0=-29333 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 42968 us  SKP ch0=-27686 step= +585  (ring=0 fpga=59)
+STREAM: flow-off #22 (batch=1538 tot=13663)
+STREAM: LONG STALL - flow-off #22 took 4718 us to resume (longest=5008937 us) resumed_at=43.04511
+STREAM: ring drained to 0 at 43.04834 (backlog was 59 pairs)
+STREAM: flow-off #23 (batch=505 tot=14168)
+STREAM: post-drain +  6062 us  SKP ch0=-32768 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain +  8000 us  SKP ch0= -3694 step=+29074  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #23 took 19718 us to resume (longest=5008937 us) resumed_at=44.05558
+STREAM: ring drained to 0 at 44.05880 (backlog was 59 pairs)
+STREAM: post-drain +  6062 us  SKP ch0= 26042 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43281 us  SKP ch0= 27275 step= +171  (ring=0 fpga=59)
+STREAM: flow-off #24 (batch=341 tot=14509)
+STREAM: LONG STALL - flow-off #24 took 4750 us to resume (longest=5008937 us) resumed_at=44.28224
+STREAM: ring drained to 0 at 44.28550 (backlog was 59 pairs)
+STREAM: flow-off #25 (batch=666 tot=15175)
+STREAM: post-drain +  5906 us  SKP ch0=-18931 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43218 us  SKP ch0=-17474 step= +395  (ring=0 fpga=59)
+STREAM: post-drain + 45125 us  SKP ch0=-17414 step=  +60  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #25 took 26750 us to resume (longest=5008937 us) resumed_at=46.07685
+STREAM: ring drained to 0 at 46.08012 (backlog was 59 pairs)
+STREAM: post-drain +  5875 us  SKP ch0= 20700 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43156 us  SKP ch0= 22387 step= +625  (ring=0 fpga=59)
+STREAM: flow-off #26 (batch=745 tot=15920)
+STREAM: LONG STALL - flow-off #26 took 4687 us to resume (longest=5008937 us) resumed_at=47.23919
+STREAM: ring drained to 0 at 47.24244 (backlog was 59 pairs)
+STREAM: post-drain +  5843 us  SKP ch0=   -62 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 42937 us  SKP ch0=  1085 step=  +85  (ring=0 fpga=59)
+STREAM: flow-off #27 (batch=774 tot=16694)
+STREAM: LONG STALL - flow-off #27 took 4343 us to resume (longest=5008937 us) resumed_at=49.09922
+STREAM: ring drained to 0 at 49.10250 (backlog was 59 pairs)
+STREAM: flow-off #28 (batch=288 tot=16982)
+STREAM: post-drain +  6000 us  SKP ch0=-19906 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43281 us  SKP ch0=-18585 step= +259  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #28 took 19406 us to resume (longest=5008937 us) resumed_at=49.29283
+STREAM: ring drained to 0 at 49.29610 (backlog was 59 pairs)
+STREAM: post-drain +  5875 us  SKP ch0= -2714 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43281 us  SKP ch0=  -833 step= +819  (ring=0 fpga=59)
+STREAM: flow-off #29 (batch=1034 tot=18016)
+STREAM: LONG STALL - flow-off #29 took 4875 us to resume (longest=5008937 us) resumed_at=51.31761
+STREAM: ring drained to 0 at 52.00088 (backlog was 59 pairs)
+STREAM: post-drain +  5875 us  SKP ch0= -6484 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #30 (batch=1000 tot=19016)
+STREAM: LONG STALL - flow-off #30 took 4843 us to resume (longest=5008937 us) resumed_at=53.31842
+STREAM: ring drained to 0 at 54.00168 (backlog was 59 pairs)
+STREAM: post-drain +  5906 us  SKP ch0=-13020 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #31 (batch=2054 tot=21070)
+STREAM: LONG STALL - flow-off #31 took 4718 us to resume (longest=5008937 us) resumed_at=58.02567
+STREAM: ring drained to 0 at 58.02894 (backlog was 59 pairs)
+STREAM: flow-off #32 (batch=98 tot=21168)
+STREAM: post-drain +  6000 us  SKP ch0=-32768 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain +  7906 us  SKP ch0=-24007 step=+8761  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #32 took 19375 us to resume (longest=5008937 us) resumed_at=58.09876
+STREAM: ring drained to 0 at 58.10204 (backlog was 59 pairs)
+STREAM: flow-off #33 (batch=39 tot=21207)
+STREAM: post-drain +  5968 us  SKP ch0=-18284 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43062 us  SKP ch0=-16642 step= +580  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #33 took 19312 us to resume (longest=5008937 us) resumed_at=58.13449
+STREAM: ring drained to 0 at 58.13777 (backlog was 59 pairs)
+STREAM: flow-off #34 (batch=255 tot=21462)
+STREAM: post-drain +  5843 us  SKP ch0=-15462 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43062 us  SKP ch0=-13366 step=+1034  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #34 took 19468 us to resume (longest=5008937 us) resumed_at=58.30711
+STREAM: ring drained to 0 at 58.31039 (backlog was 59 pairs)
+STREAM: flow-off #35 (batch=69 tot=21531)
+STREAM: post-drain +  5875 us  SKP ch0=   558 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 42969 us  SKP ch0=  2464 step= +844  (ring=0 fpga=59)
+STREAM: post-drain + 44844 us  SKP ch0=  2524 step=  +60  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #35 took 26906 us to resume (longest=5008937 us) resumed_at=59.04409
+STREAM: ring drained to 0 at 59.04731 (backlog was 59 pairs)
+STREAM: post-drain +  6031 us  SKP ch0=  5415 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43375 us  SKP ch0=  7689 step=+1212  (ring=0 fpga=59)
+STREAM: flow-off #36 (batch=1111 tot=22642)
+STREAM: LONG STALL - flow-off #36 took 4875 us to resume (longest=5008937 us) resumed_at=61.11754
+STREAM: ring drained to 0 at 61.12080 (backlog was 59 pairs)
+STREAM: post-drain +  5843 us  SKP ch0=  6581 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #37 (batch=647 tot=23289)
+STREAM: LONG STALL - flow-off #37 took 4656 us to resume (longest=5008937 us) resumed_at=62.21525
+STREAM: ring drained to 0 at 62.21852 (backlog was 59 pairs)
+STREAM: flow-off #38 (batch=263 tot=23552)
+STREAM: post-drain +  5875 us  SKP ch0=-20782 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43156 us  SKP ch0=-19639 step=  +81  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #38 took 19468 us to resume (longest=5008937 us) resumed_at=63.07273
+STREAM: ring drained to 0 at 63.07600 (backlog was 59 pairs)
+STREAM: post-drain +  5906 us  SKP ch0= -5243 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43218 us  SKP ch0= -3364 step= +817  (ring=0 fpga=59)
+STREAM: post-drain + 45093 us  SKP ch0= -3304 step=  +60  (ring=0 fpga=59)
+STREAM: flow-off #39 (batch=742 tot=24294)
+STREAM: LONG STALL - flow-off #39 took 4656 us to resume (longest=5008937 us) resumed_at=64.23541
+STREAM: ring drained to 0 at 64.23868 (backlog was 59 pairs)
+STREAM: flow-off #40 (batch=100 tot=24394)
+STREAM: post-drain +  5875 us  SKP ch0=-26217 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43000 us  SKP ch0=-24627 step= +528  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #40 took 19406 us to resume (longest=5008937 us) resumed_at=64.30968
+STREAM: ring drained to 0 at 64.31288 (backlog was 59 pairs)
+STREAM: flow-off #41 (batch=652 tot=25046)
+STREAM: post-drain +  5875 us  SKP ch0=-19848 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43594 us  SKP ch0=-17830 step= +956  (ring=0 fpga=59)
+STREAM: post-drain + 45657 us  SKP ch0=-17770 step=  +60  (ring=0 fpga=59)
+STREAM: post-drain + 49750 us  SKP ch0=-17651 step=  +60  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #41 took 34375 us to resume (longest=5008937 us) resumed_at=66.09794
+STREAM: ring drained to 0 at 66.10117 (backlog was 59 pairs)
+STREAM: post-drain +  6031 us  SKP ch0= 19519 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43281 us  SKP ch0= 21456 step= +875  (ring=0 fpga=59)
+STREAM: flow-off #42 (batch=387 tot=25433)
+STREAM: LONG STALL - flow-off #42 took 4718 us to resume (longest=5008937 us) resumed_at=67.03374
+STREAM: ring drained to 0 at 67.03700 (backlog was 59 pairs)
+STREAM: flow-off #43 (batch=392 tot=25825)
+STREAM: post-drain +  5843 us  SKP ch0=-22122 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43093 us  SKP ch0=-20618 step= +442  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #43 took 19406 us to resume (longest=5008937 us) resumed_at=67.29284
+STREAM: ring drained to 0 at 67.29611 (backlog was 59 pairs)
+STREAM: flow-off #44 (batch=138 tot=25963)
+STREAM: post-drain +  5875 us  SKP ch0=  1389 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43000 us  SKP ch0=  3143 step= +692  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #44 took 19500 us to resume (longest=5008937 us) resumed_at=68.07109
+STREAM: ring drained to 0 at 68.07436 (backlog was 59 pairs)
+STREAM: post-drain +  5875 us  SKP ch0= 10164 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43093 us  SKP ch0= 12153 step= +927  (ring=0 fpga=59)
+STREAM: post-drain + 44968 us  SKP ch0= 12213 step=  +60  (ring=0 fpga=59)
+STREAM: flow-off #45 (batch=525 tot=26488)
+STREAM: LONG STALL - flow-off #45 took 4625 us to resume (longest=5008937 us) resumed_at=69.09650
+STREAM: ring drained to 0 at 69.09974 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0=-23235 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43312 us  SKP ch0=-21699 step= +474  (ring=0 fpga=59)
+STREAM: flow-off #46 (batch=1098 tot=27586)
+STREAM: LONG STALL - flow-off #46 took 4750 us to resume (longest=5008937 us) resumed_at=71.16202
+STREAM: ring drained to 0 at 71.16526 (backlog was 59 pairs)
+STREAM: flow-off #47 (batch=25 tot=27611)
+STREAM: LONG STALL - flow-off #47 took 4593 us to resume (longest=5008937 us) resumed_at=71.18418
+STREAM: post-drain +  6000 us  SKP ch0=-23574 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 58937 us  FLOW-OFF
+STREAM: ring drained to 0 at 71.19104 (backlog was 59 pairs)
+STREAM: flow-off #48 (batch=18 tot=27629)
+STREAM: LONG STALL - flow-off #48 took 4500 us to resume (longest=5008937 us) resumed_at=71.20546
+STREAM: ring drained to 0 at 71.20878 (backlog was 59 pairs)
+STREAM: post-drain +  5875 us  SKP ch0=-21037 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain +  7812 us  SKP ch0=-20170 step= +867  (ring=0 fpga=59)
+STREAM: post-drain + 43156 us  SKP ch0=-18547 step= +620  (ring=0 fpga=59)
+STREAM: post-drain + 45062 us  SKP ch0=-18486 step=  +61  (ring=0 fpga=59)
+STREAM: flow-off #49 (batch=1046 tot=28675)
+STREAM: LONG STALL - flow-off #49 took 4781 us to resume (longest=5008937 us) resumed_at=73.24271
+STREAM: ring drained to 0 at 73.24597 (backlog was 59 pairs)
+STREAM: flow-off #50 (batch=301 tot=28976)
+STREAM: post-drain +  6000 us  SKP ch0=-23488 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 42875 us  SKP ch0=-21972 step= +454  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #50 took 19437 us to resume (longest=5008937 us) resumed_at=74.12418
+STREAM: ring drained to 0 at 74.12746 (backlog was 59 pairs)
+STREAM: post-drain +  5843 us  SKP ch0= -5334 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43125 us  SKP ch0= -3490 step= +782  (ring=0 fpga=59)
+STREAM: flow-off #51 (batch=647 tot=29623)
+STREAM: LONG STALL - flow-off #51 took 4656 us to resume (longest=5008937 us) resumed_at=75.22452
+STREAM: ring drained to 0 at 75.22782 (backlog was 59 pairs)
+STREAM: post-drain +  5968 us  SKP ch0=-31974 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 42906 us  SKP ch0=-30476 step= +436  (ring=0 fpga=59)
+STREAM: flow-off #52 (batch=1227 tot=30850)
+STREAM: LONG STALL - flow-off #52 took 4906 us to resume (longest=5008937 us) resumed_at=78.05131
+STREAM: ring drained to 0 at 78.05455 (backlog was 59 pairs)
+STREAM: flow-off #53 (batch=256 tot=31106)
+STREAM: post-drain +  5875 us  SKP ch0=-24748 step=   +0  (ring=59 fpga=0)
+STREAM: LONG STALL - flow-off #53 took 12062 us to resume (longest=5008937 us) resumed_at=78.22186
+STREAM: ring drained to 0 at 78.22513 (backlog was 59 pairs)
+STREAM: post-drain +  5875 us  SKP ch0= -9644 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43062 us  SKP ch0= -8214 step= +368  (ring=0 fpga=59)
+STREAM: flow-off #54 (batch=958 tot=32064)
+STREAM: LONG STALL - flow-off #54 took 4625 us to resume (longest=5008937 us) resumed_at=80.19858
+STREAM: ring drained to 0 at 80.20176 (backlog was 59 pairs)
+STREAM: flow-off #55 (batch=130 tot=32194)
+STREAM: post-drain +  6062 us  SKP ch0=-18349 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43250 us  SKP ch0=-17195 step=  +92  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #55 took 19531 us to resume (longest=5008937 us) resumed_at=80.29197
+STREAM: ring drained to 0 at 80.29525 (backlog was 59 pairs)
+STREAM: flow-off #56 (batch=229 tot=32423)
+STREAM: post-drain +  5875 us  SKP ch0=-10646 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43250 us  SKP ch0= -8629 step= +955  (ring=0 fpga=59)
+STREAM: post-drain + 45125 us  SKP ch0= -8568 step=  +61  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #56 took 26843 us to resume (longest=5008937 us) resumed_at=81.13031
+STREAM: ring drained to 0 at 81.13358 (backlog was 59 pairs)
+STREAM: flow-off #57 (batch=317 tot=32740)
+STREAM: post-drain +  5875 us  SKP ch0=  3763 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43031 us  SKP ch0=  5892 step=+1067  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #57 took 19437 us to resume (longest=5008937 us) resumed_at=82.02184
+STREAM: ring drained to 0 at 82.02511 (backlog was 59 pairs)
+STREAM: post-drain +  5875 us  SKP ch0= 23474 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43125 us  SKP ch0= 25300 step= +764  (ring=0 fpga=59)
+STREAM: flow-off #58 (batch=2587 tot=35327)
+STREAM: LONG STALL - flow-off #58 took 4718 us to resume (longest=5008937 us) resumed_at=87.06844
+STREAM: ring drained to 0 at 87.07171 (backlog was 59 pairs)
+STREAM: post-drain +  6000 us  SKP ch0=-21019 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain +  7875 us  SKP ch0=-20961 step=  +58  (ring=0 fpga=59)
+STREAM: flow-off #59 (batch=1569 tot=36896)
+STREAM: LONG STALL - flow-off #59 took 4750 us to resume (longest=5008937 us) resumed_at=90.11157
+STREAM: ring drained to 0 at 90.11484 (backlog was 59 pairs)
+STREAM: flow-off #60 (batch=92 tot=36988)
+STREAM: post-drain +  5968 us  SKP ch0=  5443 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain +  7843 us  SKP ch0=  5501 step=  +58  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #60 took 19468 us to resume (longest=5008937 us) resumed_at=90.18075
+STREAM: ring drained to 0 at 90.18402 (backlog was 59 pairs)
+STREAM: flow-off #61 (batch=346 tot=37334)
+STREAM: post-drain +  5843 us  SKP ch0= 10870 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43093 us  SKP ch0= 12506 step= +574  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #61 took 19625 us to resume (longest=5008937 us) resumed_at=91.09090
+STREAM: ring drained to 0 at 91.09414 (backlog was 59 pairs)
+STREAM: flow-off #62 (batch=105 tot=37439)
+STREAM: post-drain +  6000 us  SKP ch0= 31799 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 39062 us  SKP ch0=-32734 step=-65477  (ring=0 fpga=59)
+STREAM: post-drain + 43031 us  SKP ch0=-31921 step= +754  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #62 took 26968 us to resume (longest=5008937 us) resumed_at=91.17068
+STREAM: ring drained to 0 at 91.17395 (backlog was 59 pairs)
+STREAM: flow-off #63 (batch=316 tot=37755)
+STREAM: post-drain +  5875 us  SKP ch0=-26847 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43062 us  SKP ch0=-24598 step=+1187  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #63 took 19500 us to resume (longest=5008937 us) resumed_at=92.06161
+STREAM: ring drained to 0 at 92.06488 (backlog was 59 pairs)
+STREAM: flow-off #64 (batch=297 tot=38052)
+STREAM: post-drain +  5875 us  SKP ch0= -7075 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43156 us  SKP ch0= -5260 step= +753  (ring=0 fpga=59)
+STREAM: post-drain + 45062 us  SKP ch0= -5200 step=  +60  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #64 took 26781 us to resume (longest=5008937 us) resumed_at=92.26291
+STREAM: ring drained to 0 at 92.26614 (backlog was 59 pairs)
+STREAM: flow-off #65 (batch=173 tot=38225)
+STREAM: post-drain +  6031 us  SKP ch0= 11143 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43062 us  SKP ch0= 13202 step= +997  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #65 took 19437 us to resume (longest=5008937 us) resumed_at=93.06342
+STREAM: ring drained to 0 at 93.06669 (backlog was 59 pairs)
+STREAM: flow-off #66 (batch=137 tot=38362)
+STREAM: post-drain +  5906 us  SKP ch0= 22288 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43218 us  SKP ch0= 24257 step= +907  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #66 took 19531 us to resume (longest=5008937 us) resumed_at=93.16143
+STREAM: ring drained to 0 at 93.16468 (backlog was 59 pairs)
+STREAM: flow-off #67 (batch=51 tot=38413)
+STREAM: post-drain +  6062 us  SKP ch0= 31219 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43343 us  SKP ch0=-32290 step=-64571  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #67 took 19531 us to resume (longest=5008937 us) resumed_at=93.20476
+STREAM: ring drained to 0 at 93.20802 (backlog was 59 pairs)
+STREAM: flow-off #68 (batch=241 tot=38654)
+STREAM: post-drain +  5906 us  SKP ch0=-30402 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43000 us  SKP ch0=-28320 step=+1020  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #68 took 19593 us to resume (longest=5008937 us) resumed_at=94.04808
+STREAM: ring drained to 0 at 94.05135 (backlog was 59 pairs)
+STREAM: flow-off #69 (batch=707 tot=39361)
+STREAM: post-drain +  5875 us  SKP ch0=-15222 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43093 us  SKP ch0=-13341 step= +819  (ring=0 fpga=59)
+STREAM: post-drain + 45000 us  SKP ch0=-13281 step=  +60  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #69 took 26843 us to resume (longest=5008937 us) resumed_at=95.18871
+STREAM: ring drained to 0 at 95.19200 (backlog was 59 pairs)
+STREAM: post-drain +  5843 us  SKP ch0= 27252 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43187 us  SKP ch0= 28906 step= +592  (ring=0 fpga=59)
+STREAM: flow-off #70 (batch=538 tot=39899)
+STREAM: LONG STALL - flow-off #70 took 4656 us to resume (longest=5008937 us) resumed_at=96.21993
+STREAM: ring drained to 0 at 96.22319 (backlog was 59 pairs)
+STREAM: post-drain +  5968 us  SKP ch0= -5647 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43125 us  SKP ch0= -4417 step= +168  (ring=0 fpga=59)
+STREAM: flow-off #71 (batch=817 tot=40716)
+STREAM: LONG STALL - flow-off #71 took 4656 us to resume (longest=5008937 us) resumed_at=98.10745
+STREAM: ring drained to 0 at 98.11072 (backlog was 59 pairs)
+STREAM: flow-off #72 (batch=248 tot=40964)
+STREAM: post-drain +  5843 us  SKP ch0=-22871 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43062 us  SKP ch0=-21573 step= +236  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #72 took 19468 us to resume (longest=5008937 us) resumed_at=98.27544
+STREAM: ring drained to 0 at 98.27872 (backlog was 59 pairs)
+STREAM: post-drain +  5843 us  SKP ch0= -8062 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43093 us  SKP ch0= -6166 step= +834  (ring=0 fpga=59)
+STREAM: flow-off #73 (batch=981 tot=41945)
+STREAM: LONG STALL - flow-off #73 took 4625 us to resume (longest=5008937 us) resumed_at=100.26671
+STREAM: ring drained to 0 at 100.26999 (backlog was 59 pairs)
+STREAM: flow-off #74 (batch=19 tot=41964)
+STREAM: LONG STALL - flow-off #74 took 4437 us to resume (longest=5008937 us) resumed_at=100.28503
+STREAM: ring drained to 0 at 100.28836 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0=-13801 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43375 us  SKP ch0=-12116 step= +623  (ring=0 fpga=59)
+STREAM: flow-off #75 (batch=1384 tot=43348)
+STREAM: LONG STALL - flow-off #75 took 4843 us to resume (longest=5008937 us) resumed_at=103.21132
+STREAM: ring drained to 0 at 103.21461 (backlog was 59 pairs)
+STREAM: post-drain +  6000 us  SKP ch0=  2883 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #76 (batch=554 tot=43902)
+STREAM: LONG STALL - flow-off #76 took 4468 us to resume (longest=5008937 us) resumed_at=104.25028
+STREAM: ring drained to 0 at 104.25362 (backlog was 59 pairs)
+STREAM: flow-off #77 (batch=558 tot=44460)
+STREAM: post-drain +  6093 us  SKP ch0=-29967 step=   +0  (ring=59 fpga=0)
+STREAM: LONG STALL - flow-off #77 took 12218 us to resume (longest=5008937 us) resumed_at=105.29208
+STREAM: ring drained to 0 at 105.29528 (backlog was 59 pairs)
+STREAM: flow-off #78 (batch=42 tot=44502)
+STREAM: post-drain +  6281 us  SKP ch0=  2955 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43281 us  SKP ch0=  4191 step= +174  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #78 took 19468 us to resume (longest=5008937 us) resumed_at=106.00969
+STREAM: ring drained to 0 at 106.01299 (backlog was 59 pairs)
+STREAM: flow-off #79 (batch=85 tot=44587)
+STREAM: post-drain +  6000 us  SKP ch0=  5548 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43187 us  SKP ch0=  7641 step=+1031  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #79 took 19468 us to resume (longest=5008937 us) resumed_at=106.07450
+STREAM: ring drained to 0 at 106.07780 (backlog was 59 pairs)
+STREAM: post-drain +  5937 us  SKP ch0= 11535 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43187 us  SKP ch0= 13584 step= +987  (ring=0 fpga=59)
+STREAM: post-drain + 45062 us  SKP ch0= 13644 step=  +60  (ring=0 fpga=59)
+STREAM: flow-off #80 (batch=385 tot=44972)
+STREAM: LONG STALL - flow-off #80 took 4625 us to resume (longest=5008937 us) resumed_at=107.01154
+STREAM: ring drained to 0 at 107.01484 (backlog was 59 pairs)
+STREAM: flow-off #81 (batch=301 tot=45273)
+STREAM: post-drain +  5968 us  SKP ch0=-30043 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43031 us  SKP ch0=-28373 step= +608  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #81 took 19500 us to resume (longest=5008937 us) resumed_at=107.21295
+STREAM: ring drained to 0 at 107.21626 (backlog was 59 pairs)
+STREAM: flow-off #82 (batch=244 tot=45517)
+STREAM: post-drain +  5968 us  SKP ch0=-11735 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43281 us  SKP ch0= -9904 step= +769  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #82 took 19531 us to resume (longest=5008937 us) resumed_at=108.05850
+STREAM: ring drained to 0 at 108.06180 (backlog was 59 pairs)
+STREAM: post-drain +  6000 us  SKP ch0=  3371 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43125 us  SKP ch0=  5277 step= +844  (ring=0 fpga=59)
+STREAM: post-drain + 45031 us  SKP ch0=  5337 step=  +60  (ring=0 fpga=59)
+STREAM: flow-off #83 (batch=2925 tot=48442)
+STREAM: LONG STALL - flow-off #83 took 4813 us to resume (longest=5008937 us) resumed_at=114.00108
+STREAM: ring drained to 0 at 114.00438 (backlog was 59 pairs)
+STREAM: post-drain +  5937 us  SKP ch0=-21233 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain +  8062 us  SKP ch0=-21179 step=  +54  (ring=0 fpga=59)
+STREAM: flow-off #84 (batch=1148 tot=49590)
+STREAM: LONG STALL - flow-off #84 took 4718 us to resume (longest=5008937 us) resumed_at=116.09797
+STREAM: ring drained to 0 at 116.10127 (backlog was 59 pairs)
+STREAM: flow-off #85 (batch=24 tot=49614)
+STREAM: LONG STALL - flow-off #85 took 4406 us to resume (longest=5008937 us) resumed_at=116.11960
+STREAM: post-drain +  6000 us  SKP ch0=-19187 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain +  8031 us  SKP ch0=-19131 step=  +56  (ring=0 fpga=59)
+STREAM: post-drain + 57125 us  FLOW-OFF
+STREAM: ring drained to 0 at 116.12890 (backlog was 59 pairs)
+STREAM: flow-off #86 (batch=608 tot=50222)
+STREAM: post-drain +  6062 us  SKP ch0=-17774 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43437 us  SKP ch0=-15925 step= +787  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #86 took 19593 us to resume (longest=5008937 us) resumed_at=117.20143
+STREAM: ring drained to 0 at 117.20468 (backlog was 59 pairs)
+STREAM: flow-off #87 (batch=227 tot=50449)
+STREAM: post-drain +  6156 us  SKP ch0= 18826 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43343 us  SKP ch0= 20373 step= +485  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #87 took 19500 us to resume (longest=5008937 us) resumed_at=118.03638
+STREAM: ring drained to 0 at 118.03968 (backlog was 59 pairs)
+STREAM: flow-off #88 (batch=35 tot=50484)
+STREAM: post-drain +  5968 us  SKP ch0= 32645 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 11500 us  SKP ch0=-32714 step=-65477  (ring=0 fpga=59)
+STREAM: post-drain + 42937 us  SKP ch0=-30947 step= +882  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #88 took 26937 us to resume (longest=5008937 us) resumed_at=118.07199
+STREAM: ring drained to 0 at 118.07532 (backlog was 59 pairs)
+STREAM: flow-off #89 (batch=127 tot=50611)
+STREAM: post-drain +  5937 us  SKP ch0=-30003 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43125 us  SKP ch0=-27684 step=+1257  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #89 took 19531 us to resume (longest=5008937 us) resumed_at=118.16340
+STREAM: ring drained to 0 at 118.16671 (backlog was 59 pairs)
+STREAM: flow-off #90 (batch=298 tot=50909)
+STREAM: post-drain +  5968 us  SKP ch0=-21312 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43218 us  SKP ch0=-19301 step= +949  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #90 took 19687 us to resume (longest=5008937 us) resumed_at=119.04329
+STREAM: ring drained to 0 at 119.04652 (backlog was 59 pairs)
+STREAM: post-drain +  6218 us  SKP ch0= -2840 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43531 us  SKP ch0=  -970 step= +808  (ring=0 fpga=59)
+STREAM: flow-off #91 (batch=766 tot=51675)
+STREAM: LONG STALL - flow-off #91 took 4593 us to resume (longest=5008937 us) resumed_at=120.21851
+STREAM: ring drained to 0 at 120.22182 (backlog was 59 pairs)
+STREAM: flow-off #92 (batch=476 tot=52151)
+STREAM: post-drain +  6125 us  SKP ch0=-22433 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43500 us  SKP ch0=-21081 step= +290  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #92 took 19593 us to resume (longest=5008937 us) resumed_at=121.21085
+STREAM: ring drained to 0 at 121.21413 (backlog was 59 pairs)
+STREAM: flow-off #93 (batch=25 tot=52176)
+STREAM: LONG STALL - flow-off #93 took 4531 us to resume (longest=5008937 us) resumed_at=121.23308
+STREAM: post-drain +  6125 us  SKP ch0=  5882 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43281 us  SKP ch0=  7560 step= +616  (ring=0 fpga=59)
+STREAM: post-drain + 59031 us  FLOW-OFF
+STREAM: ring drained to 0 at 121.24234 (backlog was 59 pairs)
+STREAM: post-drain +  6062 us  SKP ch0=  7914 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43218 us  SKP ch0= 10146 step=+1170  (ring=0 fpga=59)
+STREAM: flow-off #94 (batch=424 tot=52600)
+STREAM: LONG STALL - flow-off #94 took 4750 us to resume (longest=5008937 us) resumed_at=122.19854
+STREAM: ring drained to 0 at 122.20183 (backlog was 59 pairs)
+STREAM: flow-off #95 (batch=32 tot=52632)
+STREAM: post-drain +  5968 us  SKP ch0=-31443 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43093 us  SKP ch0=-29761 step= +620  (ring=0 fpga=59)
+STREAM: post-drain + 45000 us  SKP ch0=-29701 step=  +60  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #95 took 26593 us to resume (longest=5008937 us) resumed_at=122.23218
+STREAM: ring drained to 0 at 122.23549 (backlog was 59 pairs)
+STREAM: flow-off #96 (batch=138 tot=52770)
+STREAM: post-drain +  5968 us  SKP ch0=-28993 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43125 us  SKP ch0=-26673 step=+1258  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #96 took 19500 us to resume (longest=5008937 us) resumed_at=123.01049
+STREAM: ring drained to 0 at 123.01379 (backlog was 59 pairs)
+STREAM: flow-off #97 (batch=343 tot=53113)
+STREAM: post-drain +  6000 us  SKP ch0=-19652 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43281 us  SKP ch0=-17658 step= +932  (ring=0 fpga=59)
+STREAM: post-drain + 45187 us  SKP ch0=-17598 step=  +60  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #97 took 26656 us to resume (longest=5008937 us) resumed_at=123.24102
+STREAM: ring drained to 0 at 123.24432 (backlog was 59 pairs)
+STREAM: flow-off #98 (batch=81 tot=53194)
+STREAM: post-drain +  5968 us  SKP ch0=  1459 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43093 us  SKP ch0=  3486 step= +965  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #98 took 19437 us to resume (longest=5008937 us) resumed_at=123.30330
+STREAM: ring drained to 0 at 123.30661 (backlog was 59 pairs)
+STREAM: flow-off #99 (batch=138 tot=53332)
+STREAM: post-drain +  5937 us  SKP ch0=  7144 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43125 us  SKP ch0=  9196 step= +990  (ring=0 fpga=59)
+STREAM: post-drain + 45032 us  SKP ch0=  9256 step=  +60  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #99 took 27000 us to resume (longest=5008937 us) resumed_at=124.08407
+STREAM: ring drained to 0 at 124.08738 (backlog was 59 pairs)
+STREAM: flow-off #100 (batch=229 tot=53561)
+STREAM: post-drain +  5937 us  SKP ch0= 16218 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43125 us  SKP ch0= 18438 step=+1158  (ring=0 fpga=59)
+STREAM: post-drain + 45000 us  SKP ch0= 18498 step=  +60  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #100 took 26937 us to resume (longest=5008937 us) resumed_at=124.24259
+STREAM: ring drained to 0 at 124.24592 (backlog was 59 pairs)
+STREAM: flow-off #101 (batch=195 tot=53756)
+STREAM: post-drain +  6000 us  SKP ch0= 30829 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43375 us  SKP ch0=-32555 step=-64446  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #101 took 19750 us to resume (longest=5008937 us) resumed_at=125.05697
+STREAM: ring drained to 0 at 125.06030 (backlog was 59 pairs)
+STREAM: flow-off #102 (batch=596 tot=54352)
+STREAM: post-drain +  5937 us  SKP ch0=-22171 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43187 us  SKP ch0=-20232 step= +877  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #102 took 19625 us to resume (longest=5008937 us) resumed_at=126.12523
+STREAM: ring drained to 0 at 126.12851 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0= 13811 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43406 us  SKP ch0= 15376 step= +503  (ring=0 fpga=59)
+STREAM: flow-off #103 (batch=1691 tot=56043)
+STREAM: LONG STALL - flow-off #103 took 4750 us to resume (longest=5008937 us) resumed_at=129.24559
+STREAM: ring drained to 0 at 129.24897 (backlog was 59 pairs)
+STREAM: flow-off #104 (batch=146 tot=56189)
+STREAM: post-drain +  5937 us  SKP ch0=-17338 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain +  7906 us  SKP ch0=-17286 step=  +52  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #104 took 19500 us to resume (longest=5008937 us) resumed_at=130.02922
+STREAM: ring drained to 0 at 130.03255 (backlog was 59 pairs)
+STREAM: flow-off #105 (batch=35 tot=56224)
+STREAM: post-drain +  6093 us  SKP ch0= -8731 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43062 us  SKP ch0= -7106 step= +563  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #105 took 19500 us to resume (longest=5008937 us) resumed_at=130.06255
+STREAM: ring drained to 0 at 130.06588 (backlog was 59 pairs)
+STREAM: flow-off #106 (batch=449 tot=56673)
+STREAM: post-drain +  6000 us  SKP ch0= -6162 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43281 us  SKP ch0= -4052 step=+1048  (ring=0 fpga=59)
+STREAM: post-drain + 45187 us  SKP ch0= -3992 step=  +60  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #106 took 26906 us to resume (longest=5008937 us) resumed_at=131.04006
+STREAM: ring drained to 0 at 131.04340 (backlog was 59 pairs)
+STREAM: post-drain +  5968 us  SKP ch0= 21319 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43312 us  SKP ch0= 23233 step= +852  (ring=0 fpga=59)
+STREAM: post-drain + 45218 us  SKP ch0= 23293 step=  +60  (ring=0 fpga=59)
+STREAM: flow-off #107 (batch=339 tot=57012)
+STREAM: LONG STALL - flow-off #107 took 4656 us to resume (longest=5008937 us) resumed_at=131.26796
+STREAM: ring drained to 0 at 131.27137 (backlog was 59 pairs)
+STREAM: flow-off #108 (batch=32 tot=57044)
+STREAM: post-drain +  5968 us  SKP ch0=-22932 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43156 us  SKP ch0=-21395 step= +475  (ring=0 fpga=59)
+STREAM: post-drain + 45062 us  SKP ch0=-21335 step=  +60  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #108 took 26968 us to resume (longest=5008937 us) resumed_at=131.30185
+STREAM: ring drained to 0 at 131.30518 (backlog was 59 pairs)
+STREAM: flow-off #109 (batch=88 tot=57132)
+STREAM: post-drain +  5968 us  SKP ch0=-20627 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43218 us  SKP ch0=-18292 step=+1273  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #109 took 19562 us to resume (longest=5008937 us) resumed_at=132.04870
+STREAM: ring drained to 0 at 132.05198 (backlog was 59 pairs)
+STREAM: flow-off #110 (batch=442 tot=57574)
+STREAM: post-drain +  6218 us  SKP ch0=-14221 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43406 us  SKP ch0=-12161 step= +998  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #110 took 19562 us to resume (longest=5008937 us) resumed_at=133.01936
+STREAM: ring drained to 0 at 133.02270 (backlog was 59 pairs)
+STREAM: flow-off #111 (batch=51 tot=57625)
+STREAM: post-drain +  5937 us  SKP ch0= 12796 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43218 us  SKP ch0= 14495 step= +637  (ring=0 fpga=59)
+STREAM: post-drain + 45093 us  SKP ch0= 14555 step=  +60  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #111 took 26781 us to resume (longest=5008937 us) resumed_at=133.06520
+STREAM: ring drained to 0 at 133.06854 (backlog was 59 pairs)
+STREAM: post-drain +  5937 us  SKP ch0= 16384 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43031 us  SKP ch0= 18704 step=+1258  (ring=0 fpga=59)
+STREAM: flow-off #112 (batch=294 tot=57919)
+STREAM: LONG STALL - flow-off #112 took 4687 us to resume (longest=5008937 us) resumed_at=133.26251
+STREAM: ring drained to 0 at 133.26584 (backlog was 59 pairs)
+STREAM: flow-off #113 (batch=634 tot=58553)
+STREAM: post-drain +  6125 us  SKP ch0=-30416 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43125 us  SKP ch0=-28738 step= +616  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #113 took 19656 us to resume (longest=5008937 us) resumed_at=135.03469
+STREAM: ring drained to 0 at 135.03802 (backlog was 59 pairs)
+STREAM: post-drain +  6000 us  SKP ch0=  7547 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43031 us  SKP ch0=  9063 step= +454  (ring=0 fpga=59)
+STREAM: flow-off #114 (batch=1383 tot=59936)
+STREAM: LONG STALL - flow-off #114 took 14562 us to resume (longest=5008937 us) resumed_at=137.28350
+STREAM: ring drained to 0 at 137.28722 (backlog was 59 pairs)
+STREAM: flow-off #115 (batch=687 tot=60623)
+STREAM: LONG STALL - flow-off #115 took 6906 us to resume (longest=5008937 us) resumed_at=139.08284
+STREAM: ring drained to 0 at 139.08618 (backlog was 59 pairs)
+STREAM: post-drain +  6218 us  SKP ch0=  -937 step=  +58  (ring=59 fpga=0)
+STREAM: flow-off #116 (batch=867 tot=61490)
+STREAM: LONG STALL - flow-off #116 took 6343 us to resume (longest=5008937 us) resumed_at=140.31958
+STREAM: ring drained to 0 at 141.00303 (backlog was 59 pairs)
+STREAM: post-drain +  6156 us  SKP ch0=-32768 step=-17318  (ring=59 fpga=0)
+STREAM: post-drain +  8187 us  SKP ch0=-15336 step=+17432  (ring=0 fpga=59)
+STREAM: flow-off #117 (batch=881 tot=62371)
+STREAM: LONG STALL - flow-off #117 took 6906 us to resume (longest=5008937 us) resumed_at=142.24824
+STREAM: ring drained to 0 at 142.25153 (backlog was 59 pairs)
+STREAM: flow-off #118 (batch=301 tot=62672)
+STREAM: LONG STALL - flow-off #118 took 4843 us to resume (longest=5008937 us) resumed_at=143.12434
+STREAM: ring drained to 0 at 143.12765 (backlog was 59 pairs)
+STREAM: post-drain +  6000 us  SKP ch0=-11253 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43312 us  SKP ch0=-10076 step= +115  (ring=0 fpga=59)
+STREAM: flow-off #119 (batch=916 tot=63588)
+STREAM: LONG STALL - flow-off #119 took 4875 us to resume (longest=5008937 us) resumed_at=145.07480
+STREAM: ring drained to 0 at 145.07812 (backlog was 59 pairs)
+STREAM: flow-off #120 (batch=456 tot=64044)
+STREAM: post-drain +  5968 us  SKP ch0=-22689 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43125 us  SKP ch0=-21454 step= +173  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #120 took 19562 us to resume (longest=5008937 us) resumed_at=146.05458
+STREAM: ring drained to 0 at 146.05791 (backlog was 59 pairs)
+STREAM: flow-off #121 (batch=139 tot=64183)
+STREAM: post-drain +  6000 us  SKP ch0=  4329 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43031 us  SKP ch0=  6033 step= +642  (ring=0 fpga=59)
+STREAM: post-drain + 44937 us  SKP ch0=  6093 step=  +60  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #121 took 27093 us to resume (longest=5008937 us) resumed_at=146.15602
+STREAM: ring drained to 0 at 146.15938 (backlog was 59 pairs)
+STREAM: post-drain +  6062 us  SKP ch0= 13114 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43156 us  SKP ch0= 15341 step=+1165  (ring=0 fpga=59)
+STREAM: flow-off #122 (batch=384 tot=64567)
+STREAM: LONG STALL - flow-off #122 took 4718 us to resume (longest=5008937 us) resumed_at=147.09015
+STREAM: ring drained to 0 at 147.09348 (backlog was 59 pairs)
+STREAM: flow-off #123 (batch=612 tot=65179)
+STREAM: post-drain +  6062 us  SKP ch0=-28524 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 42968 us  SKP ch0=-26890 step= +572  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #123 took 19656 us to resume (longest=5008937 us) resumed_at=148.16829
+STREAM: ring drained to 0 at 148.17162 (backlog was 59 pairs)
+STREAM: post-drain +  5937 us  SKP ch0=  8097 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43093 us  SKP ch0=  9622 step= +463  (ring=0 fpga=59)
+STREAM: flow-off #124 (batch=1167 tot=66346)
+STREAM: LONG STALL - flow-off #124 took 4843 us to resume (longest=5008937 us) resumed_at=150.27731
+STREAM: ring drained to 0 at 150.28064 (backlog was 59 pairs)
+STREAM: flow-off #125 (batch=92 tot=66438)
+STREAM: post-drain +  6062 us  SKP ch0= 11855 step=   +0  (ring=59 fpga=0)
+STREAM: LONG STALL - flow-off #125 took 12125 us to resume (longest=5008937 us) resumed_at=151.02429
+STREAM: ring drained to 0 at 151.02762 (backlog was 59 pairs)
+STREAM: post-drain +  6000 us  SKP ch0= 17283 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43187 us  SKP ch0= 18924 step= +579  (ring=0 fpga=59)
+STREAM: flow-off #126 (batch=274 tot=66712)
+STREAM: LONG STALL - flow-off #126 took 4656 us to resume (longest=5008937 us) resumed_at=151.20887
+STREAM: ring drained to 0 at 151.21225 (backlog was 59 pairs)
+STREAM: flow-off #127 (batch=214 tot=66926)
+STREAM: post-drain +  5968 us  SKP ch0=-31374 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43093 us  SKP ch0=-29681 step= +631  (ring=0 fpga=59)
+STREAM: post-drain + 44968 us  SKP ch0=-29621 step=  +60  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #127 took 27000 us to resume (longest=5008937 us) resumed_at=152.03766
+STREAM: ring drained to 0 at 152.04101 (backlog was 59 pairs)
+STREAM: flow-off #128 (batch=236 tot=67162)
+STREAM: post-drain +  5968 us  SKP ch0=-18175 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43250 us  SKP ch0=-16037 step=+1076  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #128 took 19625 us to resume (longest=5008937 us) resumed_at=152.19846
+STREAM: ring drained to 0 at 152.20181 (backlog was 59 pairs)
+STREAM: post-drain +  6000 us  SKP ch0= -3234 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43250 us  SKP ch0= -1290 step= +882  (ring=0 fpga=59)
+STREAM: flow-off #129 (batch=1432 tot=68594)
+STREAM: LONG STALL - flow-off #129 took 4750 us to resume (longest=5008937 us) resumed_at=155.15487
+STREAM: ring drained to 0 at 155.15820 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0= 16498 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain +  8000 us  SKP ch0= 16550 step=  +52  (ring=0 fpga=59)
+STREAM: flow-off #130 (batch=339 tot=68933)
+STREAM: LONG STALL - flow-off #130 took 4593 us to resume (longest=5008937 us) resumed_at=156.06052
+STREAM: ring drained to 0 at 156.06388 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0=-29044 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43125 us  SKP ch0=-27614 step= +368  (ring=0 fpga=59)
+STREAM: flow-off #131 (batch=1798 tot=70731)
+STREAM: LONG STALL - flow-off #131 took 4906 us to resume (longest=5008937 us) resumed_at=159.24836
+STREAM: ring drained to 0 at 159.25168 (backlog was 59 pairs)
+STREAM: post-drain +  6000 us  SKP ch0= 11385 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain +  8125 us  SKP ch0= 11440 step=  +55  (ring=0 fpga=59)
+STREAM: flow-off #132 (batch=1743 tot=72474)
+STREAM: LONG STALL - flow-off #132 took 4843 us to resume (longest=5008937 us) resumed_at=163.08152
+STREAM: ring drained to 0 at 163.08484 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0=-17592 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain +  8093 us  SKP ch0=-17540 step=  +52  (ring=0 fpga=59)
+STREAM: flow-off #133 (batch=1175 tot=73649)
+STREAM: LONG STALL - flow-off #133 took 4906 us to resume (longest=5008937 us) resumed_at=165.19562
+STREAM: ring drained to 0 at 165.19894 (backlog was 59 pairs)
+STREAM: flow-off #134 (batch=37 tot=73686)
+STREAM: post-drain +  5968 us  SKP ch0=-32768 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain +  8125 us  SKP ch0=-13918 step=+18850  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #134 took 19687 us to resume (longest=5008937 us) resumed_at=165.23032
+STREAM: ring drained to 0 at 165.23361 (backlog was 59 pairs)
+STREAM: flow-off #135 (batch=113 tot=73799)
+STREAM: post-drain +  6093 us  SKP ch0=-11794 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43500 us  SKP ch0=-10062 step= +670  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #135 took 19625 us to resume (longest=5008937 us) resumed_at=165.31309
+STREAM: ring drained to 0 at 165.31642 (backlog was 59 pairs)
+STREAM: flow-off #136 (batch=530 tot=74329)
+STREAM: post-drain +  5968 us  SKP ch0= -4516 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43313 us  SKP ch0= -2470 step= +984  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #136 took 19687 us to resume (longest=5008937 us) resumed_at=167.01947
+STREAM: ring drained to 0 at 167.02271 (backlog was 59 pairs)
+STREAM: post-drain +  6281 us  SKP ch0= 27679 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43562 us  SKP ch0= 29297 step= +556  (ring=0 fpga=59)
+STREAM: flow-off #137 (batch=855 tot=75184)
+STREAM: LONG STALL - flow-off #137 took 4750 us to resume (longest=5008937 us) resumed_at=168.25104
+STREAM: ring drained to 0 at 168.25436 (backlog was 59 pairs)
+STREAM: flow-off #138 (batch=145 tot=75329)
+STREAM: post-drain +  6062 us  SKP ch0= 13446 step=   +0  (ring=59 fpga=0)
+STREAM: LONG STALL - flow-off #138 took 12281 us to resume (longest=5008937 us) resumed_at=169.03163
+STREAM: ring drained to 0 at 169.03496 (backlog was 59 pairs)
+STREAM: post-drain +  5937 us  SKP ch0= 22001 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43250 us  SKP ch0= 23574 step= +511  (ring=0 fpga=59)
+STREAM: flow-off #139 (batch=756 tot=76085)
+STREAM: LONG STALL - flow-off #139 took 4687 us to resume (longest=5008937 us) resumed_at=170.20091
+STREAM: ring drained to 0 at 170.20431 (backlog was 59 pairs)
+STREAM: flow-off #140 (batch=146 tot=76231)
+STREAM: post-drain +  6000 us  SKP ch0=  1797 step=   +0  (ring=59 fpga=0)
+STREAM: LONG STALL - flow-off #140 took 12187 us to resume (longest=5008937 us) resumed_at=170.30194
+STREAM: ring drained to 0 at 170.30527 (backlog was 59 pairs)
+STREAM: post-drain +  5968 us  SKP ch0= 10411 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43187 us  SKP ch0= 12176 step= +703  (ring=0 fpga=59)
+STREAM: flow-off #141 (batch=392 tot=76623)
+STREAM: LONG STALL - flow-off #141 took 4875 us to resume (longest=5008937 us) resumed_at=171.24113
+STREAM: ring drained to 0 at 171.24445 (backlog was 59 pairs)
+STREAM: flow-off #142 (batch=924 tot=77547)
+STREAM: post-drain +  5937 us  SKP ch0=-31276 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43062 us  SKP ch0=-29591 step= +623  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #142 took 19531 us to resume (longest=5008937 us) resumed_at=173.19644
+STREAM: ring drained to 0 at 173.19977 (backlog was 59 pairs)
+STREAM: post-drain +  5968 us  SKP ch0= 23804 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43250 us  SKP ch0= 25010 step= +144  (ring=0 fpga=59)
+STREAM: flow-off #143 (batch=958 tot=78505)
+STREAM: LONG STALL - flow-off #143 took 4750 us to resume (longest=5008937 us) resumed_at=175.17340
+STREAM: ring drained to 0 at 175.17665 (backlog was 59 pairs)
+STREAM: post-drain +  6343 us  SKP ch0= 15174 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #144 (batch=453 tot=78958)
+STREAM: LONG STALL - flow-off #144 took 4781 us to resume (longest=5008937 us) resumed_at=176.14870
+STREAM: ring drained to 0 at 176.15203 (backlog was 59 pairs)
+STREAM: flow-off #145 (batch=870 tot=79828)
+STREAM: post-drain +  6062 us  SKP ch0=-23635 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43031 us  SKP ch0=-22397 step= +176  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #145 took 19468 us to resume (longest=5008937 us) resumed_at=178.07009
+STREAM: ring drained to 0 at 178.07345 (backlog was 59 pairs)
+STREAM: flow-off #146 (batch=15 tot=79843)
+STREAM: LONG STALL - flow-off #146 took 4562 us to resume (longest=5008937 us) resumed_at=178.08604
+STREAM: ring drained to 0 at 178.08940 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0= 28697 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 13906 us  SKP ch0= 29097 step= +223  (ring=0 fpga=59)
+STREAM: post-drain + 43656 us  SKP ch0= 30557 step= +634  (ring=0 fpga=59)
+STREAM: flow-off #147 (batch=126 tot=79969)
+STREAM: LONG STALL - flow-off #147 took 4593 us to resume (longest=5008937 us) resumed_at=178.17918
+STREAM: ring drained to 0 at 178.18245 (backlog was 59 pairs)
+STREAM: flow-off #148 (batch=10 tot=79979)
+STREAM: LONG STALL - flow-off #148 took 8343 us to resume (longest=5008937 us) resumed_at=178.19317
+STREAM: ring drained to 0 at 178.19667 (backlog was 59 pairs)
+STREAM: flow-off #149 (batch=723 tot=80702)
+STREAM: post-drain + 20093 us  SKP ch0=-26439 step= +567  (ring=0 fpga=59)
+STREAM: post-drain + 40031 us  SKP ch0=-25763 step= +145  (ring=0 fpga=59)
+STREAM: post-drain + 41875 us  SKP ch0=-25703 step=  +60  (ring=0 fpga=59)
+STREAM: post-drain + 44000 us  SKP ch0=-25138 step= +565  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #149 took 36406 us to resume (longest=5008937 us) resumed_at=180.02591
+STREAM: ring drained to 0 at 180.02924 (backlog was 59 pairs)
+STREAM: post-drain + 41406 us  SKP ch0= 17647 step= +305  (ring=0 fpga=59)
+STREAM: post-drain + 43406 us  SKP ch0= 18203 step= +556  (ring=0 fpga=59)
+STREAM: flow-off #150 (batch=1488 tot=82190)
+STREAM: LONG STALL - flow-off #150 took 4750 us to resume (longest=5008937 us) resumed_at=183.01731
+STREAM: ring drained to 0 at 183.02064 (backlog was 59 pairs)
+STREAM: flow-off #151 (batch=230 tot=82420)
+STREAM: post-drain +  6125 us  SKP ch0=-26342 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain +  8000 us  SKP ch0=-26290 step=  +52  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #151 took 19593 us to resume (longest=5008937 us) resumed_at=183.17390
+STREAM: ring drained to 0 at 183.17723 (backlog was 59 pairs)
+STREAM: post-drain +  5968 us  SKP ch0=-12779 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43250 us  SKP ch0=-11261 step= +456  (ring=0 fpga=59)
+STREAM: post-drain + 45125 us  SKP ch0=-11200 step=  +61  (ring=0 fpga=59)
+STREAM: flow-off #152 (batch=2151 tot=84571)
+STREAM: LONG STALL - flow-off #152 took 8718 us to resume (longest=5008937 us) resumed_at=187.26873
+STREAM: ring drained to 0 at 187.27225 (backlog was 59 pairs)
+STREAM: flow-off #153 (batch=38 tot=84609)
+STREAM: post-drain +  6156 us  SKP ch0=-16969 step=+15799  (ring=59 fpga=0)
+STREAM: LONG STALL - flow-off #153 took 12093 us to resume (longest=5008937 us) resumed_at=187.30058
+STREAM: ring drained to 0 at 187.30391 (backlog was 59 pairs)
+STREAM: flow-off #154 (batch=39 tot=84648)
+STREAM: post-drain +  6000 us  SKP ch0=-14845 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43093 us  SKP ch0=-13316 step= +467  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #154 took 19500 us to resume (longest=5008937 us) resumed_at=188.01646
+STREAM: ring drained to 0 at 188.01980 (backlog was 59 pairs)
+STREAM: flow-off #155 (batch=552 tot=85200)
+STREAM: post-drain +  5937 us  SKP ch0=-12136 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43250 us  SKP ch0=-10029 step=+1045  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #155 took 19562 us to resume (longest=5008937 us) resumed_at=189.05665
+STREAM: ring drained to 0 at 189.05998 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0= 21418 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43093 us  SKP ch0= 23006 step= +526  (ring=0 fpga=59)
+STREAM: flow-off #156 (batch=495 tot=85695)
+STREAM: LONG STALL - flow-off #156 took 4718 us to resume (longest=5008937 us) resumed_at=190.06075
+STREAM: ring drained to 0 at 190.06411 (backlog was 59 pairs)
+STREAM: flow-off #157 (batch=323 tot=86018)
+STREAM: post-drain +  6062 us  SKP ch0=-14186 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43125 us  SKP ch0=-12803 step= +321  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #157 took 19500 us to resume (longest=5008937 us) resumed_at=190.27638
+STREAM: ring drained to 0 at 190.27972 (backlog was 59 pairs)
+STREAM: post-drain +  5968 us  SKP ch0=  5133 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43156 us  SKP ch0=  6967 step= +772  (ring=0 fpga=59)
+STREAM: post-drain + 45062 us  SKP ch0=  7027 step=  +60  (ring=0 fpga=59)
+STREAM: flow-off #158 (batch=465 tot=86483)
+STREAM: LONG STALL - flow-off #158 took 4781 us to resume (longest=5008937 us) resumed_at=191.26416
+STREAM: ring drained to 0 at 191.26752 (backlog was 59 pairs)
+STREAM: flow-off #159 (batch=354 tot=86837)
+STREAM: post-drain +  6093 us  SKP ch0=-32254 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 27187 us  SKP ch0=-31393 step= +271  (ring=0 fpga=59)
+STREAM: post-drain + 43031 us  SKP ch0=-30335 step= +645  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #159 took 26968 us to resume (longest=5008937 us) resumed_at=192.18146
+STREAM: ring drained to 0 at 192.18479 (backlog was 59 pairs)
+STREAM: flow-off #160 (batch=30 tot=86867)
+STREAM: post-drain +  6093 us  SKP ch0=-10570 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43125 us  SKP ch0= -8575 step= +933  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #160 took 19656 us to resume (longest=5008937 us) resumed_at=192.21170
+STREAM: ring drained to 0 at 192.21499 (backlog was 59 pairs)
+STREAM: flow-off #161 (batch=655 tot=87522)
+STREAM: post-drain +  6125 us  SKP ch0= -7926 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43468 us  SKP ch0= -5805 step=+1059  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #161 took 19656 us to resume (longest=5008937 us) resumed_at=193.31728
+STREAM: ring drained to 0 at 194.00062 (backlog was 59 pairs)
+STREAM: flow-off #162 (batch=138 tot=87660)
+STREAM: post-drain +  5937 us  SKP ch0= 31719 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 41218 us  SKP ch0=-32755 step=-65477  (ring=0 fpga=59)
+STREAM: post-drain + 43218 us  SKP ch0=-32308 step= +447  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #162 took 27125 us to resume (longest=5008937 us) resumed_at=194.09802
+STREAM: ring drained to 0 at 194.10136 (backlog was 59 pairs)
+STREAM: flow-off #163 (batch=81 tot=87741)
+STREAM: post-drain +  5968 us  SKP ch0=-25287 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43125 us  SKP ch0=-23069 step=+1156  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #163 took 19531 us to resume (longest=5008937 us) resumed_at=194.16040
+STREAM: ring drained to 0 at 194.16374 (backlog was 59 pairs)
+STREAM: flow-off #164 (batch=225 tot=87966)
+STREAM: post-drain +  5937 us  SKP ch0=-19411 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43187 us  SKP ch0=-17350 step= +999  (ring=0 fpga=59)
+STREAM: post-drain + 45093 us  SKP ch0=-17290 step=  +60  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #164 took 26937 us to resume (longest=5008937 us) resumed_at=194.31634
+STREAM: ring drained to 0 at 194.31967 (backlog was 59 pairs)
+STREAM: flow-off #165 (batch=47 tot=88013)
+STREAM: post-drain +  6000 us  SKP ch0= -5195 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43313 us  SKP ch0= -3048 step=+1085  (ring=0 fpga=59)
+STREAM: post-drain + 45250 us  SKP ch0= -2988 step=  +60  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #165 took 26843 us to resume (longest=5008937 us) resumed_at=195.03975
+STREAM: ring drained to 0 at 195.04308 (backlog was 59 pairs)
+STREAM: post-drain +  6000 us  SKP ch0= -1395 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43218 us  SKP ch0=   940 step=+1273  (ring=0 fpga=59)
+STREAM: flow-off #166 (batch=749 tot=88762)
+STREAM: LONG STALL - flow-off #166 took 4718 us to resume (longest=5008937 us) resumed_at=196.20433
+STREAM: ring drained to 0 at 196.20771 (backlog was 59 pairs)
+STREAM: flow-off #167 (batch=715 tot=89477)
+STREAM: post-drain +  5968 us  SKP ch0=-21526 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43218 us  SKP ch0=-20156 step= +308  (ring=0 fpga=59)
+STREAM: post-drain + 45093 us  SKP ch0=-20096 step=  +60  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #167 took 26875 us to resume (longest=5008937 us) resumed_at=198.03019
+STREAM: ring drained to 0 at 198.03352 (backlog was 59 pairs)
+STREAM: flow-off #168 (batch=114 tot=89591)
+STREAM: post-drain +  5968 us  SKP ch0= 20909 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43218 us  SKP ch0= 22571 step= +600  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #168 took 19687 us to resume (longest=5008937 us) resumed_at=198.11366
+STREAM: ring drained to 0 at 198.11694 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0= 28176 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43406 us  SKP ch0= 30219 step= +981  (ring=0 fpga=59)
+STREAM: flow-off #169 (batch=249 tot=89840)
+STREAM: LONG STALL - flow-off #169 took 4562 us to resume (longest=5008937 us) resumed_at=198.28202
+STREAM: ring drained to 0 at 198.28535 (backlog was 59 pairs)
+STREAM: flow-off #170 (batch=95 tot=89935)
+STREAM: post-drain +  6156 us  SKP ch0=-21368 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43750 us  SKP ch0=-19868 step= +438  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #170 took 19718 us to resume (longest=5008937 us) resumed_at=199.03360
+STREAM: ring drained to 0 at 199.03688 (backlog was 59 pairs)
+STREAM: flow-off #171 (batch=503 tot=90438)
+STREAM: post-drain +  6125 us  SKP ch0=-15384 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43125 us  SKP ch0=-13311 step=+1011  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #171 took 19562 us to resume (longest=5008937 us) resumed_at=200.04300
+STREAM: ring drained to 0 at 200.04633 (backlog was 59 pairs)
+STREAM: flow-off #172 (batch=19 tot=90457)
+STREAM: LONG STALL - flow-off #172 took 4531 us to resume (longest=5008937 us) resumed_at=200.06143
+STREAM: ring drained to 0 at 200.06477 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0= 16906 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43500 us  SKP ch0= 18595 step= +627  (ring=0 fpga=59)
+STREAM: flow-off #173 (batch=1031 tot=91488)
+STREAM: LONG STALL - flow-off #173 took 4937 us to resume (longest=5008937 us) resumed_at=202.08453
+STREAM: ring drained to 0 at 202.08785 (backlog was 59 pairs)
+STREAM: post-drain +  5968 us  SKP ch0= 12958 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #174 (batch=2062 tot=93550)
+STREAM: LONG STALL - flow-off #174 took 4781 us to resume (longest=5008937 us) resumed_at=206.11714
+STREAM: ring drained to 0 at 206.12051 (backlog was 59 pairs)
+STREAM: flow-off #175 (batch=457 tot=94007)
+STREAM: post-drain +  6000 us  SKP ch0=-32768 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain +  7937 us  SKP ch0=  2508 step=-30260  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #175 took 19656 us to resume (longest=5008937 us) resumed_at=207.09746
+STREAM: ring drained to 0 at 207.10079 (backlog was 59 pairs)
+STREAM: post-drain +  5968 us  SKP ch0= 29412 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43218 us  SKP ch0= 30727 step= +253  (ring=0 fpga=59)
+STREAM: flow-off #176 (batch=1592 tot=95599)
+STREAM: LONG STALL - flow-off #176 took 4812 us to resume (longest=5008937 us) resumed_at=210.15510
+STREAM: ring drained to 0 at 210.15843 (backlog was 59 pairs)
+STREAM: flow-off #177 (batch=137 tot=95736)
+STREAM: post-drain +  5968 us  SKP ch0= -7749 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain +  8000 us  SKP ch0= -7694 step=  +55  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #177 took 19531 us to resume (longest=5008937 us) resumed_at=210.25314
+STREAM: ring drained to 0 at 210.25647 (backlog was 59 pairs)
+STREAM: flow-off #178 (batch=393 tot=96129)
+STREAM: post-drain +  5968 us  SKP ch0=   330 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43062 us  SKP ch0=  1971 step= +579  (ring=0 fpga=59)
+STREAM: post-drain + 44937 us  SKP ch0=  2031 step=  +60  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #178 took 26812 us to resume (longest=5008937 us) resumed_at=211.19507
+STREAM: ring drained to 0 at 211.19840 (backlog was 59 pairs)
+STREAM: post-drain +  6000 us  SKP ch0= 24038 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43125 us  SKP ch0= 25999 step= +899  (ring=0 fpga=59)
+STREAM: flow-off #179 (batch=179 tot=96308)
+STREAM: LONG STALL - flow-off #179 took 4750 us to resume (longest=5008937 us) resumed_at=211.31941
+STREAM: ring drained to 0 at 212.00283 (backlog was 59 pairs)
+STREAM: post-drain +  5937 us  SKP ch0=-29802 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43125 us  SKP ch0=-28131 step= +609  (ring=0 fpga=59)
+STREAM: flow-off #180 (batch=3506 tot=99814)
+STREAM: LONG STALL - flow-off #180 took 4906 us to resume (longest=5008937 us) resumed_at=218.30699
+STREAM: ring drained to 0 at 218.31031 (backlog was 59 pairs)
+STREAM: post-drain +  5968 us  SKP ch0=-21177 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain +  8125 us  SKP ch0=-21123 step=  +54  (ring=0 fpga=59)
+STREAM: flow-off #181 (batch=874 tot=100688)
+STREAM: LONG STALL - flow-off #181 took 4906 us to resume (longest=5008937 us) resumed_at=220.23102
+STREAM: ring drained to 0 at 220.23435 (backlog was 59 pairs)
+STREAM: post-drain +  5937 us  SKP ch0= 30383 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #182 (batch=1064 tot=101752)
+STREAM: LONG STALL - flow-off #182 took 5093 us to resume (longest=5008937 us) resumed_at=222.27272
+STREAM: ring drained to 0 at 222.27605 (backlog was 59 pairs)
+STREAM: post-drain +  5937 us  SKP ch0=-32768 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain +  8031 us  SKP ch0=-32768 step=   +0  (ring=0 fpga=59)
+STREAM: post-drain +  9781 us  SKP ch0= 27643 step=-5125  (ring=0 fpga=59)
+STREAM: flow-off #183 (batch=603 tot=102355)
+STREAM: LONG STALL - flow-off #183 took 4750 us to resume (longest=5008937 us) resumed_at=224.02783
+STREAM: ring drained to 0 at 224.03117 (backlog was 59 pairs)
+STREAM: flow-off #184 (batch=143 tot=102498)
+STREAM: post-drain +  6125 us  SKP ch0= -2243 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43687 us  SKP ch0= -1030 step= +151  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #184 took 19625 us to resume (longest=5008937 us) resumed_at=224.12946
+STREAM: ring drained to 0 at 224.13279 (backlog was 59 pairs)
+STREAM: flow-off #185 (batch=240 tot=102738)
+STREAM: post-drain +  5968 us  SKP ch0=  6286 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43125 us  SKP ch0=  8292 step= +944  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #185 took 19750 us to resume (longest=5008937 us) resumed_at=224.29249
+STREAM: ring drained to 0 at 224.29582 (backlog was 59 pairs)
+STREAM: post-drain +  5968 us  SKP ch0= 21331 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43250 us  SKP ch0= 23236 step= +843  (ring=0 fpga=59)
+STREAM: post-drain + 45156 us  SKP ch0= 23296 step=  +60  (ring=0 fpga=59)
+STREAM: flow-off #186 (batch=696 tot=103434)
+STREAM: LONG STALL - flow-off #186 took 4968 us to resume (longest=5008937 us) resumed_at=226.10636
+STREAM: ring drained to 0 at 226.10969 (backlog was 59 pairs)
+STREAM: post-drain +  5968 us  SKP ch0= -1866 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43218 us  SKP ch0=  -668 step= +136  (ring=0 fpga=59)
+STREAM: flow-off #187 (batch=2175 tot=105609)
+STREAM: LONG STALL - flow-off #187 took 4812 us to resume (longest=5008937 us) resumed_at=230.21253
+STREAM: ring drained to 0 at 230.21586 (backlog was 59 pairs)
+STREAM: flow-off #188 (batch=33 tot=105642)
+STREAM: post-drain +  6187 us  SKP ch0= -5338 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain +  8031 us  SKP ch0=-32768 step=-27430  (ring=0 fpga=59)
+STREAM: post-drain +  9937 us  SKP ch0= -5228 step=+27540  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #188 took 27125 us to resume (longest=5008937 us) resumed_at=230.24717
+STREAM: ring drained to 0 at 230.25050 (backlog was 59 pairs)
+STREAM: flow-off #189 (batch=335 tot=105977)
+STREAM: post-drain +  6000 us  SKP ch0= -3399 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43250 us  SKP ch0= -1434 step= +903  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #189 took 19750 us to resume (longest=5008937 us) resumed_at=231.15017
+STREAM: ring drained to 0 at 231.15350 (backlog was 59 pairs)
+STREAM: flow-off #190 (batch=97 tot=106074)
+STREAM: post-drain +  5968 us  SKP ch0= 17210 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43156 us  SKP ch0= 19013 step= +741  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #190 took 19875 us to resume (longest=5008937 us) resumed_at=231.22291
+STREAM: ring drained to 0 at 231.22616 (backlog was 59 pairs)
+STREAM: post-drain +  6281 us  SKP ch0= 23615 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43468 us  SKP ch0= 25685 step=+1008  (ring=0 fpga=59)
+STREAM: flow-off #191 (batch=1493 tot=107567)
+STREAM: LONG STALL - flow-off #191 took 4906 us to resume (longest=5008937 us) resumed_at=234.21816
+STREAM: ring drained to 0 at 234.22149 (backlog was 59 pairs)
+STREAM: flow-off #192 (batch=224 tot=107791)
+STREAM: post-drain +  6062 us  SKP ch0=-18514 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain +  7937 us  SKP ch0=-18456 step=  +58  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #192 took 19562 us to resume (longest=5008937 us) resumed_at=235.05116
+STREAM: ring drained to 0 at 235.05450 (backlog was 59 pairs)
+STREAM: post-drain +  5937 us  SKP ch0= -5299 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43156 us  SKP ch0= -3743 step= +494  (ring=0 fpga=59)
+STREAM: flow-off #193 (batch=1573 tot=109364)
+STREAM: LONG STALL - flow-off #193 took 5031 us to resume (longest=5008937 us) resumed_at=238.09666
+STREAM: ring drained to 0 at 238.09987 (backlog was 59 pairs)
+STREAM: flow-off #194 (batch=20 tot=109384)
+STREAM: LONG STALL - flow-off #194 took 4843 us to resume (longest=5008937 us) resumed_at=238.11583
+STREAM: ring drained to 0 at 238.11905 (backlog was 59 pairs)
+STREAM: flow-off #195 (batch=71 tot=109455)
+STREAM: post-drain +  6250 us  SKP ch0= 23377 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43593 us  SKP ch0= 24691 step= +252  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #195 took 19781 us to resume (longest=5008937 us) resumed_at=238.17210
+STREAM: ring drained to 0 at 238.17539 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0= 27759 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43593 us  SKP ch0= 29852 step=+1031  (ring=0 fpga=59)
+STREAM: flow-off #196 (batch=77 tot=109532)
+STREAM: LONG STALL - flow-off #196 took 8625 us to resume (longest=5008937 us) resumed_at=238.23322
+STREAM: ring drained to 0 at 238.23676 (backlog was 59 pairs)
+STREAM: flow-off #197 (batch=8 tot=109540)
+STREAM: LONG STALL - flow-off #197 took 4812 us to resume (longest=5008937 us) resumed_at=238.24381
+STREAM: ring drained to 0 at 238.24702 (backlog was 59 pairs)
+STREAM: post-drain +  6343 us  SKP ch0=-31790 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 11750 us  SKP ch0=-31241 step= +431  (ring=0 fpga=59)
+STREAM: post-drain + 27562 us  SKP ch0=-30688 step= +140  (ring=0 fpga=59)
+STREAM: post-drain + 29687 us  SKP ch0=-30625 step=  +63  (ring=0 fpga=59)
+STREAM: post-drain + 31656 us  SKP ch0=-30058 step= +567  (ring=0 fpga=59)
+STREAM: post-drain + 43500 us  SKP ch0=-29107 step= +656  (ring=0 fpga=59)
+STREAM: flow-off #198 (batch=1551 tot=111091)
+STREAM: LONG STALL - flow-off #198 took 4718 us to resume (longest=5008937 us) resumed_at=241.28517
+STREAM: ring drained to 0 at 241.28854 (backlog was 59 pairs)
+STREAM: flow-off #199 (batch=356 tot=111447)
+STREAM: post-drain +  6093 us  SKP ch0= -3971 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43656 us  SKP ch0= -2798 step= +111  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #199 took 19718 us to resume (longest=5008937 us) resumed_at=242.20153
+STREAM: ring drained to 0 at 242.20486 (backlog was 59 pairs)
+STREAM: post-drain +  5968 us  SKP ch0= 17085 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43125 us  SKP ch0= 18878 step= +731  (ring=0 fpga=59)
+STREAM: flow-off #200 (batch=438 tot=111885)
+STREAM: LONG STALL - flow-off #200 took 4843 us to resume (longest=5008937 us) resumed_at=243.16975
+STREAM: ring drained to 0 at 243.17307 (backlog was 59 pairs)
+STREAM: flow-off #201 (batch=499 tot=112384)
+STREAM: post-drain +  6093 us  SKP ch0=-21739 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43125 us  SKP ch0=-20229 step= +448  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #201 took 19812 us to resume (longest=5008937 us) resumed_at=244.17672
+STREAM: ring drained to 0 at 244.17996 (backlog was 59 pairs)
+STREAM: flow-off #202 (batch=106 tot=112490)
+STREAM: post-drain +  6250 us  SKP ch0=  8091 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43375 us  SKP ch0=  9755 step= +602  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #202 took 19718 us to resume (longest=5008937 us) resumed_at=244.25504
+STREAM: ring drained to 0 at 244.25838 (backlog was 59 pairs)
+STREAM: flow-off #203 (batch=232 tot=112722)
+STREAM: post-drain +  5968 us  SKP ch0= 14888 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43218 us  SKP ch0= 16940 step= +990  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #203 took 19750 us to resume (longest=5008937 us) resumed_at=245.09324
+STREAM: ring drained to 0 at 245.09660 (backlog was 59 pairs)
+STREAM: post-drain +  5968 us  SKP ch0= 29507 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43343 us  SKP ch0= 31449 step= +880  (ring=0 fpga=59)
+STREAM: post-drain + 45250 us  SKP ch0= 31509 step=  +60  (ring=0 fpga=59)
+STREAM: flow-off #204 (batch=594 tot=113316)
+STREAM: LONG STALL - flow-off #204 took 4937 us to resume (longest=5008937 us) resumed_at=246.16241
+STREAM: ring drained to 0 at 246.16574 (backlog was 59 pairs)
+STREAM: flow-off #205 (batch=81 tot=113397)
+STREAM: post-drain +  5937 us  SKP ch0=   448 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 42937 us  SKP ch0=  1608 step=  +98  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #205 took 19531 us to resume (longest=5008937 us) resumed_at=246.22471
+STREAM: ring drained to 0 at 246.22804 (backlog was 59 pairs)
+STREAM: post-drain +  6000 us  SKP ch0=  5266 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43187 us  SKP ch0=  7319 step= +991  (ring=0 fpga=59)
+STREAM: flow-off #206 (batch=2063 tot=115460)
+STREAM: LONG STALL - flow-off #206 took 4937 us to resume (longest=5008937 us) resumed_at=250.26021
+STREAM: ring drained to 0 at 250.26353 (backlog was 59 pairs)
+STREAM: post-drain +  6062 us  SKP ch0= -3841 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain +  7968 us  SKP ch0= -3783 step=  +58  (ring=0 fpga=59)
+STREAM: flow-off #207 (batch=1535 tot=116995)
+STREAM: LONG STALL - flow-off #207 took 5125 us to resume (longest=5008937 us) resumed_at=253.28164
+STREAM: ring drained to 0 at 253.28497 (backlog was 59 pairs)
+STREAM: flow-off #208 (batch=9 tot=117004)
+STREAM: LONG STALL - flow-off #208 took 4625 us to resume (longest=5008937 us) resumed_at=253.29381
+STREAM: ring drained to 0 at 253.29718 (backlog was 59 pairs)
+STREAM: post-drain +  6062 us  SKP ch0= 21159 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43062 us  SKP ch0= 22489 step= +268  (ring=0 fpga=59)
+STREAM: flow-off #209 (batch=273 tot=117277)
+STREAM: LONG STALL - flow-off #209 took 4906 us to resume (longest=5008937 us) resumed_at=254.15783
+STREAM: ring drained to 0 at 254.16115 (backlog was 59 pairs)
+STREAM: flow-off #210 (batch=87 tot=117364)
+STREAM: post-drain +  6125 us  SKP ch0=-27801 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43187 us  SKP ch0=-26173 step= +566  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #210 took 19687 us to resume (longest=5008937 us) resumed_at=254.22411
+STREAM: ring drained to 0 at 254.22740 (backlog was 59 pairs)
+STREAM: flow-off #211 (batch=351 tot=117715)
+STREAM: post-drain +  6093 us  SKP ch0=-22161 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43281 us  SKP ch0=-20098 step=+1001  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #211 took 19750 us to resume (longest=5008937 us) resumed_at=255.13760
+STREAM: ring drained to 0 at 255.14088 (backlog was 59 pairs)
+STREAM: flow-off #212 (batch=97 tot=117812)
+STREAM: post-drain +  6156 us  SKP ch0=  -510 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43406 us  SKP ch0=  1316 step= +764  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #212 took 19656 us to resume (longest=5008937 us) resumed_at=255.21004
+STREAM: ring drained to 0 at 255.21340 (backlog was 59 pairs)
+STREAM: flow-off #213 (batch=433 tot=118245)
+STREAM: post-drain +  6000 us  SKP ch0=  5918 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43218 us  SKP ch0=  7962 step= +982  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #213 took 19812 us to resume (longest=5008937 us) resumed_at=256.17535
+STREAM: ring drained to 0 at 256.17864 (backlog was 59 pairs)
+STREAM: flow-off #214 (batch=454 tot=118699)
+STREAM: post-drain +  6125 us  SKP ch0= 32388 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 19437 us  SKP ch0=-32735 step=-65477  (ring=0 fpga=59)
+STREAM: post-drain + 43218 us  SKP ch0=-31410 step= +676  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #214 took 27218 us to resume (longest=5008937 us) resumed_at=257.15589
+STREAM: ring drained to 0 at 257.15922 (backlog was 59 pairs)
+STREAM: flow-off #215 (batch=81 tot=118780)
+STREAM: post-drain +  6000 us  SKP ch0= -5745 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43312 us  SKP ch0= -3845 step= +838  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #215 took 19562 us to resume (longest=5008937 us) resumed_at=257.21850
+STREAM: ring drained to 0 at 257.22184 (backlog was 59 pairs)
+STREAM: flow-off #216 (batch=138 tot=118918)
+STREAM: post-drain +  6062 us  SKP ch0=  -187 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 42843 us  SKP ch0=  1899 step=+1024  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #216 took 19687 us to resume (longest=5008937 us) resumed_at=257.31685
+STREAM: ring drained to 0 at 258.00018 (backlog was 59 pairs)
+STREAM: flow-off #217 (batch=138 tot=119056)
+STREAM: post-drain +  5937 us  SKP ch0=  8920 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43000 us  SKP ch0= 10920 step= +938  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #217 took 19593 us to resume (longest=5008937 us) resumed_at=258.09534
+STREAM: ring drained to 0 at 258.09867 (backlog was 59 pairs)
+STREAM: post-drain +  6062 us  SKP ch0= 17941 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43000 us  SKP ch0= 19951 step= +948  (ring=0 fpga=59)
+STREAM: flow-off #218 (batch=388 tot=119444)
+STREAM: LONG STALL - flow-off #218 took 4875 us to resume (longest=5008937 us) resumed_at=259.03197
+STREAM: ring drained to 0 at 259.03530 (backlog was 59 pairs)
+STREAM: flow-off #219 (batch=821 tot=120265)
+STREAM: post-drain +  5937 us  SKP ch0=-23595 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43125 us  SKP ch0=-22050 step= +483  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #219 took 19593 us to resume (longest=5008937 us) resumed_at=260.24246
+STREAM: ring drained to 0 at 260.24579 (backlog was 59 pairs)
+STREAM: post-drain +  5968 us  SKP ch0= 25268 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43125 us  SKP ch0= 26606 step= +276  (ring=0 fpga=59)
+STREAM: flow-off #220 (batch=491 tot=120756)
+STREAM: LONG STALL - flow-off #220 took 4906 us to resume (longest=5008937 us) resumed_at=261.24392
+STREAM: ring drained to 0 at 261.24724 (backlog was 59 pairs)
+STREAM: flow-off #221 (batch=457 tot=121213)
+STREAM: post-drain +  6000 us  SKP ch0=-10770 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43343 us  SKP ch0= -9452 step= +256  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #221 took 19656 us to resume (longest=5008937 us) resumed_at=262.22413
+STREAM: ring drained to 0 at 262.22746 (backlog was 59 pairs)
+STREAM: post-drain +  6062 us  SKP ch0= 16390 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 42968 us  SKP ch0= 18083 step= +631  (ring=0 fpga=59)
+STREAM: flow-off #222 (batch=495 tot=121708)
+STREAM: LONG STALL - flow-off #222 took 4875 us to resume (longest=5008937 us) resumed_at=263.22826
+STREAM: ring drained to 0 at 263.23158 (backlog was 59 pairs)
+STREAM: flow-off #223 (batch=194 tot=121902)
+STREAM: post-drain +  6062 us  SKP ch0=-19191 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43187 us  SKP ch0=-17727 step= +402  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #223 took 19656 us to resume (longest=5008937 us) resumed_at=264.04223
+STREAM: ring drained to 0 at 264.04556 (backlog was 59 pairs)
+STREAM: flow-off #224 (batch=134 tot=122036)
+STREAM: post-drain +  6000 us  SKP ch0= -7402 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43250 us  SKP ch0= -5443 step= +897  (ring=0 fpga=59)
+STREAM: post-drain + 45125 us  SKP ch0= -5383 step=  +60  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #224 took 27062 us to resume (longest=5008937 us) resumed_at=264.14069
+STREAM: ring drained to 0 at 264.14403 (backlog was 59 pairs)
+STREAM: post-drain +  5937 us  SKP ch0=  1343 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43062 us  SKP ch0=  3588 step=+1183  (ring=0 fpga=59)
+STREAM: flow-off #225 (batch=753 tot=122789)
+STREAM: LONG STALL - flow-off #225 took 4968 us to resume (longest=5008937 us) resumed_at=265.30799
+STREAM: ring drained to 0 at 265.31132 (backlog was 59 pairs)
+STREAM: flow-off #226 (batch=300 tot=123089)
+STREAM: post-drain +  5968 us  SKP ch0=-18642 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43282 us  SKP ch0=-17254 step= +326  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #226 took 19781 us to resume (longest=5008937 us) resumed_at=266.18923
+STREAM: ring drained to 0 at 266.19254 (backlog was 59 pairs)
+STREAM: flow-off #227 (batch=450 tot=123539)
+STREAM: post-drain +  6156 us  SKP ch0=  -675 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43250 us  SKP ch0=  1202 step= +815  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #227 took 19562 us to resume (longest=5008937 us) resumed_at=267.16488
+STREAM: ring drained to 0 at 267.16822 (backlog was 59 pairs)
+STREAM: post-drain +  5937 us  SKP ch0= 26631 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43156 us  SKP ch0= 28319 step= +626  (ring=0 fpga=59)
+STREAM: flow-off #228 (batch=179 tot=123718)
+STREAM: LONG STALL - flow-off #228 took 4781 us to resume (longest=5008937 us) resumed_at=267.28928
+STREAM: ring drained to 0 at 267.29268 (backlog was 59 pairs)
+STREAM: flow-off #229 (batch=407 tot=124125)
+STREAM: post-drain +  5968 us  SKP ch0=-27430 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43218 us  SKP ch0=-25806 step= +562  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #229 took 19750 us to resume (longest=5008937 us) resumed_at=268.23822
+STREAM: ring drained to 0 at 268.24155 (backlog was 59 pairs)
+STREAM: flow-off #230 (batch=294 tot=124419)
+STREAM: post-drain +  5968 us  SKP ch0= -2914 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43343 us  SKP ch0= -1148 step= +704  (ring=0 fpga=59)
+STREAM: post-drain + 45250 us  SKP ch0= -1088 step=  +60  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #230 took 27093 us to resume (longest=5008937 us) resumed_at=269.11760
+STREAM: ring drained to 0 at 269.12093 (backlog was 59 pairs)
+STREAM: post-drain +  5968 us  SKP ch0= 15078 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43218 us  SKP ch0= 17140 step=+1000  (ring=0 fpga=59)
+STREAM: flow-off #231 (batch=540 tot=124959)
+STREAM: LONG STALL - flow-off #231 took 4750 us to resume (longest=5008937 us) resumed_at=270.15021
+STREAM: ring drained to 0 at 270.15359 (backlog was 59 pairs)
+STREAM: flow-off #232 (batch=765 tot=125724)
+STREAM: post-drain +  5937 us  SKP ch0=-17495 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43218 us  SKP ch0=-16055 step= +378  (ring=0 fpga=59)
+STREAM: post-drain + 45093 us  SKP ch0=-15995 step=  +60  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #232 took 27344 us to resume (longest=5008937 us) resumed_at=272.00785
+STREAM: ring drained to 0 at 272.01111 (backlog was 59 pairs)
+STREAM: post-drain +  6250 us  SKP ch0= 27960 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43531 us  SKP ch0= 29582 step= +560  (ring=0 fpga=59)
+STREAM: flow-off #233 (batch=1111 tot=126835)
+STREAM: LONG STALL - flow-off #233 took 4843 us to resume (longest=5008937 us) resumed_at=274.08150
+STREAM: ring drained to 0 at 274.08483 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0=-32768 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain +  8031 us  SKP ch0= 28823 step=-3945  (ring=0 fpga=59)
+STREAM: flow-off #234 (batch=709 tot=127544)
+STREAM: LONG STALL - flow-off #234 took 4812 us to resume (longest=5008937 us) resumed_at=275.22095
+STREAM: ring drained to 0 at 275.22427 (backlog was 59 pairs)
+STREAM: post-drain +  6000 us  SKP ch0=  5059 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #235 (batch=1034 tot=128578)
+STREAM: LONG STALL - flow-off #235 took 4906 us to resume (longest=5008937 us) resumed_at=277.24389
+STREAM: ring drained to 0 at 277.24722 (backlog was 59 pairs)
+STREAM: post-drain +  6062 us  SKP ch0=   529 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #236 (batch=752 tot=129330)
+STREAM: LONG STALL - flow-off #236 took 4937 us to resume (longest=5008937 us) resumed_at=279.08801
+STREAM: ring drained to 0 at 279.09134 (backlog was 59 pairs)
+STREAM: post-drain +  5968 us  SKP ch0=-20639 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #237 (batch=2268 tot=131598)
+STREAM: LONG STALL - flow-off #237 took 4937 us to resume (longest=5008937 us) resumed_at=283.25070
+STREAM: ring drained to 0 at 283.25403 (backlog was 59 pairs)
+STREAM: flow-off #238 (batch=477 tot=132075)
+STREAM: post-drain +  6062 us  SKP ch0=-19269 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain +  7937 us  SKP ch0=-19212 step=  +57  (ring=0 fpga=59)
+STREAM: LONG STALL - flow-off #238 took 19718 us to resume (longest=5008937 us) resumed_at=284.24363
+STREAM: ring drained to 0 at 284.24692 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0=  8872 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43218 us  SKP ch0= 10164 step= +230  (ring=0 fpga=59)
+STREAM: flow-off #239 (batch=747 tot=132822)
+STREAM: LONG STALL - flow-off #239 took 4968 us to resume (longest=5008937 us) resumed_at=286.08730
+STREAM: ring drained to 0 at 286.09063 (backlog was 59 pairs)
+STREAM: post-drain +  5937 us  SKP ch0=-12382 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43187 us  SKP ch0=-11006 step= +314  (ring=0 fpga=59)
+STREAM: flow-off #240 (batch=1204 tot=134026)
+STREAM: LONG STALL - flow-off #240 took 5000 us to resume (longest=5008937 us) resumed_at=288.22013
+STREAM: ring drained to 0 at 288.22346 (backlog was 59 pairs)

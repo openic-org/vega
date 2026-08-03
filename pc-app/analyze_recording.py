@@ -46,8 +46,17 @@ def compute_stats(path: Path) -> dict:
     c0 = ch0[valid]
     c1 = ch1[valid]
     diff = c1.astype(np.int32) - c0.astype(np.int32)
+    # ch1 = ch0 + 1000 (mod 65536): unwrap the same way, otherwise the ~1000
+    # samples/cycle where ch1 has wrapped but ch0 hasn't read as a spurious
+    # -64536 "channel swap" signature instead of the expected +1000.
+    diff = ((diff + 32768) % 65536) - 32768
 
     step = np.diff(c0.astype(np.int32))
+    # ch0 is a 16-bit ramp (int16) that wraps every 65536 samples; unwrap the
+    # diff modulo 65536 so a normal wrap (e.g. 32767 -> -32768) reads as the
+    # expected +1 instead of a spurious ~-65535 "SKP". A real skip that
+    # straddles the wrap boundary still shows its true small magnitude.
+    step = ((step + 32768) % 65536) - 32768
     skp_idx = np.where((step != 0) & (step != 1))[0] + 1  # index into c0/valid-space
     skp_jumps = step[skp_idx - 1]
     n_dup = int(np.sum(step == 0))
