@@ -39,7 +39,7 @@ class ParsedPacket:
     ch0:            np.ndarray   # int16, shape (num_pairs,)
     ch1:            np.ndarray   # int16, shape (num_pairs,)
     timestamps_us:  np.ndarray   # int64, shape (num_pairs,)
-    fifo_underruns: int          # samples where ch0 == 0x8000 (FPGA FIFO empty)
+    fifo_underruns: int          # samples where ch0 == ch1 == 0x8000 (FPGA FIFO empty)
 
 
 def parse(data: bytes) -> ParsedPacket | None:
@@ -65,7 +65,12 @@ def parse(data: bytes) -> ParsedPacket | None:
     i = np.arange(num_pairs, dtype=np.int64)
     timestamps_us = packet_base_us + i * 1_000_000 // SAMPLE_RATE_HZ
 
-    fifo_underruns = int(np.sum(ch0 == FIFO_EMPTY_SENTINEL))
+    # ch0 alone is not a reliable underrun marker: the real ramp test pattern
+    # legitimately passes through -32768 once per 16-bit wrap (ch1 = ch0+1000
+    # would then read -31768, not -32768). Only count it as a true FPGA FIFO
+    # underrun when BOTH channels read the sentinel, matching FPGA_SPI_ReadSamples's
+    # "0x8000 on both channels" contract.
+    fifo_underruns = int(np.sum((ch0 == FIFO_EMPTY_SENTINEL) & (ch1 == FIFO_EMPTY_SENTINEL)))
 
     return ParsedPacket(
         header=PacketHeader(timestamp_s, timestamp_sub_s, seq_num, num_pairs),

@@ -44,7 +44,14 @@ def compute_stats(path: Path) -> dict:
     duration_s = (t[-1] - t[0]) / 1e6
     sps = n / duration_s
 
-    underrun_mask = (ch0 == FIFO_EMPTY_SENTINEL)
+    # ch0 alone is not a reliable underrun marker: the ramp test pattern
+    # legitimately passes through -32768 once per 16-bit wrap (ch1 = ch0+1000
+    # then reads -31768, not -32768) — checking ch0 only misclassifies that
+    # real sample as an underrun and drops it, which then shows up as a
+    # bogus +2 "SKP" in the step-continuity check below. FPGA_SPI_ReadSamples
+    # (kuntur-mcu/Core/Src/fpga_spi.c) confirms a true underrun sets BOTH
+    # channels to 0x8000.
+    underrun_mask = (ch0 == FIFO_EMPTY_SENTINEL) & (ch1 == FIFO_EMPTY_SENTINEL)
     n_underrun = int(np.sum(underrun_mask))
 
     valid = ~underrun_mask
