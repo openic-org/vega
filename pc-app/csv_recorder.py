@@ -20,7 +20,7 @@ import time
 from pathlib import Path
 from dataclasses import dataclass, field
 
-MAX_DURATION_SEC = 600      # 10 minutes
+MAX_DURATION_SEC = 4000     # ~66 minutes
 MIN_FREE_MB      = 200
 
 
