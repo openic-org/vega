@@ -1,0 +1,2745 @@
+ÿÿÿÿÿÿÿöÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿÿSTREAM: flow-off #13 (batch=464 tot=9116)
+STREAM: LONG STALL - flow-off #13 took 4625 us to resume (longest=5006375 us) resumed_at=37.13140
+STREAM: ring drained to 0 at 37.13466 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5875 us  pkt ch0=  8410 step=   +0  (ring=59 fpga=0)
+  +  8000 us  pkt ch0=  8469 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9812 us  pkt ch0=  8528 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11562 us  pkt ch0=  8587 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13343 us  pkt ch0=  8646 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15375 us  pkt ch0=  8705 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17343 us  pkt ch0=  8764 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19468 us  pkt ch0=  8823 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21312 us  pkt ch0=  8882 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23343 us  pkt ch0=  8941 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25312 us  pkt ch0=  9000 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27437 us  pkt ch0=  9059 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29375 us  pkt ch0=  9118 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31312 us  pkt ch0=  9177 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33437 us  pkt ch0=  9236 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35437 us  pkt ch0=  9295 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37312 us  pkt ch0=  9354 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39406 us  pkt ch0=  9413 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41406 us  pkt ch0=  9472 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43375 us  pkt ch0=  9658 step= +186  (ring=0 fpga=59)  <-- SKP
+  + 45375 us  pkt ch0=  9717 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47375 us  pkt ch0=  9776 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49500 us  pkt ch0=  9835 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51343 us  pkt ch0=  9894 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53375 us  pkt ch0=  9953 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55343 us  pkt ch0= 10012 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57500 us  pkt ch0= 10071 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59406 us  pkt ch0= 10130 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #14 (batch=673 tot=9789)
+STREAM: LONG STALL - flow-off #14 took 4656 us to resume (longest=5006375 us) resumed_at=38.30329
+STREAM: ring drained to 0 at 38.30655 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5843 us  pkt ch0=-11781 step=   +0  (ring=59 fpga=0)
+  +  7843 us  pkt ch0=-11722 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9781 us  pkt ch0=-11663 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11593 us  pkt ch0=-11604 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13375 us  pkt ch0=-11545 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15250 us  pkt ch0=-11486 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17343 us  pkt ch0=-11427 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19343 us  pkt ch0=-11368 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21343 us  pkt ch0=-11309 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23406 us  pkt ch0=-11250 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25343 us  pkt ch0=-11191 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27531 us  pkt ch0=-11132 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29437 us  pkt ch0=-11073 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31406 us  pkt ch0=-11014 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33500 us  pkt ch0=-10955 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35500 us  pkt ch0=-10896 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37406 us  pkt ch0=-10837 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39406 us  pkt ch0=-10778 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41500 us  pkt ch0=-10719 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43469 us  pkt ch0=-10660 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 45407 us  pkt ch0=-10601 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47500 us  pkt ch0=-10542 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49500 us  pkt ch0=-10483 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51469 us  pkt ch0=-10424 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53532 us  pkt ch0=-10365 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55500 us  pkt ch0=-10306 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57657 us  pkt ch0=-10247 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59563 us  pkt ch0=-10188 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #15 (batch=1555 tot=11344)
+STREAM: LONG STALL - flow-off #15 took 4750 us to resume (longest=5006375 us) resumed_at=42.07234
+STREAM: ring drained to 0 at 42.07557 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5875 us  pkt ch0=-32768 step=   +0  (ring=59 fpga=0)
+  +  8000 us  pkt ch0= 19245 step=+52013  (ring=0 fpga=59)  <-- SKP
+  +  9812 us  pkt ch0= 19304 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11593 us  pkt ch0= 19363 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13375 us  pkt ch0= 19422 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15406 us  pkt ch0= 19481 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17375 us  pkt ch0= 19540 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19531 us  pkt ch0= 19599 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21468 us  pkt ch0= 19658 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23406 us  pkt ch0= 19717 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25531 us  pkt ch0= 19776 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27531 us  pkt ch0= 19835 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29437 us  pkt ch0= 19894 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31531 us  pkt ch0= 19953 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33468 us  pkt ch0= 20012 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35500 us  pkt ch0= 20071 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37437 us  pkt ch0= 20130 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39531 us  pkt ch0= 20189 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41656 us  pkt ch0= 20248 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43468 us  pkt ch0= 20307 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 45531 us  pkt ch0= 20366 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47500 us  pkt ch0= 20425 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49625 us  pkt ch0= 20484 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51562 us  pkt ch0= 20543 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53531 us  pkt ch0= 20602 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55625 us  pkt ch0= 20661 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57625 us  pkt ch0= 20720 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59500 us  pkt ch0= 20779 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #16 (batch=408 tot=11752)
+STREAM: LONG STALL - flow-off #16 took 4406 us to resume (longest=5006375 us) resumed_at=43.07692
+STREAM: ring drained to 0 at 43.08020 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5968 us  pkt ch0=-17159 step=   +0  (ring=59 fpga=0)
+  +  7875 us  pkt ch0=-17100 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9656 us  pkt ch0=-17041 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11437 us  pkt ch0=-16982 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13468 us  pkt ch0=-16923 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15406 us  pkt ch0=-16864 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17593 us  pkt ch0=-16805 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19500 us  pkt ch0=-16746 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21468 us  pkt ch0=-16687 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23562 us  pkt ch0=-16628 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25562 us  pkt ch0=-16569 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27468 us  pkt ch0=-16510 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29562 us  pkt ch0=-16451 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31531 us  pkt ch0=-16392 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33531 us  pkt ch0=-16333 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35468 us  pkt ch0=-16274 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37531 us  pkt ch0=-16215 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39500 us  pkt ch0=-16156 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41468 us  pkt ch0=-16097 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43500 us  pkt ch0=-15854 step= +243  (ring=0 fpga=59)  <-- SKP
+  + 45468 us  pkt ch0=-15795 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47593 us  pkt ch0=-15736 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49531 us  pkt ch0=-15677 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51468 us  pkt ch0=-15618 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53593 us  pkt ch0=-15559 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55593 us  pkt ch0=-15500 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57500 us  pkt ch0=-15441 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59593 us  pkt ch0=-15382 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #17 (batch=52 tot=11804)
+STREAM: LONG STALL - flow-off #17 took 4437 us to resume (longest=5006375 us) resumed_at=43.17658
+STREAM: ring drained to 0 at 43.17982 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6031 us  pkt ch0= -8390 step=   +0  (ring=59 fpga=0)
+  +  8000 us  pkt ch0= -8331 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9968 us  pkt ch0= -8272 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11750 us  pkt ch0= -8213 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13562 us  pkt ch0= -8154 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15406 us  pkt ch0= -8095 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17406 us  pkt ch0= -8036 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19375 us  pkt ch0= -7977 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21468 us  pkt ch0= -7918 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23375 us  pkt ch0= -7859 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25312 us  pkt ch0= -7800 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27437 us  pkt ch0= -7741 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29437 us  pkt ch0= -7682 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31343 us  pkt ch0= -7623 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33437 us  pkt ch0= -7564 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35437 us  pkt ch0= -7505 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37437 us  pkt ch0= -7446 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39468 us  pkt ch0= -7387 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41437 us  pkt ch0= -7328 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43562 us  pkt ch0= -6717 step= +611  (ring=0 fpga=59)  <-- SKP
+  + 45500 us  pkt ch0= -6658 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47468 us  pkt ch0= -6599 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49500 us  pkt ch0= -6540 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51593 us  pkt ch0= -6481 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53500 us  pkt ch0= -6422 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55500 us  pkt ch0= -6363 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57593 us  pkt ch0= -6304 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59593 us  pkt ch0= -6245 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #18 (batch=36 tot=11840)
+STREAM: LONG STALL - flow-off #18 took 4531 us to resume (longest=5006375 us) resumed_at=43.26609
+STREAM: ring drained to 0 at 43.26936 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5968 us  pkt ch0= -5714 step=   +0  (ring=59 fpga=0)
+  +  7843 us  pkt ch0= -5655 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9656 us  pkt ch0= -5596 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11437 us  pkt ch0= -5537 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13312 us  pkt ch0= -5478 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15250 us  pkt ch0= -5419 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17375 us  pkt ch0= -5360 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19375 us  pkt ch0= -5301 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21281 us  pkt ch0= -5242 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23406 us  pkt ch0= -5183 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25375 us  pkt ch0= -5124 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27343 us  pkt ch0=   450 step=+5574  (ring=0 fpga=59)  <-- SKP
+  + 29281 us  pkt ch0=   509 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31343 us  pkt ch0=   568 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33281 us  pkt ch0=   627 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35281 us  pkt ch0=   686 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37312 us  pkt ch0=   745 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39281 us  pkt ch0=   804 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41406 us  pkt ch0=   863 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43343 us  pkt ch0=  1494 step= +631  (ring=0 fpga=59)  <-- SKP
+  + 45281 us  pkt ch0=  1553 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47375 us  pkt ch0=  1612 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49375 us  pkt ch0=  1671 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51281 us  pkt ch0=  1730 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53250 us  pkt ch0=  1789 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55343 us  pkt ch0=  1848 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57312 us  pkt ch0=  1907 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59281 us  pkt ch0=  1966 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #19 (batch=909 tot=12749)
+STREAM: LONG STALL - flow-off #19 took 4625 us to resume (longest=5006375 us) resumed_at=45.26725
+STREAM: ring drained to 0 at 45.27052 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6000 us  pkt ch0= -6026 step=   +0  (ring=59 fpga=0)
+  +  7843 us  pkt ch0= -5967 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9656 us  pkt ch0= -5908 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11406 us  pkt ch0= -5849 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13468 us  pkt ch0= -5790 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15406 us  pkt ch0= -5731 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17562 us  pkt ch0= -5672 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19375 us  pkt ch0= -5613 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21468 us  pkt ch0= -5554 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23468 us  pkt ch0= -5495 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25593 us  pkt ch0= -5436 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27468 us  pkt ch0= -5377 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29468 us  pkt ch0= -5318 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31562 us  pkt ch0= -5259 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33562 us  pkt ch0= -5200 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35468 us  pkt ch0= -5141 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37562 us  pkt ch0= -5082 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39562 us  pkt ch0= -5023 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41531 us  pkt ch0= -4964 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43593 us  pkt ch0= -4905 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 45562 us  pkt ch0= -4846 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47718 us  pkt ch0= -4787 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49625 us  pkt ch0= -4728 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51593 us  pkt ch0= -4669 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53718 us  pkt ch0= -4610 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55718 us  pkt ch0= -4551 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57625 us  pkt ch0= -4492 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59625 us  pkt ch0= -4433 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #20 (batch=83 tot=12832)
+STREAM: LONG STALL - flow-off #20 took 10375 us to resume (longest=5006375 us) resumed_at=46.06839
+STREAM: ring drained to 0 at 46.07193 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6218 us  pkt ch0=  4233 step=   +0  (ring=59 fpga=0)
+  +  8187 us  pkt ch0=  4292 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 10156 us  pkt ch0=  4351 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11968 us  pkt ch0=  4410 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13718 us  pkt ch0=  4469 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15593 us  pkt ch0=  4528 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17562 us  pkt ch0=  4587 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19656 us  pkt ch0=  4646 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21656 us  pkt ch0=  4705 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23562 us  pkt ch0=  4764 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25656 us  pkt ch0=  4823 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27656 us  pkt ch0=  4882 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29625 us  pkt ch0=  4941 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31687 us  pkt ch0=  5000 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33625 us  pkt ch0=  5059 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35750 us  pkt ch0=  5118 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37687 us  pkt ch0=  5207 step=  +89  (ring=0 fpga=59)  <-- SKP
+  + 39625 us  pkt ch0=  5269 step=  +62  (ring=0 fpga=59)  <-- SKP
+  + 41656 us  pkt ch0=  5330 step=  +61  (ring=0 fpga=59)  <-- SKP
+  + 43750 us  pkt ch0=  5902 step= +572  (ring=0 fpga=59)  <-- SKP
+  + 45656 us  pkt ch0=  5961 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47656 us  pkt ch0=  6020 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49750 us  pkt ch0=  6079 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51718 us  pkt ch0=  6138 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53625 us  pkt ch0=  6197 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55718 us  pkt ch0=  6256 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57718 us  pkt ch0=  6315 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59687 us  pkt ch0=  6374 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #21 (batch=209 tot=13041)
+STREAM: LONG STALL - flow-off #21 took 4781 us to resume (longest=5006375 us) resumed_at=46.26581
+STREAM: ring drained to 0 at 46.26907 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5843 us  pkt ch0= 22452 step=   +0  (ring=59 fpga=0)
+  +  8031 us  pkt ch0= 22511 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9781 us  pkt ch0= 22570 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11593 us  pkt ch0= 22629 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13343 us  pkt ch0= 22688 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15312 us  pkt ch0= 22747 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17375 us  pkt ch0= 22806 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19531 us  pkt ch0= 22865 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21343 us  pkt ch0= 22924 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23437 us  pkt ch0= 22983 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25375 us  pkt ch0= 23042 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27562 us  pkt ch0= 23101 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29468 us  pkt ch0= 23160 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31437 us  pkt ch0= 23219 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33562 us  pkt ch0= 23278 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35562 us  pkt ch0= 23337 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37468 us  pkt ch0= 23396 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39562 us  pkt ch0= 23455 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41562 us  pkt ch0= 23514 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43531 us  pkt ch0= 23972 step= +458  (ring=0 fpga=59)  <-- SKP
+  + 45593 us  pkt ch0= 24033 step=  +61  (ring=0 fpga=59)  <-- SKP
+  + 47562 us  pkt ch0= 24092 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49718 us  pkt ch0= 24151 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51625 us  pkt ch0= 24210 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53625 us  pkt ch0= 24269 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55625 us  pkt ch0= 24328 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57718 us  pkt ch0= 24387 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59625 us  pkt ch0= 24446 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #22 (batch=593 tot=13634)
+STREAM: LONG STALL - flow-off #22 took 4750 us to resume (longest=5006375 us) resumed_at=48.06732
+STREAM: ring drained to 0 at 48.07058 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5875 us  pkt ch0= -2172 step=   +0  (ring=59 fpga=0)
+  +  7843 us  pkt ch0= -2113 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9843 us  pkt ch0= -2054 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11593 us  pkt ch0= -1995 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13406 us  pkt ch0= -1936 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15281 us  pkt ch0= -1877 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17406 us  pkt ch0= -1818 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19375 us  pkt ch0= -1759 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21406 us  pkt ch0= -1700 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23437 us  pkt ch0= -1641 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25437 us  pkt ch0= -1582 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27562 us  pkt ch0= -1523 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29500 us  pkt ch0= -1464 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31468 us  pkt ch0= -1405 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33593 us  pkt ch0= -1346 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35625 us  pkt ch0= -1287 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37500 us  pkt ch0= -1228 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39656 us  pkt ch0= -1169 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41625 us  pkt ch0= -1110 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43625 us  pkt ch0= -1051 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 45562 us  pkt ch0=  -992 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47656 us  pkt ch0=  -933 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49593 us  pkt ch0=  -874 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51562 us  pkt ch0=  -815 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53625 us  pkt ch0=  -756 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55562 us  pkt ch0=  -697 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57718 us  pkt ch0=  -638 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59625 us  pkt ch0=  -579 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #23 (batch=286 tot=13920)
+STREAM: LONG STALL - flow-off #23 took 4781 us to resume (longest=5006375 us) resumed_at=48.31470
+STREAM: ring drained to 0 at 48.31796 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5875 us  pkt ch0= 20193 step=   +0  (ring=59 fpga=0)
+  +  8032 us  pkt ch0= 20252 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9844 us  pkt ch0= 20311 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11594 us  pkt ch0= 20370 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13407 us  pkt ch0= 20429 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15438 us  pkt ch0= 20488 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17407 us  pkt ch0= 20547 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19532 us  pkt ch0= 20606 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21469 us  pkt ch0= 20665 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23407 us  pkt ch0= 20724 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25532 us  pkt ch0= 20783 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27532 us  pkt ch0= 20842 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29438 us  pkt ch0= 20901 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31438 us  pkt ch0= 20960 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33532 us  pkt ch0= 21019 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35500 us  pkt ch0= 21078 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37469 us  pkt ch0= 21137 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39532 us  pkt ch0= 21196 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41500 us  pkt ch0= 21255 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43500 us  pkt ch0= 21619 step= +364  (ring=0 fpga=59)  <-- SKP
+  + 45532 us  pkt ch0= 21678 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47500 us  pkt ch0= 21737 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49657 us  pkt ch0= 21796 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51594 us  pkt ch0= 21855 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53532 us  pkt ch0= 21914 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55657 us  pkt ch0= 21973 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57657 us  pkt ch0= 22032 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59563 us  pkt ch0= 22091 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #24 (batch=1034 tot=14954)
+STREAM: LONG STALL - flow-off #24 took 4750 us to resume (longest=5006375 us) resumed_at=51.07477
+STREAM: ring drained to 0 at 51.07800 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5875 us  pkt ch0= 21400 step=   +0  (ring=59 fpga=0)
+  +  8031 us  pkt ch0= 21456 step=  +56  (ring=0 fpga=59)  <-- SKP
+  +  9812 us  pkt ch0= 21515 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11593 us  pkt ch0= 21574 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13375 us  pkt ch0= 21633 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15406 us  pkt ch0= 21692 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17406 us  pkt ch0= 21751 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19531 us  pkt ch0= 21810 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21468 us  pkt ch0= 21869 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23406 us  pkt ch0= 21928 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25531 us  pkt ch0= 21987 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27531 us  pkt ch0= 22046 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29437 us  pkt ch0= 22105 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31562 us  pkt ch0= 22164 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33562 us  pkt ch0= 22223 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35531 us  pkt ch0= 22282 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37500 us  pkt ch0= 22341 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39562 us  pkt ch0= 22400 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41687 us  pkt ch0= 22459 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43531 us  pkt ch0= 22518 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 45593 us  pkt ch0= 22577 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47562 us  pkt ch0= 22636 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49687 us  pkt ch0= 22695 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51625 us  pkt ch0= 22754 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53593 us  pkt ch0= 22813 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55718 us  pkt ch0= 22872 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57718 us  pkt ch0= 22931 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59625 us  pkt ch0= 22990 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #25 (batch=829 tot=15783)
+STREAM: LONG STALL - flow-off #25 took 4687 us to resume (longest=5006375 us) resumed_at=53.02521
+STREAM: ring drained to 0 at 53.02847 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5875 us  pkt ch0=  9891 step=   +0  (ring=59 fpga=0)
+  +  7968 us  pkt ch0=  9950 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9781 us  pkt ch0= 10009 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11531 us  pkt ch0= 10068 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13343 us  pkt ch0= 10127 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15343 us  pkt ch0= 10186 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17312 us  pkt ch0= 10245 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19437 us  pkt ch0= 10304 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21375 us  pkt ch0= 10363 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23312 us  pkt ch0= 10422 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25437 us  pkt ch0= 10481 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27437 us  pkt ch0= 10540 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29343 us  pkt ch0= 10599 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31406 us  pkt ch0= 10658 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33406 us  pkt ch0= 10717 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35375 us  pkt ch0= 10776 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37406 us  pkt ch0= 10835 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39406 us  pkt ch0= 10894 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41531 us  pkt ch0= 10953 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43375 us  pkt ch0= 11012 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 45406 us  pkt ch0= 11071 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47437 us  pkt ch0= 11130 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49531 us  pkt ch0= 11189 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51468 us  pkt ch0= 11248 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53406 us  pkt ch0= 11307 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55531 us  pkt ch0= 11366 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57500 us  pkt ch0= 11425 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59406 us  pkt ch0= 11484 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #26 (batch=464 tot=16247)
+STREAM: LONG STALL - flow-off #26 took 4687 us to resume (longest=5006375 us) resumed_at=54.06521
+STREAM: ring drained to 0 at 54.06847 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5906 us  pkt ch0=-23029 step=   +0  (ring=59 fpga=0)
+  +  8000 us  pkt ch0=-22970 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9781 us  pkt ch0=-22911 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11562 us  pkt ch0=-22852 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13343 us  pkt ch0=-22793 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15343 us  pkt ch0=-22734 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17343 us  pkt ch0=-22675 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19437 us  pkt ch0=-22616 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21375 us  pkt ch0=-22557 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23312 us  pkt ch0=-22498 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25437 us  pkt ch0=-22439 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27437 us  pkt ch0=-22380 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29343 us  pkt ch0=-22321 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31437 us  pkt ch0=-22262 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33406 us  pkt ch0=-22203 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35406 us  pkt ch0=-22144 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37406 us  pkt ch0=-22085 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39406 us  pkt ch0=-22026 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41531 us  pkt ch0=-21967 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43375 us  pkt ch0=-21778 step= +189  (ring=0 fpga=59)  <-- SKP
+  + 45406 us  pkt ch0=-21719 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47375 us  pkt ch0=-21660 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49500 us  pkt ch0=-21601 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51437 us  pkt ch0=-21542 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53375 us  pkt ch0=-21483 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55500 us  pkt ch0=-21424 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57500 us  pkt ch0=-21365 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59406 us  pkt ch0=-21306 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #27 (batch=50 tot=16297)
+STREAM: LONG STALL - flow-off #27 took 4562 us to resume (longest=5006375 us) resumed_at=54.16364
+STREAM: ring drained to 0 at 54.16691 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5843 us  pkt ch0=-14435 step=   +0  (ring=59 fpga=0)
+  +  7906 us  pkt ch0=-14376 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9656 us  pkt ch0=-14317 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11468 us  pkt ch0=-14258 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13250 us  pkt ch0=-14199 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15281 us  pkt ch0=-14140 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17250 us  pkt ch0=-14081 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19375 us  pkt ch0=-14022 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21312 us  pkt ch0=-13963 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23250 us  pkt ch0=-13904 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25343 us  pkt ch0=-13845 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27375 us  pkt ch0=-13786 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29250 us  pkt ch0=-13727 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31375 us  pkt ch0=-13668 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33312 us  pkt ch0=-13609 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35343 us  pkt ch0=-13550 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37375 us  pkt ch0=-13491 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39343 us  pkt ch0=-13432 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41468 us  pkt ch0=-13373 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43437 us  pkt ch0=-12752 step= +621  (ring=0 fpga=59)  <-- SKP
+  + 45375 us  pkt ch0=-12693 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47406 us  pkt ch0=-12634 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49500 us  pkt ch0=-12575 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51375 us  pkt ch0=-12516 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53343 us  pkt ch0=-12457 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55437 us  pkt ch0=-12398 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57468 us  pkt ch0=-12339 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59343 us  pkt ch0=-12280 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #28 (batch=1295 tot=17592)
+STREAM: LONG STALL - flow-off #28 took 4718 us to resume (longest=5006375 us) resumed_at=57.08878
+STREAM: ring drained to 0 at 57.09210 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5875 us  pkt ch0=  2171 step=   +0  (ring=59 fpga=0)
+  +  7812 us  pkt ch0=  2224 step=  +53  (ring=0 fpga=59)  <-- SKP
+  +  9812 us  pkt ch0=  2283 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11593 us  pkt ch0=  2342 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13343 us  pkt ch0=  2401 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15250 us  pkt ch0=  2460 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17187 us  pkt ch0=  2519 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19281 us  pkt ch0=  2578 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21281 us  pkt ch0=  2637 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23187 us  pkt ch0=  2696 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25281 us  pkt ch0=  2755 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27281 us  pkt ch0=  2814 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29250 us  pkt ch0=  2873 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31250 us  pkt ch0=  2932 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33250 us  pkt ch0=  2991 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35375 us  pkt ch0=  3050 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37312 us  pkt ch0=  3109 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39250 us  pkt ch0=  3168 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41250 us  pkt ch0=  3227 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43343 us  pkt ch0=  3286 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 45250 us  pkt ch0=  3345 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47250 us  pkt ch0=  3404 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49312 us  pkt ch0=  3463 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51312 us  pkt ch0=  3522 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53187 us  pkt ch0=  3581 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55281 us  pkt ch0=  3640 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57250 us  pkt ch0=  3699 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59250 us  pkt ch0=  3758 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #29 (batch=153 tot=17745)
+STREAM: LONG STALL - flow-off #29 took 4718 us to resume (longest=5006375 us) resumed_at=57.25233
+STREAM: ring drained to 0 at 57.25560 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5875 us  pkt ch0= 16308 step=   +0  (ring=59 fpga=0)
+  +  8000 us  pkt ch0= 16367 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9781 us  pkt ch0= 16426 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11531 us  pkt ch0= 16485 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13343 us  pkt ch0= 16544 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15343 us  pkt ch0= 16603 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17343 us  pkt ch0= 16662 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19468 us  pkt ch0= 16721 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21375 us  pkt ch0= 16780 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23312 us  pkt ch0= 16839 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25343 us  pkt ch0= 16898 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27437 us  pkt ch0= 16957 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29343 us  pkt ch0= 17016 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31343 us  pkt ch0= 17075 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33406 us  pkt ch0= 17134 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35406 us  pkt ch0= 17193 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37281 us  pkt ch0= 17252 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39406 us  pkt ch0= 17311 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41375 us  pkt ch0= 17370 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43375 us  pkt ch0= 17887 step= +517  (ring=0 fpga=59)  <-- SKP
+  + 45375 us  pkt ch0= 17946 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47375 us  pkt ch0= 18005 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49500 us  pkt ch0= 18064 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51437 us  pkt ch0= 18123 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53406 us  pkt ch0= 18182 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55500 us  pkt ch0= 18241 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57500 us  pkt ch0= 18300 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59375 us  pkt ch0= 18359 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #30 (batch=50 tot=17795)
+STREAM: LONG STALL - flow-off #30 took 4562 us to resume (longest=5006375 us) resumed_at=58.03073
+STREAM: ring drained to 0 at 58.03400 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5843 us  pkt ch0= 25231 step=   +0  (ring=59 fpga=0)
+  +  8031 us  pkt ch0= 25290 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9781 us  pkt ch0= 25349 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11593 us  pkt ch0= 25408 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13375 us  pkt ch0= 25467 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15406 us  pkt ch0= 25526 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17406 us  pkt ch0= 25585 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19531 us  pkt ch0= 25644 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21437 us  pkt ch0= 25703 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23406 us  pkt ch0= 25762 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25500 us  pkt ch0= 25821 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27531 us  pkt ch0= 25880 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29406 us  pkt ch0= 25939 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31437 us  pkt ch0= 25998 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33500 us  pkt ch0= 26057 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35500 us  pkt ch0= 26116 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37437 us  pkt ch0= 26175 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39531 us  pkt ch0= 26234 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41468 us  pkt ch0= 26293 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43468 us  pkt ch0= 26912 step= +619  (ring=0 fpga=59)  <-- SKP
+  + 45500 us  pkt ch0= 26971 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47468 us  pkt ch0= 27030 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49625 us  pkt ch0= 27089 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51531 us  pkt ch0= 27148 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53531 us  pkt ch0= 27207 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55625 us  pkt ch0= 27266 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57656 us  pkt ch0= 27325 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59531 us  pkt ch0= 27384 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #31 (batch=334 tot=18129)
+STREAM: LONG STALL - flow-off #31 took 4468 us to resume (longest=5006375 us) resumed_at=58.30835
+STREAM: ring drained to 0 at 58.31164 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6031 us  pkt ch0=-14519 step=   +0  (ring=59 fpga=0)
+  +  7875 us  pkt ch0=-14460 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9812 us  pkt ch0=-14401 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11875 us  pkt ch0=-14342 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13843 us  pkt ch0=-14283 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15812 us  pkt ch0=-14224 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17875 us  pkt ch0=-14165 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19843 us  pkt ch0=-14106 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 22000 us  pkt ch0=-14047 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23875 us  pkt ch0=-13988 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25875 us  pkt ch0=-13929 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27969 us  pkt ch0=-13870 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 30000 us  pkt ch0=-13811 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31875 us  pkt ch0=-13752 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33969 us  pkt ch0=-13693 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35969 us  pkt ch0=-13634 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37782 us  pkt ch0=-13575 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39657 us  pkt ch0=-13516 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41750 us  pkt ch0=-13457 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43750 us  pkt ch0=-13159 step= +298  (ring=0 fpga=59)  <-- SKP
+  + 45719 us  pkt ch0=-13100 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47782 us  pkt ch0=-13041 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49719 us  pkt ch0=-12982 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51875 us  pkt ch0=-12923 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53782 us  pkt ch0=-12864 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55782 us  pkt ch0=-12805 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57875 us  pkt ch0=-12746 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59907 us  pkt ch0=-12687 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #32 (batch=286 tot=18415)
+STREAM: LONG STALL - flow-off #32 took 4593 us to resume (longest=5006375 us) resumed_at=59.23596
+STREAM: ring drained to 0 at 59.23931 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5906 us  pkt ch0=  8114 step=   +0  (ring=59 fpga=0)
+  +  7843 us  pkt ch0=  8173 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9812 us  pkt ch0=  8232 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11562 us  pkt ch0=  8291 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13343 us  pkt ch0=  8350 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15218 us  pkt ch0=  8409 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17218 us  pkt ch0=  8468 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19281 us  pkt ch0=  8527 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21281 us  pkt ch0=  8586 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23156 us  pkt ch0=  8645 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25281 us  pkt ch0=  8704 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27218 us  pkt ch0=  8763 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29250 us  pkt ch0=  8822 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31250 us  pkt ch0=  8881 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33250 us  pkt ch0=  8940 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35375 us  pkt ch0=  8999 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37312 us  pkt ch0=  9058 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39250 us  pkt ch0=  9117 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41218 us  pkt ch0=  9176 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43343 us  pkt ch0=  9551 step= +375  (ring=0 fpga=59)  <-- SKP
+  + 45218 us  pkt ch0=  9610 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47250 us  pkt ch0=  9669 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49281 us  pkt ch0=  9728 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51312 us  pkt ch0=  9787 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53187 us  pkt ch0=  9846 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55312 us  pkt ch0=  9905 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57250 us  pkt ch0=  9964 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59281 us  pkt ch0= 10023 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #33 (batch=566 tot=18981)
+STREAM: LONG STALL - flow-off #33 took 4562 us to resume (longest=5006375 us) resumed_at=61.02041
+STREAM: ring drained to 0 at 61.02371 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6000 us  pkt ch0=-18197 step=   +0  (ring=59 fpga=0)
+  +  7906 us  pkt ch0=-18138 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9906 us  pkt ch0=-18079 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11906 us  pkt ch0=-18020 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13687 us  pkt ch0=-17961 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15500 us  pkt ch0=-17902 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17531 us  pkt ch0=-17843 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19500 us  pkt ch0=-17784 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21656 us  pkt ch0=-17725 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23562 us  pkt ch0=-17666 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25531 us  pkt ch0=-17607 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27625 us  pkt ch0=-17548 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29687 us  pkt ch0=-17489 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31562 us  pkt ch0=-17430 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33562 us  pkt ch0=-17371 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35625 us  pkt ch0=-17312 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37656 us  pkt ch0=-17253 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39500 us  pkt ch0=-17194 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41625 us  pkt ch0=-17135 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43593 us  pkt ch0=-17058 step=  +77  (ring=0 fpga=59)  <-- SKP
+  + 45593 us  pkt ch0=-16999 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47625 us  pkt ch0=-16940 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49593 us  pkt ch0=-16881 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51750 us  pkt ch0=-16822 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53656 us  pkt ch0=-16763 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55625 us  pkt ch0=-16704 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57718 us  pkt ch0=-16645 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59750 us  pkt ch0=-16586 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #34 (batch=260 tot=19241)
+STREAM: LONG STALL - flow-off #34 took 4656 us to resume (longest=5006375 us) resumed_at=61.25172
+STREAM: ring drained to 0 at 61.25500 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5968 us  pkt ch0=  2678 step=   +0  (ring=59 fpga=0)
+  +  7812 us  pkt ch0=  2737 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9593 us  pkt ch0=  2796 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11375 us  pkt ch0=  2855 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13250 us  pkt ch0=  2914 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15187 us  pkt ch0=  2973 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17187 us  pkt ch0=  3032 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19312 us  pkt ch0=  3091 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21187 us  pkt ch0=  3150 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23156 us  pkt ch0=  3209 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25218 us  pkt ch0=  3268 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27250 us  pkt ch0=  3327 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29125 us  pkt ch0=  3386 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31218 us  pkt ch0=  3445 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33187 us  pkt ch0=  3504 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35156 us  pkt ch0=  3563 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37218 us  pkt ch0=  3622 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39187 us  pkt ch0=  3681 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41343 us  pkt ch0=  3740 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43218 us  pkt ch0=  4153 step= +413  (ring=0 fpga=59)  <-- SKP
+  + 45187 us  pkt ch0=  4212 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47187 us  pkt ch0=  4271 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49312 us  pkt ch0=  4330 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51187 us  pkt ch0=  4389 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53156 us  pkt ch0=  4448 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55250 us  pkt ch0=  4507 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57250 us  pkt ch0=  4566 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59125 us  pkt ch0=  4625 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #35 (batch=1345 tot=20586)
+STREAM: LONG STALL - flow-off #35 took 4843 us to resume (longest=5006375 us) resumed_at=64.20822
+STREAM: ring drained to 0 at 64.21147 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5843 us  pkt ch0= 21950 step=   +0  (ring=59 fpga=0)
+  +  7843 us  pkt ch0= 22005 step=  +55  (ring=0 fpga=59)  <-- SKP
+  +  9812 us  pkt ch0= 22064 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11593 us  pkt ch0= 22123 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13406 us  pkt ch0= 22182 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15281 us  pkt ch0= 22241 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17406 us  pkt ch0= 22300 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19375 us  pkt ch0= 22359 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21406 us  pkt ch0= 22418 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23406 us  pkt ch0= 22477 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25375 us  pkt ch0= 22536 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27531 us  pkt ch0= 22595 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29437 us  pkt ch0= 22654 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31437 us  pkt ch0= 22713 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33531 us  pkt ch0= 22772 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35562 us  pkt ch0= 22831 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37437 us  pkt ch0= 22890 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39562 us  pkt ch0= 22949 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41531 us  pkt ch0= 23008 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43531 us  pkt ch0= 23067 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 45468 us  pkt ch0= 23126 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47531 us  pkt ch0= 23185 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49718 us  pkt ch0= 23244 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51531 us  pkt ch0= 23303 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53593 us  pkt ch0= 23362 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55562 us  pkt ch0= 23421 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57718 us  pkt ch0= 23480 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59625 us  pkt ch0= 23539 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #36 (batch=567 tot=21153)
+STREAM: LONG STALL - flow-off #36 took 4687 us to resume (longest=5006375 us) resumed_at=65.31325
+STREAM: ring drained to 0 at 65.31652 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5843 us  pkt ch0= -5015 step=   +0  (ring=59 fpga=0)
+  +  8000 us  pkt ch0= -4956 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9750 us  pkt ch0= -4897 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11563 us  pkt ch0= -4838 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13344 us  pkt ch0= -4779 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15375 us  pkt ch0= -4720 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17344 us  pkt ch0= -4661 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19469 us  pkt ch0= -4602 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21407 us  pkt ch0= -4543 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23375 us  pkt ch0= -4484 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25469 us  pkt ch0= -4425 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27500 us  pkt ch0= -4366 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29375 us  pkt ch0= -4307 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31532 us  pkt ch0= -4248 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33500 us  pkt ch0= -4189 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35500 us  pkt ch0= -4130 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37532 us  pkt ch0= -4071 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39500 us  pkt ch0= -4012 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41657 us  pkt ch0= -3953 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43563 us  pkt ch0= -3881 step=  +72  (ring=0 fpga=59)  <-- SKP
+  + 45563 us  pkt ch0= -3822 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47657 us  pkt ch0= -3763 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49688 us  pkt ch0= -3704 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51563 us  pkt ch0= -3645 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53594 us  pkt ch0= -3586 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55657 us  pkt ch0= -3527 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57688 us  pkt ch0= -3468 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59563 us  pkt ch0= -3409 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #37 (batch=2333 tot=23486)
+STREAM: LONG STALL - flow-off #37 took 4812 us to resume (longest=5006375 us) resumed_at=70.25389
+STREAM: ring drained to 0 at 70.25712 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5875 us  pkt ch0=  5619 step=   +0  (ring=59 fpga=0)
+  +  8000 us  pkt ch0=  5674 step=  +55  (ring=0 fpga=59)  <-- SKP
+  +  9812 us  pkt ch0=  5733 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11593 us  pkt ch0=  5792 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13375 us  pkt ch0=  5851 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15312 us  pkt ch0=  5910 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17375 us  pkt ch0=  5969 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19375 us  pkt ch0=  6028 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21343 us  pkt ch0=  6087 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23343 us  pkt ch0=  6146 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25343 us  pkt ch0=  6205 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27468 us  pkt ch0=  6264 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29406 us  pkt ch0=  6323 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31343 us  pkt ch0=  6382 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33468 us  pkt ch0=  6441 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35468 us  pkt ch0=  6500 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37375 us  pkt ch0=  6559 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39468 us  pkt ch0=  6618 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41468 us  pkt ch0=  6677 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43437 us  pkt ch0=  6736 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 45406 us  pkt ch0=  6795 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47468 us  pkt ch0=  6854 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49406 us  pkt ch0=  6913 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51406 us  pkt ch0=  6972 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53406 us  pkt ch0=  7031 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55468 us  pkt ch0=  7090 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57250 us  pkt ch0=  7149 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59031 us  pkt ch0=  7208 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #38 (batch=499 tot=23985)
+STREAM: LONG STALL - flow-off #38 took 8406 us to resume (longest=5006375 us) resumed_at=71.31720
+STREAM: ring drained to 0 at 72.00064 (backlog was 59 pairs)
+STREAM: flow-off #39 (batch=18 tot=24003)
+STREAM: LONG STALL - flow-off #39 took 4468 us to resume (longest=5006375 us) resumed_at=72.01390
+STREAM: ring drained to 0 at 72.01717 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6000 us  pkt ch0=-24308 step=   +0  (ring=59 fpga=0)
+  +  7875 us  pkt ch0=-24249 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9750 us  pkt ch0=-24190 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11812 us  pkt ch0=-24023 step= +167  (ring=0 fpga=59)  <-- SKP
+  + 13843 us  pkt ch0=-23964 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15593 us  pkt ch0=-23905 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17500 us  pkt ch0=-23846 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19593 us  pkt ch0=-23787 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21562 us  pkt ch0=-23728 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23562 us  pkt ch0=-23669 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25593 us  pkt ch0=-23610 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27562 us  pkt ch0=-23551 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29687 us  pkt ch0=-23492 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31625 us  pkt ch0=-23433 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33562 us  pkt ch0=-23374 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35562 us  pkt ch0=-23315 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37656 us  pkt ch0=-23256 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39562 us  pkt ch0=-23197 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41562 us  pkt ch0=-23138 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43625 us  pkt ch0=-22509 step= +629  (ring=0 fpga=59)  <-- SKP
+  + 45593 us  pkt ch0=-22450 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47500 us  pkt ch0=-22391 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49593 us  pkt ch0=-22332 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51625 us  pkt ch0=-22273 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53375 us  pkt ch0=-22214 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55437 us  pkt ch0=-22155 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57375 us  pkt ch0=-22096 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59531 us  pkt ch0=-22037 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #40 (batch=1647 tot=25650)
+STREAM: LONG STALL - flow-off #40 took 4875 us to resume (longest=5006375 us) resumed_at=75.16117
+STREAM: ring drained to 0 at 75.16440 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5843 us  pkt ch0=-32768 step=   +0  (ring=59 fpga=0)
+  +  8000 us  pkt ch0= 12837 step=+45605  (ring=0 fpga=59)  <-- SKP
+  +  9781 us  pkt ch0= 12896 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11593 us  pkt ch0= 12955 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13375 us  pkt ch0= 13014 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15406 us  pkt ch0= 13073 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17406 us  pkt ch0= 13132 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19531 us  pkt ch0= 13191 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21375 us  pkt ch0= 13250 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23406 us  pkt ch0= 13309 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25406 us  pkt ch0= 13368 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27531 us  pkt ch0= 13427 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29406 us  pkt ch0= 13486 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31375 us  pkt ch0= 13545 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33468 us  pkt ch0= 13604 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35500 us  pkt ch0= 13663 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37375 us  pkt ch0= 13722 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39500 us  pkt ch0= 13781 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41468 us  pkt ch0= 13840 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43468 us  pkt ch0= 13899 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 45500 us  pkt ch0= 13958 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47468 us  pkt ch0= 14017 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49625 us  pkt ch0= 14076 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51531 us  pkt ch0= 14135 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53531 us  pkt ch0= 14194 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55531 us  pkt ch0= 14253 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57656 us  pkt ch0= 14312 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59531 us  pkt ch0= 14371 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #41 (batch=931 tot=26581)
+STREAM: LONG STALL - flow-off #41 took 4781 us to resume (longest=5006375 us) resumed_at=77.17634
+STREAM: ring drained to 0 at 77.17960 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5906 us  pkt ch0=  7292 step=   +0  (ring=59 fpga=0)
+  +  8000 us  pkt ch0=  7351 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9812 us  pkt ch0=  7410 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11593 us  pkt ch0=  7469 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13343 us  pkt ch0=  7528 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15406 us  pkt ch0=  7587 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17375 us  pkt ch0=  7646 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19500 us  pkt ch0=  7705 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21312 us  pkt ch0=  7764 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23375 us  pkt ch0=  7823 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25343 us  pkt ch0=  7882 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27468 us  pkt ch0=  7941 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29406 us  pkt ch0=  8000 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31343 us  pkt ch0=  8059 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33468 us  pkt ch0=  8118 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35468 us  pkt ch0=  8177 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37343 us  pkt ch0=  8236 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39437 us  pkt ch0=  8295 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41437 us  pkt ch0=  8354 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43406 us  pkt ch0=  8413 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 45437 us  pkt ch0=  8472 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47406 us  pkt ch0=  8531 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49531 us  pkt ch0=  8590 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51343 us  pkt ch0=  8649 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53375 us  pkt ch0=  8708 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55343 us  pkt ch0=  8767 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57468 us  pkt ch0=  8826 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59406 us  pkt ch0=  8885 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #42 (batch=206 tot=26787)
+STREAM: LONG STALL - flow-off #42 took 4718 us to resume (longest=5006375 us) resumed_at=78.05330
+STREAM: ring drained to 0 at 78.05656 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5843 us  pkt ch0= 24594 step=   +0  (ring=59 fpga=0)
+  +  8000 us  pkt ch0= 24653 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9750 us  pkt ch0= 24712 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11562 us  pkt ch0= 24771 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13343 us  pkt ch0= 24830 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15375 us  pkt ch0= 24889 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17312 us  pkt ch0= 24948 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19468 us  pkt ch0= 25007 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21375 us  pkt ch0= 25066 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23343 us  pkt ch0= 25125 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25437 us  pkt ch0= 25184 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27468 us  pkt ch0= 25243 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29343 us  pkt ch0= 25302 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31468 us  pkt ch0= 25361 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33437 us  pkt ch0= 25420 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35437 us  pkt ch0= 25479 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37468 us  pkt ch0= 25538 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39437 us  pkt ch0= 25597 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41593 us  pkt ch0= 25656 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43500 us  pkt ch0= 26122 step= +466  (ring=0 fpga=59)  <-- SKP
+  + 45500 us  pkt ch0= 26181 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47500 us  pkt ch0= 26240 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49625 us  pkt ch0= 26299 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51500 us  pkt ch0= 26358 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53468 us  pkt ch0= 26417 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55562 us  pkt ch0= 26476 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57593 us  pkt ch0= 26535 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59468 us  pkt ch0= 26594 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #43 (batch=225 tot=27012)
+STREAM: LONG STALL - flow-off #43 took 4625 us to resume (longest=5006375 us) resumed_at=78.26212
+STREAM: ring drained to 0 at 78.26540 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5843 us  pkt ch0=-21743 step=   +0  (ring=59 fpga=0)
+  +  7875 us  pkt ch0=-21684 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9656 us  pkt ch0=-21625 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11468 us  pkt ch0=-21566 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13218 us  pkt ch0=-21507 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15281 us  pkt ch0=-21448 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17218 us  pkt ch0=-21389 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19375 us  pkt ch0=-21330 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21281 us  pkt ch0=-21271 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23250 us  pkt ch0=-21212 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25343 us  pkt ch0=-21153 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27375 us  pkt ch0=-21094 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29250 us  pkt ch0=-21035 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31343 us  pkt ch0=-20976 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33312 us  pkt ch0=-20917 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35312 us  pkt ch0=-20858 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37375 us  pkt ch0=-20799 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39312 us  pkt ch0=-20740 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41468 us  pkt ch0=-20681 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43375 us  pkt ch0=-20263 step= +418  (ring=0 fpga=59)  <-- SKP
+  + 45343 us  pkt ch0=-20204 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47343 us  pkt ch0=-20145 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49468 us  pkt ch0=-20086 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51343 us  pkt ch0=-20027 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53343 us  pkt ch0=-19968 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55437 us  pkt ch0=-19909 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57437 us  pkt ch0=-19850 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59343 us  pkt ch0=-19791 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #44 (batch=289 tot=27301)
+STREAM: LONG STALL - flow-off #44 took 4687 us to resume (longest=5006375 us) resumed_at=79.19179
+STREAM: ring drained to 0 at 79.19505 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6000 us  pkt ch0=  1182 step=   +0  (ring=59 fpga=0)
+  +  7843 us  pkt ch0=  1241 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9625 us  pkt ch0=  1300 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11406 us  pkt ch0=  1359 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13281 us  pkt ch0=  1418 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15218 us  pkt ch0=  1477 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17187 us  pkt ch0=  1536 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19312 us  pkt ch0=  1595 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21187 us  pkt ch0=  1654 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23156 us  pkt ch0=  1713 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25250 us  pkt ch0=  1772 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27250 us  pkt ch0=  1831 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29125 us  pkt ch0=  1890 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31218 us  pkt ch0=  1949 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33218 us  pkt ch0=  2008 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35187 us  pkt ch0=  2067 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37218 us  pkt ch0=  2126 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39187 us  pkt ch0=  2185 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41343 us  pkt ch0=  2244 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43250 us  pkt ch0=  2632 step= +388  (ring=0 fpga=59)  <-- SKP
+  + 45218 us  pkt ch0=  2691 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47218 us  pkt ch0=  2750 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49312 us  pkt ch0=  2809 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51187 us  pkt ch0=  2868 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53156 us  pkt ch0=  2927 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55250 us  pkt ch0=  2986 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57250 us  pkt ch0=  3045 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59156 us  pkt ch0=  3104 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #45 (batch=293 tot=27594)
+STREAM: LONG STALL - flow-off #45 took 4625 us to resume (longest=5006375 us) resumed_at=80.12355
+STREAM: ring drained to 0 at 80.12682 (backlog was 59 pairs)
+STREAM: flow-off #46 (batch=11 tot=27605)
+STREAM: LONG STALL - flow-off #46 took 4406 us to resume (longest=5006375 us) resumed_at=80.13683
+STREAM: ring drained to 0 at 80.14013 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6031 us  pkt ch0= 24945 step=   +0  (ring=59 fpga=0)
+  +  7875 us  pkt ch0= 25004 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9687 us  pkt ch0= 25063 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11687 us  pkt ch0= 25122 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13687 us  pkt ch0= 25181 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15812 us  pkt ch0= 25240 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17750 us  pkt ch0= 25299 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19687 us  pkt ch0= 25358 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21781 us  pkt ch0= 25723 step= +365  (ring=0 fpga=59)  <-- SKP
+  + 23812 us  pkt ch0= 25782 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25687 us  pkt ch0= 25841 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27812 us  pkt ch0= 25900 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29781 us  pkt ch0= 25959 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31781 us  pkt ch0= 26018 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33812 us  pkt ch0= 26077 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35812 us  pkt ch0= 26136 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37937 us  pkt ch0= 26195 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39781 us  pkt ch0= 26254 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41812 us  pkt ch0= 26313 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43843 us  pkt ch0= 26944 step= +631  (ring=0 fpga=59)  <-- SKP
+  + 45937 us  pkt ch0= 27003 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47812 us  pkt ch0= 27062 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49781 us  pkt ch0= 27121 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51906 us  pkt ch0= 27180 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53937 us  pkt ch0= 27239 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55812 us  pkt ch0= 27298 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57937 us  pkt ch0= 27357 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59937 us  pkt ch0= 27416 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #47 (batch=44 tot=27649)
+STREAM: LONG STALL - flow-off #47 took 4562 us to resume (longest=5006375 us) resumed_at=80.23164
+STREAM: ring drained to 0 at 80.23491 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5843 us  pkt ch0= 28419 step=   +0  (ring=59 fpga=0)
+  +  8031 us  pkt ch0= 28478 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9812 us  pkt ch0= 28537 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11593 us  pkt ch0=-31412 step=-59949  (ring=0 fpga=59)  <-- SKP
+  + 13343 us  pkt ch0=-31353 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15375 us  pkt ch0=-31294 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17343 us  pkt ch0=-31235 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19500 us  pkt ch0=-31176 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21375 us  pkt ch0=-31117 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23375 us  pkt ch0=-31058 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25437 us  pkt ch0=-30999 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27468 us  pkt ch0=-30940 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29343 us  pkt ch0=-30881 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31375 us  pkt ch0=-30822 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33406 us  pkt ch0=-30763 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35406 us  pkt ch0=-30704 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37343 us  pkt ch0=-30645 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39375 us  pkt ch0=-30586 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41343 us  pkt ch0=-30527 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43343 us  pkt ch0=-29901 step= +626  (ring=0 fpga=59)  <-- SKP
+  + 45375 us  pkt ch0=-29842 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47343 us  pkt ch0=-29783 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49500 us  pkt ch0=-29724 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51406 us  pkt ch0=-29665 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53375 us  pkt ch0=-29606 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55437 us  pkt ch0=-29547 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57468 us  pkt ch0=-29488 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59343 us  pkt ch0=-29429 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #48 (batch=673 tot=28322)
+STREAM: LONG STALL - flow-off #48 took 4687 us to resume (longest=5006375 us) resumed_at=82.08365
+STREAM: ring drained to 0 at 82.08692 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5843 us  pkt ch0= 14199 step=   +0  (ring=59 fpga=0)
+  +  8000 us  pkt ch0= 14258 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9781 us  pkt ch0= 14317 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11562 us  pkt ch0= 14376 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13375 us  pkt ch0= 14435 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15375 us  pkt ch0= 14494 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17375 us  pkt ch0= 14553 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19500 us  pkt ch0= 14612 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21406 us  pkt ch0= 14671 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23375 us  pkt ch0= 14730 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25500 us  pkt ch0= 14789 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27531 us  pkt ch0= 14848 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29406 us  pkt ch0= 14907 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31531 us  pkt ch0= 14966 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33500 us  pkt ch0= 15025 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35531 us  pkt ch0= 15084 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37437 us  pkt ch0= 15143 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39531 us  pkt ch0= 15202 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41687 us  pkt ch0= 15261 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43500 us  pkt ch0= 15320 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 45562 us  pkt ch0= 15379 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47500 us  pkt ch0= 15438 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49656 us  pkt ch0= 15497 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51562 us  pkt ch0= 15556 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53531 us  pkt ch0= 15615 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55625 us  pkt ch0= 15674 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57656 us  pkt ch0= 15733 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59531 us  pkt ch0= 15792 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #49 (batch=517 tot=28839)
+STREAM: LONG STALL - flow-off #49 took 4750 us to resume (longest=5006375 us) resumed_at=83.15722
+STREAM: ring drained to 0 at 83.16049 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5875 us  pkt ch0=-15415 step=   +0  (ring=59 fpga=0)
+  +  8000 us  pkt ch0=-15356 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9812 us  pkt ch0=-15297 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11562 us  pkt ch0=-15238 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13343 us  pkt ch0=-15179 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15375 us  pkt ch0=-15120 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17343 us  pkt ch0=-15061 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19468 us  pkt ch0=-15002 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21406 us  pkt ch0=-14943 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23343 us  pkt ch0=-14884 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25468 us  pkt ch0=-14825 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27468 us  pkt ch0=-14766 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29375 us  pkt ch0=-14707 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31375 us  pkt ch0=-14648 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33468 us  pkt ch0=-14589 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35437 us  pkt ch0=-14530 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37343 us  pkt ch0=-14471 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39437 us  pkt ch0=-14412 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41437 us  pkt ch0=-14353 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43406 us  pkt ch0=-14219 step= +134  (ring=0 fpga=59)  <-- SKP
+  + 45437 us  pkt ch0=-14160 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47437 us  pkt ch0=-14101 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49562 us  pkt ch0=-14042 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51468 us  pkt ch0=-13983 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53437 us  pkt ch0=-13924 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55562 us  pkt ch0=-13865 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57562 us  pkt ch0=-13806 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59468 us  pkt ch0=-13747 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #50 (batch=1710 tot=30549)
+STREAM: LONG STALL - flow-off #50 took 4812 us to resume (longest=5006375 us) resumed_at=87.02429
+STREAM: ring drained to 0 at 87.02755 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5875 us  pkt ch0=-32768 step=   +0  (ring=59 fpga=0)
+  +  8031 us  pkt ch0= 24781 step=+57549  (ring=0 fpga=59)  <-- SKP
+  +  9812 us  pkt ch0= 24840 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11593 us  pkt ch0= 24899 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13375 us  pkt ch0= 24958 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15281 us  pkt ch0= 25017 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17375 us  pkt ch0= 25076 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19343 us  pkt ch0= 25135 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21343 us  pkt ch0= 25194 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23375 us  pkt ch0= 25253 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25375 us  pkt ch0= 25312 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27500 us  pkt ch0= 25371 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29437 us  pkt ch0= 25430 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31375 us  pkt ch0= 25489 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33500 us  pkt ch0= 25548 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35500 us  pkt ch0= 25607 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37406 us  pkt ch0= 25666 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39406 us  pkt ch0= 25725 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41500 us  pkt ch0= 25784 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43468 us  pkt ch0= 25843 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 45406 us  pkt ch0= 25902 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47500 us  pkt ch0= 25961 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49437 us  pkt ch0= 26020 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51437 us  pkt ch0= 26079 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53468 us  pkt ch0= 26138 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55468 us  pkt ch0= 26197 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57593 us  pkt ch0= 26256 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59531 us  pkt ch0= 26315 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #51 (batch=1502 tot=32051)
+STREAM: LONG STALL - flow-off #51 took 4687 us to resume (longest=5006375 us) resumed_at=90.07983
+STREAM: ring drained to 0 at 90.08309 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5968 us  pkt ch0=-13209 step=   +0  (ring=59 fpga=0)
+  +  7843 us  pkt ch0=-13151 step=  +58  (ring=0 fpga=59)  <-- SKP
+  +  9656 us  pkt ch0=-13092 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11406 us  pkt ch0=-13033 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13312 us  pkt ch0=-12974 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15218 us  pkt ch0=-12915 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17250 us  pkt ch0=-12856 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19343 us  pkt ch0=-12797 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21250 us  pkt ch0=-12738 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23187 us  pkt ch0=-12679 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25312 us  pkt ch0=-12620 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27312 us  pkt ch0=-12561 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29218 us  pkt ch0=-12502 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31312 us  pkt ch0=-12443 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33312 us  pkt ch0=-12384 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35312 us  pkt ch0=-12325 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37312 us  pkt ch0=-12266 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39312 us  pkt ch0=-12207 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41437 us  pkt ch0=-12148 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43375 us  pkt ch0=-12089 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 45343 us  pkt ch0=-12030 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47468 us  pkt ch0=-11971 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49437 us  pkt ch0=-11912 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51343 us  pkt ch0=-11853 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53343 us  pkt ch0=-11794 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55437 us  pkt ch0=-11735 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57437 us  pkt ch0=-11676 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59375 us  pkt ch0=-11617 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #52 (batch=931 tot=32982)
+STREAM: LONG STALL - flow-off #52 took 4687 us to resume (longest=5006375 us) resumed_at=92.09495
+STREAM: ring drained to 0 at 92.09821 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5843 us  pkt ch0=-18701 step=   +0  (ring=59 fpga=0)
+  +  8000 us  pkt ch0=-18642 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9750 us  pkt ch0=-18583 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11562 us  pkt ch0=-18524 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13375 us  pkt ch0=-18465 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15375 us  pkt ch0=-18406 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17312 us  pkt ch0=-18347 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19468 us  pkt ch0=-18288 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21406 us  pkt ch0=-18229 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23375 us  pkt ch0=-18170 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25468 us  pkt ch0=-18111 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27500 us  pkt ch0=-18052 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29375 us  pkt ch0=-17993 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31500 us  pkt ch0=-17934 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33468 us  pkt ch0=-17875 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35468 us  pkt ch0=-17816 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37500 us  pkt ch0=-17757 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39468 us  pkt ch0=-17698 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41656 us  pkt ch0=-17639 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43562 us  pkt ch0=-17580 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 45531 us  pkt ch0=-17521 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47531 us  pkt ch0=-17462 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49656 us  pkt ch0=-17403 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51531 us  pkt ch0=-17344 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53562 us  pkt ch0=-17285 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55625 us  pkt ch0=-17226 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57625 us  pkt ch0=-17167 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59500 us  pkt ch0=-17108 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #53 (batch=338 tot=33320)
+STREAM: LONG STALL - flow-off #53 took 4687 us to resume (longest=5006375 us) resumed_at=93.05548
+STREAM: ring drained to 0 at 93.05875 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5843 us  pkt ch0=  6400 step=   +0  (ring=59 fpga=0)
+  +  7812 us  pkt ch0=  6459 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9781 us  pkt ch0=  6518 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11593 us  pkt ch0=  6577 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13343 us  pkt ch0=  6636 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15250 us  pkt ch0=  6695 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17343 us  pkt ch0=  6754 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19343 us  pkt ch0=  6813 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21312 us  pkt ch0=  6872 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23375 us  pkt ch0=  6931 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25343 us  pkt ch0=  6990 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27468 us  pkt ch0=  7049 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29406 us  pkt ch0=  7108 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31343 us  pkt ch0=  7167 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33375 us  pkt ch0=  7226 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35468 us  pkt ch0=  7285 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37375 us  pkt ch0=  7344 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39343 us  pkt ch0=  7403 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41437 us  pkt ch0=  7462 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43406 us  pkt ch0=  7784 step= +322  (ring=0 fpga=59)  <-- SKP
+  + 45312 us  pkt ch0=  7845 step=  +61  (ring=0 fpga=59)  <-- SKP
+  + 47406 us  pkt ch0=  7904 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49406 us  pkt ch0=  7963 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51375 us  pkt ch0=  8022 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53406 us  pkt ch0=  8081 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55406 us  pkt ch0=  8140 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57500 us  pkt ch0=  8199 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59437 us  pkt ch0=  8258 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #54 (batch=73 tot=33393)
+STREAM: LONG STALL - flow-off #54 took 4687 us to resume (longest=5006375 us) resumed_at=93.16832
+STREAM: ring drained to 0 at 93.17158 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5843 us  pkt ch0= 16482 step=   +0  (ring=59 fpga=0)
+  +  7812 us  pkt ch0= 16541 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9781 us  pkt ch0= 16600 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11562 us  pkt ch0= 16659 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13312 us  pkt ch0= 16718 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15218 us  pkt ch0= 16777 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17312 us  pkt ch0= 16836 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19281 us  pkt ch0= 16895 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21281 us  pkt ch0= 16954 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23312 us  pkt ch0= 17013 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25281 us  pkt ch0= 17072 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27437 us  pkt ch0= 17131 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29343 us  pkt ch0= 17190 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31312 us  pkt ch0= 17249 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33406 us  pkt ch0= 17308 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35406 us  pkt ch0= 17367 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37312 us  pkt ch0= 17426 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39312 us  pkt ch0= 17485 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41375 us  pkt ch0= 17544 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43375 us  pkt ch0= 18132 step= +588  (ring=0 fpga=59)  <-- SKP
+  + 45281 us  pkt ch0= 18192 step=  +60  (ring=0 fpga=59)  <-- SKP
+  + 47375 us  pkt ch0= 18251 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49343 us  pkt ch0= 18310 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51343 us  pkt ch0= 18369 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53375 us  pkt ch0= 18428 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55343 us  pkt ch0= 18487 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57500 us  pkt ch0= 18546 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59406 us  pkt ch0= 18605 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #55 (batch=206 tot=33599)
+STREAM: LONG STALL - flow-off #55 took 4687 us to resume (longest=5006375 us) resumed_at=94.04541
+STREAM: ring drained to 0 at 94.04868 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5875 us  pkt ch0=-30854 step=   +0  (ring=59 fpga=0)
+  +  7906 us  pkt ch0=-30795 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9687 us  pkt ch0=-30736 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11468 us  pkt ch0=-30677 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13312 us  pkt ch0=-30618 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15250 us  pkt ch0=-30559 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17250 us  pkt ch0=-30500 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19375 us  pkt ch0=-30441 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21218 us  pkt ch0=-30382 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23187 us  pkt ch0=-30323 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25281 us  pkt ch0=-30264 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27312 us  pkt ch0=-30205 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29187 us  pkt ch0=-30146 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31312 us  pkt ch0=-30087 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33250 us  pkt ch0=-30028 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35281 us  pkt ch0=-29969 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37281 us  pkt ch0=-29910 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39281 us  pkt ch0=-29851 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41406 us  pkt ch0=-29792 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43281 us  pkt ch0=-29322 step= +470  (ring=0 fpga=59)  <-- SKP
+  + 45250 us  pkt ch0=-29263 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47250 us  pkt ch0=-29204 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49375 us  pkt ch0=-29145 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51250 us  pkt ch0=-29086 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53218 us  pkt ch0=-29027 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55312 us  pkt ch0=-28968 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57343 us  pkt ch0=-28909 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59187 us  pkt ch0=-28850 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #56 (batch=414 tot=34013)
+STREAM: LONG STALL - flow-off #56 took 4687 us to resume (longest=5006375 us) resumed_at=95.05410
+STREAM: ring drained to 0 at 95.05736 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5843 us  pkt ch0=  -510 step=   +0  (ring=59 fpga=0)
+  +  8000 us  pkt ch0=  -451 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9781 us  pkt ch0=  -392 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11593 us  pkt ch0=  -333 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13375 us  pkt ch0=  -274 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15406 us  pkt ch0=  -215 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17375 us  pkt ch0=  -156 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19531 us  pkt ch0=   -97 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21437 us  pkt ch0=   -38 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23375 us  pkt ch0=    21 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25468 us  pkt ch0=    80 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27468 us  pkt ch0=   139 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29343 us  pkt ch0=   198 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31375 us  pkt ch0=   257 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33406 us  pkt ch0=   316 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35406 us  pkt ch0=   375 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37312 us  pkt ch0=   434 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39375 us  pkt ch0=   493 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41343 us  pkt ch0=   552 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43343 us  pkt ch0=   819 step= +267  (ring=0 fpga=59)  <-- SKP
+  + 45343 us  pkt ch0=   878 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47312 us  pkt ch0=   937 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49468 us  pkt ch0=   996 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51343 us  pkt ch0=  1055 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53312 us  pkt ch0=  1114 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55406 us  pkt ch0=  1173 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57437 us  pkt ch0=  1232 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59281 us  pkt ch0=  1291 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #57 (batch=203 tot=34216)
+STREAM: LONG STALL - flow-off #57 took 4656 us to resume (longest=5006375 us) resumed_at=95.24900
+STREAM: ring drained to 0 at 95.25227 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5968 us  pkt ch0= 17174 step=   +0  (ring=59 fpga=0)
+  +  7843 us  pkt ch0= 17233 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9656 us  pkt ch0= 17292 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11406 us  pkt ch0= 17351 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13343 us  pkt ch0= 17410 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15375 us  pkt ch0= 17469 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17343 us  pkt ch0= 17528 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19343 us  pkt ch0= 17587 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21375 us  pkt ch0= 17646 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23343 us  pkt ch0= 17705 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25468 us  pkt ch0= 17764 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27406 us  pkt ch0= 17823 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29343 us  pkt ch0= 17882 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31468 us  pkt ch0= 17941 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33468 us  pkt ch0= 18000 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35375 us  pkt ch0= 18059 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37468 us  pkt ch0= 18118 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39437 us  pkt ch0= 18177 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41437 us  pkt ch0= 18236 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43375 us  pkt ch0= 18696 step= +460  (ring=0 fpga=59)  <-- SKP
+  + 45437 us  pkt ch0= 18755 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47593 us  pkt ch0= 18814 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49406 us  pkt ch0= 18873 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51468 us  pkt ch0= 18932 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53406 us  pkt ch0= 18991 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55562 us  pkt ch0= 19050 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57500 us  pkt ch0= 19109 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59437 us  pkt ch0= 19168 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #58 (batch=2279 tot=36495)
+STREAM: LONG STALL - flow-off #58 took 4843 us to resume (longest=5006375 us) resumed_at=100.15569
+STREAM: ring drained to 0 at 100.15898 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5968 us  pkt ch0= 25083 step=   +0  (ring=59 fpga=0)
+  +  8093 us  pkt ch0= 25138 step=  +55  (ring=0 fpga=59)  <-- SKP
+  +  9875 us  pkt ch0= 25197 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11656 us  pkt ch0= 25256 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13468 us  pkt ch0= 25315 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15468 us  pkt ch0= 25374 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17437 us  pkt ch0= 25433 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19562 us  pkt ch0= 25492 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21468 us  pkt ch0= 25551 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23468 us  pkt ch0= 25610 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25562 us  pkt ch0= 25669 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27593 us  pkt ch0= 25728 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29468 us  pkt ch0= 25787 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31593 us  pkt ch0= 25846 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33531 us  pkt ch0= 25905 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35562 us  pkt ch0= 25964 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37562 us  pkt ch0= 26023 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39562 us  pkt ch0= 26082 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41687 us  pkt ch0= 26141 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43531 us  pkt ch0= 26200 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 45593 us  pkt ch0= 26259 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47531 us  pkt ch0= 26318 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49687 us  pkt ch0= 26377 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51593 us  pkt ch0= 26436 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53593 us  pkt ch0= 26495 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55687 us  pkt ch0= 26554 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57718 us  pkt ch0= 26613 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59593 us  pkt ch0= 26672 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #59 (batch=570 tot=37065)
+STREAM: LONG STALL - flow-off #59 took 4656 us to resume (longest=5006375 us) resumed_at=101.26291
+STREAM: ring drained to 0 at 101.26622 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5968 us  pkt ch0= -1696 step=   +0  (ring=59 fpga=0)
+  +  8062 us  pkt ch0= -1637 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9875 us  pkt ch0= -1578 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11687 us  pkt ch0= -1519 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13437 us  pkt ch0= -1460 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15500 us  pkt ch0= -1401 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17531 us  pkt ch0= -1342 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19625 us  pkt ch0= -1283 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21531 us  pkt ch0= -1224 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23531 us  pkt ch0= -1165 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25625 us  pkt ch0= -1106 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27625 us  pkt ch0= -1047 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29531 us  pkt ch0=  -988 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31625 us  pkt ch0=  -929 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33625 us  pkt ch0=  -870 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35593 us  pkt ch0=  -811 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37656 us  pkt ch0=  -752 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39593 us  pkt ch0=  -693 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41750 us  pkt ch0=  -634 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43656 us  pkt ch0=  -538 step=  +96  (ring=0 fpga=59)  <-- SKP
+  + 45656 us  pkt ch0=  -479 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47656 us  pkt ch0=  -420 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49750 us  pkt ch0=  -361 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51656 us  pkt ch0=  -302 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53656 us  pkt ch0=  -243 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55750 us  pkt ch0=  -184 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57718 us  pkt ch0=  -125 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59625 us  pkt ch0=   -66 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #60 (batch=50 tot=37115)
+STREAM: LONG STALL - flow-off #60 took 4593 us to resume (longest=5006375 us) resumed_at=102.04129
+STREAM: ring drained to 0 at 102.04458 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6000 us  pkt ch0=  6796 step=   +0  (ring=59 fpga=0)
+  +  8093 us  pkt ch0=  6855 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9906 us  pkt ch0=  6914 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11687 us  pkt ch0=  6973 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13468 us  pkt ch0=  7032 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15500 us  pkt ch0=  7091 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17437 us  pkt ch0=  7150 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19562 us  pkt ch0=  7209 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21500 us  pkt ch0=  7268 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23437 us  pkt ch0=  7327 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25562 us  pkt ch0=  7386 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27562 us  pkt ch0=  7445 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29468 us  pkt ch0=  7504 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31562 us  pkt ch0=  7563 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33531 us  pkt ch0=  7622 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35531 us  pkt ch0=  7681 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37468 us  pkt ch0=  7740 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39531 us  pkt ch0=  7799 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41656 us  pkt ch0=  7858 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43468 us  pkt ch0=  8484 step= +626  (ring=0 fpga=59)  <-- SKP
+  + 45562 us  pkt ch0=  8543 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47500 us  pkt ch0=  8602 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49593 us  pkt ch0=  8661 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51531 us  pkt ch0=  8720 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53468 us  pkt ch0=  8779 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55593 us  pkt ch0=  8838 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57593 us  pkt ch0=  8897 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59500 us  pkt ch0=  8956 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #61 (batch=308 tot=37423)
+STREAM: LONG STALL - flow-off #61 took 4593 us to resume (longest=5006375 us) resumed_at=102.30301
+STREAM: ring drained to 0 at 102.30631 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6093 us  pkt ch0= 31048 step=   +0  (ring=59 fpga=0)
+  +  7937 us  pkt ch0= 31107 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9750 us  pkt ch0= 31166 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11531 us  pkt ch0= 31225 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13406 us  pkt ch0= 31284 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15375 us  pkt ch0= 31343 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17500 us  pkt ch0= 31402 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19500 us  pkt ch0= 31461 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21406 us  pkt ch0= 31520 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23406 us  pkt ch0= 31579 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25531 us  pkt ch0= 31638 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27500 us  pkt ch0= 31697 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29468 us  pkt ch0= 31756 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31531 us  pkt ch0= 31815 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33500 us  pkt ch0= 31874 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35500 us  pkt ch0= 31933 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37531 us  pkt ch0= 31992 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39500 us  pkt ch0= 32051 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41625 us  pkt ch0= 32110 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43563 us  pkt ch0= 32483 step= +373  (ring=0 fpga=59)  <-- SKP
+  + 45500 us  pkt ch0= 32542 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47625 us  pkt ch0= 32601 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49625 us  pkt ch0= 32660 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51532 us  pkt ch0= 32719 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53594 us  pkt ch0=-32758 step=-65477  (ring=0 fpga=59)  <-- SKP
+  + 55594 us  pkt ch0=-32699 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57563 us  pkt ch0=-32640 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59500 us  pkt ch0=-32581 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #62 (batch=365 tot=37788)
+STREAM: LONG STALL - flow-off #62 took 4625 us to resume (longest=5006375 us) resumed_at=103.28056
+STREAM: ring drained to 0 at 103.28385 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6000 us  pkt ch0= -7117 step=   +0  (ring=59 fpga=0)
+  +  8031 us  pkt ch0= -7058 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9812 us  pkt ch0= -6999 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11562 us  pkt ch0= -6940 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13375 us  pkt ch0= -6881 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15375 us  pkt ch0= -6822 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17375 us  pkt ch0= -6763 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19500 us  pkt ch0= -6704 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21437 us  pkt ch0= -6645 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23375 us  pkt ch0= -6586 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25500 us  pkt ch0= -6527 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27500 us  pkt ch0= -6468 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29406 us  pkt ch0= -6409 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31500 us  pkt ch0= -6350 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33500 us  pkt ch0= -6291 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35500 us  pkt ch0= -6232 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37531 us  pkt ch0= -6173 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39500 us  pkt ch0= -6114 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41625 us  pkt ch0= -6055 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43562 us  pkt ch0= -5763 step= +292  (ring=0 fpga=59)  <-- SKP
+  + 45531 us  pkt ch0= -5704 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47562 us  pkt ch0= -5645 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49656 us  pkt ch0= -5586 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51562 us  pkt ch0= -5527 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53562 us  pkt ch0= -5468 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55656 us  pkt ch0= -5409 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57656 us  pkt ch0= -5350 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59562 us  pkt ch0= -5291 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #63 (batch=217 tot=38005)
+STREAM: LONG STALL - flow-off #63 took 4781 us to resume (longest=5006375 us) resumed_at=104.16436
+STREAM: ring drained to 0 at 104.16764 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6000 us  pkt ch0= 11429 step=   +0  (ring=59 fpga=0)
+  +  8125 us  pkt ch0= 11488 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9906 us  pkt ch0= 11547 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11687 us  pkt ch0= 11606 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13468 us  pkt ch0= 11665 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15375 us  pkt ch0= 11724 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17468 us  pkt ch0= 11783 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19437 us  pkt ch0= 11842 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21437 us  pkt ch0= 11901 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23468 us  pkt ch0= 11960 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25437 us  pkt ch0= 12019 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27593 us  pkt ch0= 12078 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29500 us  pkt ch0= 12137 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31468 us  pkt ch0= 12196 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33562 us  pkt ch0= 12255 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35593 us  pkt ch0= 12314 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37468 us  pkt ch0= 12373 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39562 us  pkt ch0= 12432 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41531 us  pkt ch0= 12491 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43562 us  pkt ch0= 12923 step= +432  (ring=0 fpga=59)  <-- SKP
+  + 45593 us  pkt ch0= 12983 step=  +60  (ring=0 fpga=59)  <-- SKP
+  + 47562 us  pkt ch0= 13042 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49687 us  pkt ch0= 13101 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51531 us  pkt ch0= 13160 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53593 us  pkt ch0= 13219 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55593 us  pkt ch0= 13278 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57687 us  pkt ch0= 13337 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59593 us  pkt ch0= 13396 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #64 (batch=498 tot=38503)
+STREAM: LONG STALL - flow-off #64 took 4531 us to resume (longest=5006375 us) resumed_at=105.22584
+STREAM: ring drained to 0 at 105.22908 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6281 us  pkt ch0=-18832 step=   +0  (ring=59 fpga=0)
+  +  8218 us  pkt ch0=-18773 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 10218 us  pkt ch0=-18714 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 12000 us  pkt ch0=-18655 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13781 us  pkt ch0=-18596 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15687 us  pkt ch0=-18537 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17781 us  pkt ch0=-18478 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19781 us  pkt ch0=-18419 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21781 us  pkt ch0=-18360 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23781 us  pkt ch0=-18301 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25781 us  pkt ch0=-18242 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27906 us  pkt ch0=-18183 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29843 us  pkt ch0=-18124 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31781 us  pkt ch0=-18065 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33937 us  pkt ch0=-18006 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35937 us  pkt ch0=-17947 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37843 us  pkt ch0=-17888 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39843 us  pkt ch0=-17829 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41937 us  pkt ch0=-17770 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43906 us  pkt ch0=-17623 step= +147  (ring=0 fpga=59)  <-- SKP
+  + 45843 us  pkt ch0=-17561 step=  +62  (ring=0 fpga=59)  <-- SKP
+  + 47937 us  pkt ch0=-17502 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49906 us  pkt ch0=-17443 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51906 us  pkt ch0=-17384 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53906 us  pkt ch0=-17325 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55906 us  pkt ch0=-17266 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 58031 us  pkt ch0=-17207 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59968 us  pkt ch0=-17148 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #65 (batch=39 tot=38542)
+STREAM: LONG STALL - flow-off #65 took 4625 us to resume (longest=5006375 us) resumed_at=105.31737
+STREAM: ring drained to 0 at 106.00066 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5968 us  pkt ch0=-16440 step=   +0  (ring=59 fpga=0)
+  +  8000 us  pkt ch0=-16381 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9781 us  pkt ch0=-16322 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11562 us  pkt ch0=-16263 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13343 us  pkt ch0=-16204 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15375 us  pkt ch0=-16145 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17343 us  pkt ch0=-16086 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19468 us  pkt ch0=-16027 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21375 us  pkt ch0=-10457 step=+5570  (ring=0 fpga=59)  <-- SKP
+  + 23343 us  pkt ch0=-10398 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25468 us  pkt ch0=-10339 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27500 us  pkt ch0=-10280 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29375 us  pkt ch0=-10221 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31500 us  pkt ch0=-10162 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33468 us  pkt ch0=-10103 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35468 us  pkt ch0=-10044 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37500 us  pkt ch0= -9985 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39500 us  pkt ch0= -9926 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41625 us  pkt ch0= -9867 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43531 us  pkt ch0= -9227 step= +640  (ring=0 fpga=59)  <-- SKP
+  + 45500 us  pkt ch0= -9168 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47500 us  pkt ch0= -9109 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49625 us  pkt ch0= -9050 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51500 us  pkt ch0= -8991 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53468 us  pkt ch0= -8932 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55562 us  pkt ch0= -8873 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57593 us  pkt ch0= -8814 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59468 us  pkt ch0= -8755 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #66 (batch=426 tot=38968)
+STREAM: LONG STALL - flow-off #66 took 4750 us to resume (longest=5006375 us) resumed_at=107.01319
+STREAM: ring drained to 0 at 107.01649 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5937 us  pkt ch0= 20302 step=   +0  (ring=59 fpga=0)
+  +  8093 us  pkt ch0= 20361 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9875 us  pkt ch0= 20420 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11656 us  pkt ch0= 20479 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13437 us  pkt ch0= 20538 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15468 us  pkt ch0= 20597 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17468 us  pkt ch0= 20656 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19593 us  pkt ch0= 20715 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21406 us  pkt ch0= 20774 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23468 us  pkt ch0= 20833 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25468 us  pkt ch0= 20892 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27593 us  pkt ch0= 20951 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29468 us  pkt ch0= 21010 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31468 us  pkt ch0= 21069 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33562 us  pkt ch0= 21128 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35593 us  pkt ch0= 21187 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37468 us  pkt ch0= 21246 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39593 us  pkt ch0= 21305 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41562 us  pkt ch0= 21364 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43531 us  pkt ch0= 21568 step= +204  (ring=0 fpga=59)  <-- SKP
+  + 45593 us  pkt ch0= 21627 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47562 us  pkt ch0= 21686 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49718 us  pkt ch0= 21745 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51625 us  pkt ch0= 21804 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53593 us  pkt ch0= 21863 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55718 us  pkt ch0= 21922 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57718 us  pkt ch0= 21981 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59625 us  pkt ch0= 22040 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #67 (batch=1243 tot=40211)
+STREAM: LONG STALL - flow-off #67 took 4687 us to resume (longest=5006375 us) resumed_at=109.22546
+STREAM: ring drained to 0 at 109.22876 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6093 us  pkt ch0=-32768 step=   +0  (ring=59 fpga=0)
+  +  7937 us  pkt ch0=-32006 step= +762  (ring=0 fpga=59)  <-- SKP
+  +  9718 us  pkt ch0=-31947 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11500 us  pkt ch0=-31888 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13343 us  pkt ch0=-31829 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15312 us  pkt ch0=-31770 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17281 us  pkt ch0=-31711 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19406 us  pkt ch0=-31652 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21281 us  pkt ch0=-31593 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23281 us  pkt ch0=-31534 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25343 us  pkt ch0=-31475 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27312 us  pkt ch0=-31416 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29187 us  pkt ch0=-31357 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31281 us  pkt ch0=-31298 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33281 us  pkt ch0=-31239 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35250 us  pkt ch0=-31180 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37281 us  pkt ch0=-31121 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39250 us  pkt ch0=-31062 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41406 us  pkt ch0=-31003 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43281 us  pkt ch0=-30944 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 45250 us  pkt ch0=-30885 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47250 us  pkt ch0=-30826 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49375 us  pkt ch0=-30767 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51250 us  pkt ch0=-30708 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53218 us  pkt ch0=-30649 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55281 us  pkt ch0=-30590 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57281 us  pkt ch0=-30531 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59187 us  pkt ch0=-30472 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #68 (batch=258 tot=40469)
+STREAM: LONG STALL - flow-off #68 took 4593 us to resume (longest=5006375 us) resumed_at=110.13519
+STREAM: ring drained to 0 at 110.13846 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6093 us  pkt ch0=-11727 step=   +0  (ring=59 fpga=0)
+  +  8093 us  pkt ch0=-11668 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 10031 us  pkt ch0=-11609 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11843 us  pkt ch0=-11550 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13625 us  pkt ch0=-11491 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15500 us  pkt ch0=-11432 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17500 us  pkt ch0=-11373 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19593 us  pkt ch0=-11314 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21625 us  pkt ch0=-11255 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23500 us  pkt ch0=-11196 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25531 us  pkt ch0=-11137 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27593 us  pkt ch0=-11078 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29562 us  pkt ch0=-11019 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31468 us  pkt ch0=-10960 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33562 us  pkt ch0=-10901 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35562 us  pkt ch0=-10842 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37562 us  pkt ch0=-10783 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39593 us  pkt ch0=-10724 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41562 us  pkt ch0=-10665 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43750 us  pkt ch0=-10270 step= +395  (ring=0 fpga=59)  <-- SKP
+  + 45656 us  pkt ch0=-10211 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47625 us  pkt ch0=-10152 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49718 us  pkt ch0=-10093 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51718 us  pkt ch0=-10034 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53625 us  pkt ch0= -9975 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55718 us  pkt ch0= -9916 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57718 us  pkt ch0= -9857 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59718 us  pkt ch0= -9798 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #69 (batch=153 tot=40622)
+STREAM: LONG STALL - flow-off #69 took 4781 us to resume (longest=5006375 us) resumed_at=110.29875
+STREAM: ring drained to 0 at 110.30204 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5968 us  pkt ch0=  3149 step=   +0  (ring=59 fpga=0)
+  +  8093 us  pkt ch0=  3208 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9875 us  pkt ch0=  3267 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11656 us  pkt ch0=  3326 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13406 us  pkt ch0=  3385 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15312 us  pkt ch0=  3444 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17406 us  pkt ch0=  3503 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19375 us  pkt ch0=  3562 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21375 us  pkt ch0=  3621 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23406 us  pkt ch0=  3680 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25375 us  pkt ch0=  3739 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27500 us  pkt ch0=  3798 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29437 us  pkt ch0=  3857 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31375 us  pkt ch0=  3916 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33500 us  pkt ch0=  3975 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35500 us  pkt ch0=  4034 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37406 us  pkt ch0=  4093 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39375 us  pkt ch0=  4152 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41468 us  pkt ch0=  4211 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43437 us  pkt ch0=  4728 step= +517  (ring=0 fpga=59)  <-- SKP
+  + 45406 us  pkt ch0=  4788 step=  +60  (ring=0 fpga=59)  <-- SKP
+  + 47437 us  pkt ch0=  4847 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49437 us  pkt ch0=  4906 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51406 us  pkt ch0=  4965 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53468 us  pkt ch0=  5024 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55406 us  pkt ch0=  5083 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57532 us  pkt ch0=  5142 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59469 us  pkt ch0=  5201 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #70 (batch=446 tot=41068)
+STREAM: LONG STALL - flow-off #70 took 4687 us to resume (longest=5006375 us) resumed_at=112.00744
+STREAM: ring drained to 0 at 112.01073 (backlog was 59 pairs)
+STREAM: flow-off #71 (batch=8 tot=41076)
+STREAM: LONG STALL - flow-off #71 took 4562 us to resume (longest=5006375 us) resumed_at=112.01887
+STREAM: ring drained to 0 at 112.02220 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5968 us  pkt ch0=-29636 step=   +0  (ring=59 fpga=0)
+  +  8093 us  pkt ch0=-29577 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9906 us  pkt ch0=-29518 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11656 us  pkt ch0=-29459 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13437 us  pkt ch0=-29400 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15437 us  pkt ch0=-29341 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17437 us  pkt ch0=-29282 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19562 us  pkt ch0=-29223 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21500 us  pkt ch0=-29164 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23437 us  pkt ch0=-29105 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25562 us  pkt ch0=-29046 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27562 us  pkt ch0=-28825 step= +221  (ring=0 fpga=59)  <-- SKP
+  + 29437 us  pkt ch0=-28766 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31531 us  pkt ch0=-28707 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33500 us  pkt ch0=-28648 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35500 us  pkt ch0=-28589 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37406 us  pkt ch0=-28530 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39500 us  pkt ch0=-28471 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41437 us  pkt ch0=-28412 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43468 us  pkt ch0=-27774 step= +638  (ring=0 fpga=59)  <-- SKP
+  + 45468 us  pkt ch0=-27715 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47468 us  pkt ch0=-27656 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49593 us  pkt ch0=-27597 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51531 us  pkt ch0=-27538 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53468 us  pkt ch0=-27479 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55593 us  pkt ch0=-27420 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57562 us  pkt ch0=-27361 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59468 us  pkt ch0=-27302 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #72 (batch=259 tot=41335)
+STREAM: LONG STALL - flow-off #72 took 4656 us to resume (longest=5006375 us) resumed_at=112.24948
+STREAM: ring drained to 0 at 112.25278 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6062 us  pkt ch0= -8100 step=   +0  (ring=59 fpga=0)
+  +  7937 us  pkt ch0= -8041 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9687 us  pkt ch0= -7982 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11500 us  pkt ch0= -7923 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13375 us  pkt ch0= -7864 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15281 us  pkt ch0= -7805 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17375 us  pkt ch0= -7746 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19406 us  pkt ch0= -7687 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21281 us  pkt ch0= -7628 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23312 us  pkt ch0= -7569 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25375 us  pkt ch0= -7510 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27406 us  pkt ch0= -7451 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29281 us  pkt ch0= -7392 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31406 us  pkt ch0= -7333 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33343 us  pkt ch0= -7274 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35375 us  pkt ch0= -7215 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37406 us  pkt ch0= -7156 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39375 us  pkt ch0= -7097 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41500 us  pkt ch0= -7038 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43406 us  pkt ch0= -6627 step= +411  (ring=0 fpga=59)  <-- SKP
+  + 45406 us  pkt ch0= -6568 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47500 us  pkt ch0= -6509 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49531 us  pkt ch0= -6450 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51406 us  pkt ch0= -6391 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53531 us  pkt ch0= -6332 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55500 us  pkt ch0= -6273 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57500 us  pkt ch0= -6214 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59437 us  pkt ch0= -6155 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #73 (batch=411 tot=41746)
+STREAM: LONG STALL - flow-off #73 took 4687 us to resume (longest=5006375 us) resumed_at=113.25591
+STREAM: ring drained to 0 at 113.25920 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6125 us  pkt ch0= 22021 step=   +0  (ring=59 fpga=0)
+  +  7968 us  pkt ch0= 22080 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9781 us  pkt ch0= 22139 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11562 us  pkt ch0= 22198 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13437 us  pkt ch0= 22257 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15375 us  pkt ch0= 22316 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17500 us  pkt ch0= 22375 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19500 us  pkt ch0= 22434 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21406 us  pkt ch0= 22493 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23500 us  pkt ch0= 22552 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25500 us  pkt ch0= 22611 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27468 us  pkt ch0= 22670 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29531 us  pkt ch0= 22729 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31500 us  pkt ch0= 22788 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33656 us  pkt ch0= 22847 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35468 us  pkt ch0= 22906 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37562 us  pkt ch0= 22965 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39500 us  pkt ch0= 23024 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41625 us  pkt ch0= 23083 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43562 us  pkt ch0= 23311 step= +228  (ring=0 fpga=59)  <-- SKP
+  + 45531 us  pkt ch0= 23370 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47656 us  pkt ch0= 23429 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49656 us  pkt ch0= 23488 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51562 us  pkt ch0= 23547 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53656 us  pkt ch0= 23606 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55656 us  pkt ch0= 23665 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57656 us  pkt ch0= 23724 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59687 us  pkt ch0= 23783 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #74 (batch=205 tot=41951)
+STREAM: LONG STALL - flow-off #74 took 4781 us to resume (longest=5006375 us) resumed_at=114.13236
+STREAM: ring drained to 0 at 114.13565 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5968 us  pkt ch0=-25731 step=   +0  (ring=59 fpga=0)
+  +  8125 us  pkt ch0=-25672 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9875 us  pkt ch0=-25613 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11687 us  pkt ch0=-25554 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13468 us  pkt ch0=-25495 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15375 us  pkt ch0=-25436 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17468 us  pkt ch0=-25377 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19406 us  pkt ch0=-25318 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21406 us  pkt ch0=-25259 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23437 us  pkt ch0=-25200 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25375 us  pkt ch0=-25141 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27562 us  pkt ch0=-25082 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29437 us  pkt ch0=-25023 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31437 us  pkt ch0=-24964 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33531 us  pkt ch0=-24905 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35562 us  pkt ch0=-24846 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37406 us  pkt ch0=-24787 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39531 us  pkt ch0=-24728 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41500 us  pkt ch0=-24669 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43500 us  pkt ch0=-24212 step= +457  (ring=0 fpga=59)  <-- SKP
+  + 45406 us  pkt ch0=-24151 step=  +61  (ring=0 fpga=59)  <-- SKP
+  + 47468 us  pkt ch0=-24092 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49437 us  pkt ch0=-24033 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51437 us  pkt ch0=-23974 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53468 us  pkt ch0=-23915 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55437 us  pkt ch0=-23856 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57593 us  pkt ch0=-23797 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59468 us  pkt ch0=-23738 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #75 (batch=103 tot=42054)
+STREAM: LONG STALL - flow-off #75 took 4562 us to resume (longest=5006375 us) resumed_at=114.26416
+STREAM: ring drained to 0 at 114.26752 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6000 us  pkt ch0=-13744 step=   +0  (ring=59 fpga=0)
+  +  7937 us  pkt ch0=-13685 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9937 us  pkt ch0=-13626 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11687 us  pkt ch0=-13567 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13500 us  pkt ch0=-13508 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15406 us  pkt ch0=-13449 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17500 us  pkt ch0=-13390 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19468 us  pkt ch0=-13331 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21468 us  pkt ch0=-13272 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23375 us  pkt ch0=-13213 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25468 us  pkt ch0=-13154 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27625 us  pkt ch0=-13095 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29437 us  pkt ch0=-13036 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31500 us  pkt ch0=-12977 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33468 us  pkt ch0=-12918 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35593 us  pkt ch0=-12859 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37531 us  pkt ch0=-12800 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39468 us  pkt ch0=-12741 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41593 us  pkt ch0=-12682 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43593 us  pkt ch0=-12117 step= +565  (ring=0 fpga=59)  <-- SKP
+  + 45500 us  pkt ch0=-12057 step=  +60  (ring=0 fpga=59)  <-- SKP
+  + 47593 us  pkt ch0=-11998 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49562 us  pkt ch0=-11939 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51562 us  pkt ch0=-11880 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53593 us  pkt ch0=-11821 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55593 us  pkt ch0=-11762 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57718 us  pkt ch0=-11703 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59562 us  pkt ch0=-11644 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #76 (batch=1087 tot=43141)
+STREAM: LONG STALL - flow-off #76 took 4812 us to resume (longest=5006375 us) resumed_at=117.05800
+STREAM: ring drained to 0 at 117.06129 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5968 us  pkt ch0= -9245 step=   +0  (ring=59 fpga=0)
+  +  8093 us  pkt ch0= -9190 step=  +55  (ring=0 fpga=59)  <-- SKP
+  +  9906 us  pkt ch0= -9131 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11656 us  pkt ch0= -9072 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13468 us  pkt ch0= -9013 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15406 us  pkt ch0= -8954 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17468 us  pkt ch0= -8895 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19593 us  pkt ch0= -8836 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21437 us  pkt ch0= -8777 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23468 us  pkt ch0= -8718 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25468 us  pkt ch0= -8659 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27593 us  pkt ch0= -8600 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29531 us  pkt ch0= -8541 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31468 us  pkt ch0= -8482 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33593 us  pkt ch0= -8423 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35625 us  pkt ch0= -8364 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37531 us  pkt ch0= -8305 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39625 us  pkt ch0= -8246 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41562 us  pkt ch0= -8187 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43593 us  pkt ch0= -8128 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 45593 us  pkt ch0= -8069 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47593 us  pkt ch0= -8010 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49718 us  pkt ch0= -7951 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51656 us  pkt ch0= -7892 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53593 us  pkt ch0= -7833 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55625 us  pkt ch0= -7774 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57718 us  pkt ch0= -7715 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59625 us  pkt ch0= -7656 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #77 (batch=153 tot=43294)
+STREAM: LONG STALL - flow-off #77 took 4687 us to resume (longest=5006375 us) resumed_at=117.22141
+STREAM: ring drained to 0 at 117.22470 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6000 us  pkt ch0=  4900 step=   +0  (ring=59 fpga=0)
+  +  8000 us  pkt ch0=  4959 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9812 us  pkt ch0=  5018 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11562 us  pkt ch0=  5077 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13343 us  pkt ch0=  5136 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15375 us  pkt ch0=  5195 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17343 us  pkt ch0=  5254 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19468 us  pkt ch0=  5313 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21406 us  pkt ch0=  5372 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23343 us  pkt ch0=  5431 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25468 us  pkt ch0=  5490 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27437 us  pkt ch0=  5549 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29343 us  pkt ch0=  5608 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31437 us  pkt ch0=  5667 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33437 us  pkt ch0=  5726 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35406 us  pkt ch0=  5785 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37437 us  pkt ch0=  5844 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39437 us  pkt ch0=  5903 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41562 us  pkt ch0=  5962 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43406 us  pkt ch0=  6469 step= +507  (ring=0 fpga=59)  <-- SKP
+  + 45437 us  pkt ch0=  6528 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47468 us  pkt ch0=  6587 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49562 us  pkt ch0=  6646 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51468 us  pkt ch0=  6705 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53406 us  pkt ch0=  6764 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55531 us  pkt ch0=  6823 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57531 us  pkt ch0=  6882 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59437 us  pkt ch0=  6941 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #78 (batch=50 tot=43344)
+STREAM: LONG STALL - flow-off #78 took 4593 us to resume (longest=5006375 us) resumed_at=117.31981
+STREAM: ring drained to 0 at 118.00310 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5968 us  pkt ch0= 13805 step=   +0  (ring=59 fpga=0)
+  +  8031 us  pkt ch0= 13864 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9812 us  pkt ch0= 13923 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11593 us  pkt ch0= 13982 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13406 us  pkt ch0= 14041 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15406 us  pkt ch0= 14100 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17437 us  pkt ch0= 14159 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19531 us  pkt ch0= 14218 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21468 us  pkt ch0= 14277 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23406 us  pkt ch0= 14336 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25500 us  pkt ch0= 14395 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27531 us  pkt ch0= 14454 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29406 us  pkt ch0= 14513 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31531 us  pkt ch0= 14572 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33500 us  pkt ch0= 14631 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35500 us  pkt ch0= 14690 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37531 us  pkt ch0= 14749 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39531 us  pkt ch0= 14808 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41656 us  pkt ch0= 14867 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43593 us  pkt ch0= 15494 step= +627  (ring=0 fpga=59)  <-- SKP
+  + 45531 us  pkt ch0= 15553 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47562 us  pkt ch0= 15612 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49656 us  pkt ch0= 15671 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51531 us  pkt ch0= 15730 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53562 us  pkt ch0= 15789 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55593 us  pkt ch0= 15848 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57625 us  pkt ch0= 15907 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59500 us  pkt ch0= 15966 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #79 (batch=619 tot=43963)
+STREAM: LONG STALL - flow-off #79 took 4781 us to resume (longest=5006375 us) resumed_at=119.13798
+STREAM: ring drained to 0 at 119.14126 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6000 us  pkt ch0= -9127 step=   +0  (ring=59 fpga=0)
+  +  8125 us  pkt ch0= -9068 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9937 us  pkt ch0= -9009 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11687 us  pkt ch0= -8950 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13468 us  pkt ch0= -8891 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15437 us  pkt ch0= -8832 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17468 us  pkt ch0= -8773 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19468 us  pkt ch0= -8714 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21468 us  pkt ch0= -8655 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23468 us  pkt ch0= -8596 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25468 us  pkt ch0= -8537 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27625 us  pkt ch0= -8478 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29562 us  pkt ch0= -8419 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31500 us  pkt ch0= -8360 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33625 us  pkt ch0= -8301 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35625 us  pkt ch0= -8242 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37531 us  pkt ch0= -8183 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39625 us  pkt ch0= -8124 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41625 us  pkt ch0= -8065 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43593 us  pkt ch0= -8006 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 45531 us  pkt ch0= -7947 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47593 us  pkt ch0= -7888 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49718 us  pkt ch0= -7829 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51562 us  pkt ch0= -7770 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53593 us  pkt ch0= -7711 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55593 us  pkt ch0= -7652 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57718 us  pkt ch0= -7593 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59656 us  pkt ch0= -7534 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #80 (batch=206 tot=44169)
+STREAM: LONG STALL - flow-off #80 took 4750 us to resume (longest=5006375 us) resumed_at=120.01482
+STREAM: ring drained to 0 at 120.01810 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5968 us  pkt ch0=  8525 step=   +0  (ring=59 fpga=0)
+  +  8093 us  pkt ch0=  8584 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9875 us  pkt ch0=  8643 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11656 us  pkt ch0=  8702 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13437 us  pkt ch0=  8761 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15375 us  pkt ch0=  8820 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17468 us  pkt ch0=  8879 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19406 us  pkt ch0=  8938 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21406 us  pkt ch0=  8997 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23406 us  pkt ch0=  9056 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25406 us  pkt ch0=  9115 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27531 us  pkt ch0=  9174 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29437 us  pkt ch0=  9233 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31406 us  pkt ch0=  9292 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33500 us  pkt ch0=  9351 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35500 us  pkt ch0=  9410 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37375 us  pkt ch0=  9469 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39500 us  pkt ch0=  9528 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41437 us  pkt ch0=  9587 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43468 us  pkt ch0= 10024 step= +437  (ring=0 fpga=59)  <-- SKP
+  + 45375 us  pkt ch0= 10084 step=  +60  (ring=0 fpga=59)  <-- SKP
+  + 47468 us  pkt ch0= 10143 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49406 us  pkt ch0= 10202 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51406 us  pkt ch0= 10261 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53437 us  pkt ch0= 10320 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55406 us  pkt ch0= 10379 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57562 us  pkt ch0= 10438 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59437 us  pkt ch0= 10497 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #81 (batch=931 tot=45100)
+STREAM: LONG STALL - flow-off #81 took 4812 us to resume (longest=5006375 us) resumed_at=122.02999
+STREAM: ring drained to 0 at 122.03328 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5968 us  pkt ch0=  3808 step=   +0  (ring=59 fpga=0)
+  +  8062 us  pkt ch0=  3867 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9875 us  pkt ch0=  3926 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11656 us  pkt ch0=  3985 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13437 us  pkt ch0=  4044 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15312 us  pkt ch0=  4103 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17406 us  pkt ch0=  4162 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19406 us  pkt ch0=  4221 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21375 us  pkt ch0=  4280 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23406 us  pkt ch0=  4339 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25375 us  pkt ch0=  4398 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27500 us  pkt ch0=  4457 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29437 us  pkt ch0=  4516 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31406 us  pkt ch0=  4575 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33500 us  pkt ch0=  4634 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35500 us  pkt ch0=  4693 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37375 us  pkt ch0=  4752 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39375 us  pkt ch0=  4811 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41468 us  pkt ch0=  4870 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43437 us  pkt ch0=  4929 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 45406 us  pkt ch0=  4988 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47468 us  pkt ch0=  5047 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49437 us  pkt ch0=  5106 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51406 us  pkt ch0=  5165 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53468 us  pkt ch0=  5224 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55406 us  pkt ch0=  5283 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57562 us  pkt ch0=  5342 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59468 us  pkt ch0=  5401 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #82 (batch=829 tot=45929)
+STREAM: LONG STALL - flow-off #82 took 4625 us to resume (longest=5006375 us) resumed_at=123.30060
+STREAM: ring drained to 0 at 123.30389 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6000 us  pkt ch0= -7656 step=   +0  (ring=59 fpga=0)
+  +  8093 us  pkt ch0= -7597 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9875 us  pkt ch0= -7538 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11656 us  pkt ch0= -7479 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13468 us  pkt ch0= -7420 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15468 us  pkt ch0= -7361 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17437 us  pkt ch0= -7302 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19593 us  pkt ch0= -7243 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21531 us  pkt ch0= -7184 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23468 us  pkt ch0= -7125 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25593 us  pkt ch0= -7066 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27593 us  pkt ch0= -7007 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29500 us  pkt ch0= -6948 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31593 us  pkt ch0= -6889 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33531 us  pkt ch0= -6830 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35562 us  pkt ch0= -6771 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37562 us  pkt ch0= -6712 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39562 us  pkt ch0= -6653 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41718 us  pkt ch0= -6594 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43656 us  pkt ch0= -6535 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 45593 us  pkt ch0= -6476 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47625 us  pkt ch0= -6417 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49718 us  pkt ch0= -6358 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51625 us  pkt ch0= -6299 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53594 us  pkt ch0= -6240 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55688 us  pkt ch0= -6181 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57719 us  pkt ch0= -6122 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59594 us  pkt ch0= -6063 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #83 (batch=1501 tot=47430)
+STREAM: LONG STALL - flow-off #83 took 4875 us to resume (longest=5006375 us) resumed_at=127.03564
+STREAM: ring drained to 0 at 127.03893 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5937 us  pkt ch0=-32768 step=   +0  (ring=59 fpga=0)
+  +  8093 us  pkt ch0= 20093 step=+52861  (ring=0 fpga=59)  <-- SKP
+  +  9875 us  pkt ch0= 20152 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11656 us  pkt ch0= 20211 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13468 us  pkt ch0= 20270 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15375 us  pkt ch0= 20329 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17468 us  pkt ch0= 20388 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19593 us  pkt ch0= 20447 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21437 us  pkt ch0= 20506 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23468 us  pkt ch0= 20565 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25468 us  pkt ch0= 20624 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27593 us  pkt ch0= 20683 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29500 us  pkt ch0= 20742 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31468 us  pkt ch0= 20801 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33562 us  pkt ch0= 20860 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35593 us  pkt ch0= 20919 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37468 us  pkt ch0= 20978 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39593 us  pkt ch0= 21037 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41562 us  pkt ch0= 21096 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43562 us  pkt ch0= 21155 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 45593 us  pkt ch0= 21214 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47593 us  pkt ch0= 21273 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49718 us  pkt ch0= 21332 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51625 us  pkt ch0= 21391 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53625 us  pkt ch0= 21450 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55625 us  pkt ch0= 21509 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57750 us  pkt ch0= 21568 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59625 us  pkt ch0= 21627 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #84 (batch=1034 tot=48464)
+STREAM: LONG STALL - flow-off #84 took 4781 us to resume (longest=5006375 us) resumed_at=129.11594
+STREAM: ring drained to 0 at 129.11923 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6093 us  pkt ch0= 20561 step=   +0  (ring=59 fpga=0)
+  +  7937 us  pkt ch0= 20618 step=  +57  (ring=0 fpga=59)  <-- SKP
+  +  9750 us  pkt ch0= 20677 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11500 us  pkt ch0= 20736 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13406 us  pkt ch0= 20795 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15343 us  pkt ch0= 20854 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17437 us  pkt ch0= 20913 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19437 us  pkt ch0= 20972 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21343 us  pkt ch0= 21031 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23343 us  pkt ch0= 21090 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25437 us  pkt ch0= 21149 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27437 us  pkt ch0= 21208 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29375 us  pkt ch0= 21267 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31437 us  pkt ch0= 21326 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33437 us  pkt ch0= 21385 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35406 us  pkt ch0= 21444 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37468 us  pkt ch0= 21503 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39406 us  pkt ch0= 21562 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41562 us  pkt ch0= 21621 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43500 us  pkt ch0= 21680 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 45437 us  pkt ch0= 21739 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47562 us  pkt ch0= 21798 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49562 us  pkt ch0= 21857 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51468 us  pkt ch0= 21916 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53562 us  pkt ch0= 21975 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55562 us  pkt ch0= 22034 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57562 us  pkt ch0= 22093 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59531 us  pkt ch0= 22152 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #85 (batch=148 tot=48612)
+STREAM: LONG STALL - flow-off #85 took 4718 us to resume (longest=5006375 us) resumed_at=129.27642
+STREAM: ring drained to 0 at 129.27970 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6000 us  pkt ch0=-31118 step=   +0  (ring=59 fpga=0)
+  +  8125 us  pkt ch0=-31059 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9906 us  pkt ch0=-31000 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11656 us  pkt ch0=-30941 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13468 us  pkt ch0=-30882 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15312 us  pkt ch0=-30823 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17437 us  pkt ch0=-30764 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19406 us  pkt ch0=-30705 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21406 us  pkt ch0=-30646 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23406 us  pkt ch0=-30587 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25406 us  pkt ch0=-30528 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27531 us  pkt ch0=-30469 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29437 us  pkt ch0=-30410 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31375 us  pkt ch0=-30351 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33468 us  pkt ch0=-30292 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35500 us  pkt ch0=-30233 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37375 us  pkt ch0=-30174 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39375 us  pkt ch0=-30115 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41437 us  pkt ch0=-30056 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43437 us  pkt ch0=-29532 step= +524  (ring=0 fpga=59)  <-- SKP
+  + 45312 us  pkt ch0=-29471 step=  +61  (ring=0 fpga=59)  <-- SKP
+  + 47406 us  pkt ch0=-29412 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49375 us  pkt ch0=-29353 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51375 us  pkt ch0=-29294 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53406 us  pkt ch0=-29235 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55375 us  pkt ch0=-29176 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57500 us  pkt ch0=-29117 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59437 us  pkt ch0=-29058 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #86 (batch=765 tot=49377)
+STREAM: LONG STALL - flow-off #86 took 4625 us to resume (longest=5006375 us) resumed_at=131.18658
+STREAM: ring drained to 0 at 131.18992 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6062 us  pkt ch0= 19997 step=   +0  (ring=59 fpga=0)
+  +  7937 us  pkt ch0= 20056 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9718 us  pkt ch0= 20115 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11500 us  pkt ch0= 20174 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13375 us  pkt ch0= 20233 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15468 us  pkt ch0= 20292 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17437 us  pkt ch0= 20351 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19468 us  pkt ch0= 20410 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21468 us  pkt ch0= 20469 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23468 us  pkt ch0= 20528 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25593 us  pkt ch0= 20587 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27531 us  pkt ch0= 20646 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29468 us  pkt ch0= 20705 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31562 us  pkt ch0= 20764 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33593 us  pkt ch0= 20823 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35468 us  pkt ch0= 20882 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37500 us  pkt ch0= 20941 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39562 us  pkt ch0= 21000 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41562 us  pkt ch0= 21059 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43500 us  pkt ch0= 21118 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 45593 us  pkt ch0= 21177 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47531 us  pkt ch0= 21236 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49562 us  pkt ch0= 21295 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51562 us  pkt ch0= 21354 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53562 us  pkt ch0= 21413 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55687 us  pkt ch0= 21472 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57593 us  pkt ch0= 21531 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59593 us  pkt ch0= 21590 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #87 (batch=482 tot=49859)
+STREAM: LONG STALL - flow-off #87 took 4531 us to resume (longest=5006375 us) resumed_at=132.23794
+STREAM: ring drained to 0 at 132.24128 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6000 us  pkt ch0=-11767 step=   +0  (ring=59 fpga=0)
+  +  7937 us  pkt ch0=-11708 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9906 us  pkt ch0=-11649 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11687 us  pkt ch0=-11590 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13500 us  pkt ch0=-11531 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15375 us  pkt ch0=-11472 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17500 us  pkt ch0=-11413 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19437 us  pkt ch0=-11354 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21468 us  pkt ch0=-11295 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23500 us  pkt ch0=-11236 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25468 us  pkt ch0=-11177 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27625 us  pkt ch0=-11118 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29562 us  pkt ch0=-11059 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31500 us  pkt ch0=-11000 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33625 us  pkt ch0=-10941 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35625 us  pkt ch0=-10882 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37531 us  pkt ch0=-10823 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39531 us  pkt ch0=-10764 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41593 us  pkt ch0=-10705 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43625 us  pkt ch0=-10547 step= +158  (ring=0 fpga=59)  <-- SKP
+  + 45531 us  pkt ch0=-10487 step=  +60  (ring=0 fpga=59)  <-- SKP
+  + 47625 us  pkt ch0=-10428 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49593 us  pkt ch0=-10369 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51593 us  pkt ch0=-10310 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53625 us  pkt ch0=-10251 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55625 us  pkt ch0=-10192 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57750 us  pkt ch0=-10133 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59687 us  pkt ch0=-10074 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #88 (batch=50 tot=49909)
+STREAM: LONG STALL - flow-off #88 took 4687 us to resume (longest=5006375 us) resumed_at=133.01651
+STREAM: ring drained to 0 at 133.01978 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5937 us  pkt ch0= -3198 step=   +0  (ring=59 fpga=0)
+  +  8125 us  pkt ch0= -3139 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9906 us  pkt ch0= -3080 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11687 us  pkt ch0= -3021 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13500 us  pkt ch0= -2962 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15500 us  pkt ch0= -2903 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17500 us  pkt ch0= -2844 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19656 us  pkt ch0= -2785 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21562 us  pkt ch0= -2726 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23531 us  pkt ch0= -2667 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25531 us  pkt ch0= -2608 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27656 us  pkt ch0= -2549 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29562 us  pkt ch0= -2490 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31593 us  pkt ch0= -2431 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33656 us  pkt ch0= -2372 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35687 us  pkt ch0= -2313 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37562 us  pkt ch0= -2254 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39687 us  pkt ch0= -2195 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41656 us  pkt ch0= -2136 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43656 us  pkt ch0= -1513 step= +623  (ring=0 fpga=59)  <-- SKP
+  + 45718 us  pkt ch0= -1453 step=  +60  (ring=0 fpga=59)  <-- SKP
+  + 47687 us  pkt ch0= -1394 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49875 us  pkt ch0= -1335 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51781 us  pkt ch0= -1276 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53781 us  pkt ch0= -1217 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55875 us  pkt ch0= -1158 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57906 us  pkt ch0= -1099 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59781 us  pkt ch0= -1040 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #89 (batch=774 tot=50683)
+STREAM: LONG STALL - flow-off #89 took 4468 us to resume (longest=5006375 us) resumed_at=134.25215
+STREAM: ring drained to 0 at 134.25546 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6125 us  pkt ch0=-16991 step=   +0  (ring=59 fpga=0)
+  +  8000 us  pkt ch0=-16932 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9781 us  pkt ch0=-16873 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11781 us  pkt ch0=-16814 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13781 us  pkt ch0=-16755 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15906 us  pkt ch0=-16696 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17843 us  pkt ch0=-16637 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19781 us  pkt ch0=-16578 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21906 us  pkt ch0=-16519 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23906 us  pkt ch0=-16460 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25812 us  pkt ch0=-16401 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27906 us  pkt ch0=-16342 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29843 us  pkt ch0=-16283 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31875 us  pkt ch0=-16224 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33781 us  pkt ch0=-16165 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35875 us  pkt ch0=-16106 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37812 us  pkt ch0=-16047 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39812 us  pkt ch0=-15988 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41812 us  pkt ch0=-15929 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43812 us  pkt ch0=-15870 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 45937 us  pkt ch0=-15811 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47875 us  pkt ch0=-15752 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49812 us  pkt ch0=-15693 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51937 us  pkt ch0=-15634 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53937 us  pkt ch0=-15575 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55843 us  pkt ch0=-15516 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57937 us  pkt ch0=-15457 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59906 us  pkt ch0=-15398 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #90 (batch=206 tot=50889)
+STREAM: LONG STALL - flow-off #90 took 4562 us to resume (longest=5006375 us) resumed_at=135.12932
+STREAM: ring drained to 0 at 135.13262 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6125 us  pkt ch0=   464 step=   +0  (ring=59 fpga=0)
+  +  8000 us  pkt ch0=   523 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9875 us  pkt ch0=   582 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11937 us  pkt ch0=   641 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13937 us  pkt ch0=   700 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15718 us  pkt ch0=   759 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17656 us  pkt ch0=   818 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19718 us  pkt ch0=   877 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21687 us  pkt ch0=   936 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23656 us  pkt ch0=   995 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25656 us  pkt ch0=  1054 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27625 us  pkt ch0=  1113 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29750 us  pkt ch0=  1172 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31687 us  pkt ch0=  1231 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33625 us  pkt ch0=  1290 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35750 us  pkt ch0=  1349 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37718 us  pkt ch0=  1408 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39625 us  pkt ch0=  1467 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41625 us  pkt ch0=  1526 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43718 us  pkt ch0=  2000 step= +474  (ring=0 fpga=59)  <-- SKP
+  + 45468 us  pkt ch0=  2059 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47375 us  pkt ch0=  2118 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49468 us  pkt ch0=  2177 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51437 us  pkt ch0=  2236 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53437 us  pkt ch0=  2295 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55468 us  pkt ch0=  2354 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57406 us  pkt ch0=  2413 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59531 us  pkt ch0=  2472 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #91 (batch=155 tot=51044)
+STREAM: LONG STALL - flow-off #91 took 4687 us to resume (longest=5006375 us) resumed_at=135.29401
+STREAM: ring drained to 0 at 135.29731 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6062 us  pkt ch0= 15524 step=   +0  (ring=59 fpga=0)
+  +  7937 us  pkt ch0= 15583 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9687 us  pkt ch0= 15642 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11500 us  pkt ch0= 15701 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13531 us  pkt ch0= 15760 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15468 us  pkt ch0= 15819 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17593 us  pkt ch0= 15878 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19531 us  pkt ch0= 15937 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21500 us  pkt ch0= 15996 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23625 us  pkt ch0= 16055 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25625 us  pkt ch0= 16114 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27531 us  pkt ch0= 16173 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29625 us  pkt ch0= 16232 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31593 us  pkt ch0= 16291 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33593 us  pkt ch0= 16350 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35531 us  pkt ch0= 16409 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37593 us  pkt ch0= 16468 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39562 us  pkt ch0= 16527 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41531 us  pkt ch0= 16586 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43562 us  pkt ch0= 17102 step= +516  (ring=0 fpga=59)  <-- SKP
+  + 45531 us  pkt ch0= 17161 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47656 us  pkt ch0= 17220 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49593 us  pkt ch0= 17279 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51531 us  pkt ch0= 17338 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53656 us  pkt ch0= 17397 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55656 us  pkt ch0= 17456 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57562 us  pkt ch0= 17515 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59656 us  pkt ch0= 17574 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #92 (batch=48 tot=51092)
+STREAM: LONG STALL - flow-off #92 took 4437 us to resume (longest=5006375 us) resumed_at=136.07107
+STREAM: ring drained to 0 at 136.07440 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6125 us  pkt ch0= 24324 step=   +0  (ring=59 fpga=0)
+  +  8031 us  pkt ch0= 24383 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 10031 us  pkt ch0= 24442 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 12062 us  pkt ch0= 24501 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13812 us  pkt ch0= 24560 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15593 us  pkt ch0= 24619 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17625 us  pkt ch0= 24678 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19625 us  pkt ch0= 24737 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21750 us  pkt ch0= 24796 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23687 us  pkt ch0= 24855 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25625 us  pkt ch0= 24914 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27750 us  pkt ch0= 24973 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29750 us  pkt ch0= 25032 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31625 us  pkt ch0= 25091 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33718 us  pkt ch0= 25150 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35718 us  pkt ch0= 25209 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37718 us  pkt ch0= 25268 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39656 us  pkt ch0= 25327 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41718 us  pkt ch0= 25386 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43843 us  pkt ch0= 26009 step= +623  (ring=0 fpga=59)  <-- SKP
+  + 45687 us  pkt ch0= 26068 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47750 us  pkt ch0= 26127 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49718 us  pkt ch0= 26186 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51843 us  pkt ch0= 26245 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53781 us  pkt ch0= 26304 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55750 us  pkt ch0= 26363 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57843 us  pkt ch0= 26422 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59875 us  pkt ch0= 26481 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #93 (batch=51 tot=51143)
+STREAM: LONG STALL - flow-off #93 took 4562 us to resume (longest=5006375 us) resumed_at=136.17024
+STREAM: ring drained to 0 at 136.17354 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5968 us  pkt ch0=-32123 step=   +0  (ring=59 fpga=0)
+  +  8093 us  pkt ch0=-32064 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9843 us  pkt ch0=-32005 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11625 us  pkt ch0=-31946 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13406 us  pkt ch0=-31887 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15406 us  pkt ch0=-31828 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17375 us  pkt ch0=-31769 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19500 us  pkt ch0=-31710 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21437 us  pkt ch0=-31651 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23375 us  pkt ch0=-31592 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25468 us  pkt ch0=-31533 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27468 us  pkt ch0=-31474 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29343 us  pkt ch0=-31415 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31437 us  pkt ch0=-31356 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33406 us  pkt ch0=-31297 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35406 us  pkt ch0=-31238 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37312 us  pkt ch0=-31179 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39406 us  pkt ch0=-31120 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41343 us  pkt ch0=-31061 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43343 us  pkt ch0=-30433 step= +628  (ring=0 fpga=59)  <-- SKP
+  + 45375 us  pkt ch0=-30374 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47343 us  pkt ch0=-30315 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49468 us  pkt ch0=-30256 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51406 us  pkt ch0=-30197 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53343 us  pkt ch0=-30138 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55437 us  pkt ch0=-30079 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57468 us  pkt ch0=-30020 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59312 us  pkt ch0=-29961 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #94 (batch=50 tot=51193)
+STREAM: LONG STALL - flow-off #94 took 4562 us to resume (longest=5006375 us) resumed_at=136.26868
+STREAM: ring drained to 0 at 136.27197 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5968 us  pkt ch0=-23093 step=   +0  (ring=59 fpga=0)
+  +  8031 us  pkt ch0=-23034 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9781 us  pkt ch0=-22975 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11562 us  pkt ch0=-22916 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13375 us  pkt ch0=-22857 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15375 us  pkt ch0=-22798 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17312 us  pkt ch0=-22739 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19468 us  pkt ch0=-22680 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21375 us  pkt ch0=-22621 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23343 us  pkt ch0=-22562 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25437 us  pkt ch0=-22503 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27468 us  pkt ch0=-22444 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29343 us  pkt ch0=-22385 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31468 us  pkt ch0=-22326 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33406 us  pkt ch0=-22267 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35437 us  pkt ch0=-22208 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37437 us  pkt ch0=-22149 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39406 us  pkt ch0=-22090 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41562 us  pkt ch0=-22031 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43375 us  pkt ch0=-21407 step= +624  (ring=0 fpga=59)  <-- SKP
+  + 45437 us  pkt ch0=-21348 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47437 us  pkt ch0=-21289 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49562 us  pkt ch0=-21230 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51437 us  pkt ch0=-21171 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53406 us  pkt ch0=-21112 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55500 us  pkt ch0=-21053 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57531 us  pkt ch0=-20994 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59375 us  pkt ch0=-20935 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #95 (batch=50 tot=51243)
+STREAM: LONG STALL - flow-off #95 took 4531 us to resume (longest=5006375 us) resumed_at=137.04710
+STREAM: ring drained to 0 at 137.05041 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5937 us  pkt ch0=-14069 step=   +0  (ring=59 fpga=0)
+  +  7968 us  pkt ch0=-14010 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9750 us  pkt ch0=-13951 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11562 us  pkt ch0=-13892 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13406 us  pkt ch0=-13833 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15375 us  pkt ch0=-13774 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17375 us  pkt ch0=-13715 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19500 us  pkt ch0=-13656 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21375 us  pkt ch0=-13597 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23343 us  pkt ch0=-13538 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25437 us  pkt ch0=-13479 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27437 us  pkt ch0=-13420 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29343 us  pkt ch0=-13361 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31437 us  pkt ch0=-13302 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33437 us  pkt ch0=-13243 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35406 us  pkt ch0=-13184 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37468 us  pkt ch0=-13125 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39437 us  pkt ch0=-13066 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41593 us  pkt ch0=-13007 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43500 us  pkt ch0=-12380 step= +627  (ring=0 fpga=59)  <-- SKP
+  + 45468 us  pkt ch0=-12321 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47562 us  pkt ch0=-12262 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49562 us  pkt ch0=-12203 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51468 us  pkt ch0=-12144 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53468 us  pkt ch0=-12085 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55562 us  pkt ch0=-12026 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57531 us  pkt ch0=-11967 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59437 us  pkt ch0=-11908 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #96 (batch=42 tot=51285)
+STREAM: LONG STALL - flow-off #96 took 4625 us to resume (longest=5006375 us) resumed_at=137.14049
+STREAM: ring drained to 0 at 137.14376 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5968 us  pkt ch0=-11023 step=   +0  (ring=59 fpga=0)
+  +  8125 us  pkt ch0=-10964 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9906 us  pkt ch0=-10905 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11687 us  pkt ch0=-10846 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13468 us  pkt ch0=-10787 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15437 us  pkt ch0= -5218 step=+5569  (ring=0 fpga=59)  <-- SKP
+  + 17500 us  pkt ch0= -5159 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19625 us  pkt ch0= -5100 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21468 us  pkt ch0= -5041 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23531 us  pkt ch0= -4982 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25500 us  pkt ch0= -4923 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27625 us  pkt ch0= -4864 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29562 us  pkt ch0= -4805 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31531 us  pkt ch0= -4746 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33656 us  pkt ch0= -4687 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35656 us  pkt ch0= -4628 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37562 us  pkt ch0= -4569 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39656 us  pkt ch0= -4510 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41625 us  pkt ch0= -4451 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43656 us  pkt ch0= -3822 step= +629  (ring=0 fpga=59)  <-- SKP
+  + 45656 us  pkt ch0= -3762 step=  +60  (ring=0 fpga=59)  <-- SKP
+  + 47656 us  pkt ch0= -3703 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49812 us  pkt ch0= -3644 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51750 us  pkt ch0= -3585 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53687 us  pkt ch0= -3526 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55718 us  pkt ch0= -3467 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57812 us  pkt ch0= -3408 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59750 us  pkt ch0= -3349 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #97 (batch=582 tot=51867)
+STREAM: LONG STALL - flow-off #97 took 4625 us to resume (longest=5006375 us) resumed_at=138.25523
+STREAM: ring drained to 0 at 138.25853 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6062 us  pkt ch0=-30619 step=   +0  (ring=59 fpga=0)
+  +  7937 us  pkt ch0=-30560 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9750 us  pkt ch0=-30501 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11500 us  pkt ch0=-30442 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13375 us  pkt ch0=-30383 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15281 us  pkt ch0=-30324 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17406 us  pkt ch0=-30265 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19406 us  pkt ch0=-30206 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21281 us  pkt ch0=-30147 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23375 us  pkt ch0=-30088 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25375 us  pkt ch0=-30029 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27343 us  pkt ch0=-29970 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29312 us  pkt ch0=-29911 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31343 us  pkt ch0=-29852 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33500 us  pkt ch0=-29793 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35312 us  pkt ch0=-29734 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37343 us  pkt ch0=-29675 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39312 us  pkt ch0=-29616 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41437 us  pkt ch0=-29557 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43375 us  pkt ch0=-29482 step=  +75  (ring=0 fpga=59)  <-- SKP
+  + 45312 us  pkt ch0=-29423 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47437 us  pkt ch0=-29364 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49406 us  pkt ch0=-29305 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51312 us  pkt ch0=-29246 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53406 us  pkt ch0=-29187 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55375 us  pkt ch0=-29128 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57375 us  pkt ch0=-29069 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59375 us  pkt ch0=-29010 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #98 (batch=471 tot=52338)
+STREAM: LONG STALL - flow-off #98 took 4687 us to resume (longest=5006375 us) resumed_at=139.29989
+STREAM: ring drained to 0 at 139.30318 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5968 us  pkt ch0=  2702 step=   +0  (ring=59 fpga=0)
+  +  8031 us  pkt ch0=  2761 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9781 us  pkt ch0=  2820 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11562 us  pkt ch0=  2879 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13375 us  pkt ch0=  2938 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15375 us  pkt ch0=  2997 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17343 us  pkt ch0=  3056 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19468 us  pkt ch0=  3115 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21375 us  pkt ch0=  3174 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23343 us  pkt ch0=  3233 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25437 us  pkt ch0=  3292 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27437 us  pkt ch0=  3351 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29312 us  pkt ch0=  3410 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31437 us  pkt ch0=  3469 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33406 us  pkt ch0=  3528 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35406 us  pkt ch0=  3587 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37406 us  pkt ch0=  3646 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39406 us  pkt ch0=  3705 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41531 us  pkt ch0=  3764 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43343 us  pkt ch0=  3963 step= +199  (ring=0 fpga=59)  <-- SKP
+  + 45406 us  pkt ch0=  4022 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47343 us  pkt ch0=  4081 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49500 us  pkt ch0=  4140 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51406 us  pkt ch0=  4199 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53375 us  pkt ch0=  4258 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55469 us  pkt ch0=  4317 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57469 us  pkt ch0=  4376 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59344 us  pkt ch0=  4435 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #99 (batch=194 tot=52532)
+STREAM: LONG STALL - flow-off #99 took 4687 us to resume (longest=5006375 us) resumed_at=140.16931
+STREAM: ring drained to 0 at 140.17260 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6000 us  pkt ch0= 19801 step=   +0  (ring=59 fpga=0)
+  +  8125 us  pkt ch0= 19860 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9906 us  pkt ch0= 19919 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11687 us  pkt ch0= 19978 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13468 us  pkt ch0= 20037 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15500 us  pkt ch0= 20096 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17500 us  pkt ch0= 20155 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19625 us  pkt ch0= 20214 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21468 us  pkt ch0= 20273 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23500 us  pkt ch0= 20332 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25531 us  pkt ch0= 20391 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27625 us  pkt ch0= 20450 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29531 us  pkt ch0= 20509 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31468 us  pkt ch0= 20568 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33562 us  pkt ch0= 20627 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35593 us  pkt ch0= 20686 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37468 us  pkt ch0= 20745 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39593 us  pkt ch0= 20804 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41562 us  pkt ch0= 20863 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43562 us  pkt ch0= 21331 step= +468  (ring=0 fpga=59)  <-- SKP
+  + 45593 us  pkt ch0= 21391 step=  +60  (ring=0 fpga=59)  <-- SKP
+  + 47593 us  pkt ch0= 21450 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49718 us  pkt ch0= 21509 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51656 us  pkt ch0= 21568 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53593 us  pkt ch0= 21627 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55625 us  pkt ch0= 21686 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57718 us  pkt ch0= 21745 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59593 us  pkt ch0= 21804 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #100 (batch=50 tot=52582)
+STREAM: LONG STALL - flow-off #100 took 4625 us to resume (longest=5006375 us) resumed_at=140.26786
+STREAM: ring drained to 0 at 140.27119 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  5937 us  pkt ch0= 28679 step=   +0  (ring=59 fpga=0)
+  +  8000 us  pkt ch0= 28738 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9781 us  pkt ch0= 28797 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11593 us  pkt ch0= 28856 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13343 us  pkt ch0= 28915 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15406 us  pkt ch0= 28974 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17406 us  pkt ch0= 29033 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19500 us  pkt ch0= 29092 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21406 us  pkt ch0= 29151 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23406 us  pkt ch0= 29210 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25500 us  pkt ch0= 29269 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 27531 us  pkt ch0= 29328 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 29406 us  pkt ch0= 29387 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 31531 us  pkt ch0= 29446 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 33531 us  pkt ch0= 29505 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 35500 us  pkt ch0= 29564 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 37562 us  pkt ch0= 29623 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 39625 us  pkt ch0= 29682 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 41437 us  pkt ch0= 29741 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 43187 us  pkt ch0= 30377 step= +636  (ring=0 fpga=59)  <-- SKP
+  + 45250 us  pkt ch0= 30436 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 47218 us  pkt ch0= 30495 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 49406 us  pkt ch0= 30554 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 51312 us  pkt ch0= 30613 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 53281 us  pkt ch0= 30672 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 55406 us  pkt ch0= 30731 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 57437 us  pkt ch0= 30790 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 59312 us  pkt ch0= 30849 step=  +59  (ring=0 fpga=59)  <-- SKP
+STREAM: flow-off #101 (batch=325 tot=52907)
+STREAM: LONG STALL - flow-off #101 took 4500 us to resume (longest=5006375 us) resumed_at=141.22003
+STREAM: ring drained to 0 at 141.22337 (backlog was 59 pairs)
+STREAM: post-drain watch (28 events):
+  +  6093 us  pkt ch0=-11595 step=   +0  (ring=59 fpga=0)
+  +  7968 us  pkt ch0=-11536 step=  +59  (ring=0 fpga=59)  <-- SKP
+  +  9781 us  pkt ch0=-11477 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 11687 us  pkt ch0=-11418 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 13750 us  pkt ch0=-11359 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 15906 us  pkt ch0=-11300 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 17718 us  pkt ch0=-11241 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 19781 us  pkt ch0=-11182 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 21750 us  pkt ch0=-11123 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 23906 us  pkt ch0=-11064 step=  +59  (ring=0 fpga=59)  <-- SKP
+  + 25812 us  pkt ch0=-11005 step=  +59  (ring=0 fpga=59)  <-- SKP
+  

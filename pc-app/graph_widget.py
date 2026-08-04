@@ -59,6 +59,15 @@ class GraphWidget(QWidget):
             layout.addWidget(plot)
 
     def add_batch(self, timestamps_us: np.ndarray, ch0: np.ndarray, ch1: np.ndarray):
+        # Drop FPGA FIFO underrun sentinels (0x8000 = -32768 on BOTH channels) —
+        # not real samples. ch0 alone can legitimately be -32768 once per 16-bit
+        # ramp wrap (ch1 = ch0+1000 = -31768 then), so both must match.
+        valid = ~((ch0 == np.int16(-32768)) & (ch1 == np.int16(-32768)))
+        if not np.any(valid):
+            return
+        timestamps_us = timestamps_us[valid]
+        ch0 = ch0[valid]
+        ch1 = ch1[valid]
         n = len(timestamps_us)
         if n == 0:
             return

@@ -29,7 +29,7 @@ from packet_parser import MAGIC, parse, SAMPLE_RATE_HZ
 BAUD_RATE = 2_000_000
 
 
-def run(port_name: str, duration: float, max_drops: int, verbose: bool) -> int:
+def run(port_name: str, duration: float, max_drops: int, grace: float, verbose: bool) -> int:
     print(f"Opening {port_name} at {BAUD_RATE} baud ...")
     try:
         port = serial.Serial(port_name, baudrate=BAUD_RATE, timeout=1.0)
@@ -41,6 +41,7 @@ def run(port_name: str, duration: float, max_drops: int, verbose: bool) -> int:
 
     total_packets       = 0
     total_drops         = 0
+    startup_drops       = 0
     total_framing_bytes = 0
     total_ts_violations = 0
     expected_seq: int | None = None
@@ -61,7 +62,7 @@ def run(port_name: str, duration: float, max_drops: int, verbose: bool) -> int:
     t_start  = t_iv = time.monotonic()
     deadline = t_start + duration if duration > 0 else float("inf")
 
-    HDR = f"{'Elapsed':>7}  {'pkt/s':>6}  {'SPS':>7}  {'drops/s':>7}  {'framing':>8}  {'ts_err':>6}"
+    HDR = f" {'Elapsed':>6}  {'pkt/s':>6}  {'SPS':>7}  {'drops/s':>7}  {'framing':>8}  {'ts_err':>6}"
     print(HDR)
     print("-" * len(HDR))
 
@@ -110,10 +111,15 @@ def run(port_name: str, duration: float, max_drops: int, verbose: bool) -> int:
                 if expected_seq is not None:
                     gap = (seq - expected_seq) % 256
                     if gap != 0:
-                        total_drops += gap
-                        iv_drops    += gap
+                        in_grace = (time.monotonic() - t_start) < grace
+                        if in_grace:
+                            startup_drops += gap
+                        else:
+                            total_drops += gap
+                        iv_drops += gap
                         if verbose:
-                            print(f"  DROP  expected={expected_seq} got={seq}  "
+                            marker = "~DROP" if in_grace else " DROP"
+                            print(f"  {marker}  expected={expected_seq} got={seq}  "
                                   f"gap={gap}  ts_us={int(pkt.timestamps_us[0])}")
                 expected_seq = (seq + 1) % 256
 
@@ -133,7 +139,9 @@ def run(port_name: str, duration: float, max_drops: int, verbose: bool) -> int:
             pps     = iv_packets / dt
             sps     = pps * pkt.header.num_pairs if total_packets > 0 else pps * 59
             elapsed = now - t_start
-            print(f"{elapsed:7.1f}  {pps:6.1f}  {sps:7.0f}  {iv_drops:7}  "
+            in_grace = elapsed < grace
+            marker  = "~" if in_grace else " "
+            print(f"{marker}{elapsed:6.1f}  {pps:6.1f}  {sps:7.0f}  {iv_drops:7}  "
                   f"{iv_framing:8}  {total_ts_violations:6}")
             iv_packets = iv_drops = iv_framing = 0
             t_iv = now
@@ -149,9 +157,11 @@ def run(port_name: str, duration: float, max_drops: int, verbose: bool) -> int:
     print(f"Total packets : {total_packets}")
     print(f"Avg pkt/s     : {avg_pps:.1f}")
     print(f"Avg SPS       : {avg_sps:.0f}")
-    print(f"Total drops   : {total_drops}")
+    print(f"Total drops   : {total_drops}  (startup grace: {startup_drops})")
     print(f"Framing bytes : {total_framing_bytes}")
     print(f"TS violations : {total_ts_violations}")
+    if grace > 0:
+        print(f"Grace period  : {grace:.0f} s  (rows marked ~ are excluded from PASS/FAIL)")
 
     if total_drops > max_drops:
         print(f"\nFAIL — {total_drops} drops > allowed {max_drops}", file=sys.stderr)
@@ -177,10 +187,12 @@ Examples:
                     help="Stop after this many seconds (0 = run until Ctrl-C)")
     ap.add_argument("--max-drops", type=int, default=0,
                     help="Exit 1 if cumulative seq_num drops exceed this (default 0)")
+    ap.add_argument("--grace-period", type=float, default=2.0,
+                    help="Startup seconds excluded from drop count (default 2)")
     ap.add_argument("--verbose", action="store_true",
                     help="Print each individual drop and timestamp violation inline")
     args = ap.parse_args()
-    sys.exit(run(args.port, args.duration, args.max_drops, args.verbose))
+    sys.exit(run(args.port, args.duration, args.max_drops, args.grace_period, args.verbose))
 
 
 if __name__ == "__main__":

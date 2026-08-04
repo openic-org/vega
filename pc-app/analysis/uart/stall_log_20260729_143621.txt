@@ -1,0 +1,46 @@
+ÿÿÿSTREAM: flow-off #39 (batch=217 tot=22116)
+STREAM: LONG STALL - flow-off #39 took 4593 us to resume (longest=4875 us) resumed_at=49.17329
+STREAM: flow-off #40 (batch=251 tot=22367)
+STREAM: LONG STALL - flow-off #40 took 4750 us to resume (longest=4875 us) resumed_at=50.01668
+STREAM: flow-off #41 (batch=616 tot=22983)
+STREAM: LONG STALL - flow-off #41 took 4562 us to resume (longest=4875 us) resumed_at=51.09006
+STREAM: flow-off #42 (batch=750 tot=23733)
+STREAM: LONG STALL - flow-off #42 took 4781 us to resume (longest=4875 us) resumed_at=52.24782
+STREAM: flow-off #43 (batch=118 tot=23851)
+STREAM: LONG STALL - flow-off #43 took 4812 us to resume (longest=4875 us) resumed_at=53.00710
+STREAM: flow-off #44 (batch=715 tot=24566)
+STREAM: LONG STALL - flow-off #44 took 4750 us to resume (longest=4875 us) resumed_at=54.14307
+STREAM: flow-off #45 (batch=495 tot=25061)
+STREAM: LONG STALL - flow-off #45 took 4625 us to resume (longest=4875 us) resumed_at=55.14009
+STREAM: flow-off #46 (batch=15 tot=25076)
+STREAM: LONG STALL - flow-off #46 took 4500 us to resume (longest=4875 us) resumed_at=55.15434
+STREAM: flow-off #47 (batch=521 tot=25597)
+STREAM: LONG STALL - flow-off #47 took 4750 us to resume (longest=4875 us) resumed_at=56.16783
+STREAM: flow-off #48 (batch=133 tot=25730)
+STREAM: LONG STALL - flow-off #48 took 4593 us to resume (longest=4875 us) resumed_at=56.25666
+STREAM: flow-off #49 (batch=53 tot=25783)
+STREAM: LONG STALL - flow-off #49 took 6875 us to resume (longest=6875 us) resumed_at=56.29568
+STREAM: flow-off #50 (batch=516 tot=26299)
+STREAM: LONG STALL - flow-off #50 took 4781 us to resume (longest=6875 us) resumed_at=57.30629
+STREAM: flow-off #51 (batch=450 tot=26749)
+STREAM: LONG STALL - flow-off #51 took 4656 us to resume (longest=6875 us) resumed_at=58.27492
+STREAM: flow-off #52 (batch=513 tot=27262)
+STREAM: LONG STALL - flow-off #52 took 4625 us to resume (longest=6875 us) resumed_at=59.28331
+STREAM: flow-off #53 (batch=148 tot=27410)
+STREAM: LONG STALL - flow-off #53 took 4656 us to resume (longest=6875 us) resumed_at=60.06167
+STREAM: flow-off #54 (batch=95 tot=27505)
+STREAM: LONG STALL - flow-off #54 took 4656 us to resume (longest=6875 us) resumed_at=60.12622
+STREAM: flow-off #55 (batch=179 tot=27684)
+STREAM: LONG STALL - flow-off #55 took 4656 us to resume (longest=6875 us) resumed_at=60.24392
+STREAM: flow-off #56 (batch=1054 tot=28738)
+STREAM: LONG STALL - flow-off #56 took 4812 us to resume (longest=6875 us) resumed_at=62.27366
+STREAM: flow-off #57 (batch=142 tot=28880)
+STREAM: LONG STALL - flow-off #57 took 4281 us to resume (longest=6875 us) resumed_at=63.04798
+STREAM: flow-off #58 (batch=6 tot=28886)
+STREAM: LONG STALL - flow-off #58 took 4593 us to resume (longest=6875 us) resumed_at=63.05666
+STREAM: flow-off #59 (batch=140 tot=29026)
+STREAM: LONG STALL - flow-off #59 took 4531 us to resume (longest=6875 us) resumed_at=63.14996
+STREAM: flow-off #60 (batch=248 tot=29274)
+STREAM: LONG STALL - flow-off #60 took 4750 us to resume (longest=6875 us) resumed_at=63.31117
+STREAM: flow-off #61 (batch=411 tot=29685)
+STREAM: LONG STALL - flow-off #61 took 4625 us to resume (longest=6875 us) resumed_at=64.25550

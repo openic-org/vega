@@ -1,0 +1,30 @@
+STREAM: flow-off #1 (batch=12680 tot=12680)
+STREAM: fifo_full CLR at 31.14985
+STREAM: fifo_full SET at 31.21510
+>>== HCI_DISCONNECTION_COMPLETE_EVT_CODE
+     - Connection Handle:   0x801
+     - Reason:    0x08
+STREAM: disconnected, sending stopped.
+==>> Success: aci_gap_set_advertising_configuration
+==>> Success: aci_gap_set_advertising_data
+==>> Success: aci_gap_set_advertising_enable
+STREAM: LONG STALL - flow-off #1 took 4986000 us to resume (longest=4986000 us) resumed_at=36.13938
+STREAM: pool-avail #1  flowoffs=1  notifs=12680  batch_now=0
+>>== hci_le_connection_complete_event - Connection handle: 0x0802
+     - Connection established with @:f2:95:aa:c8:51:6a
+     - Connection Interval:   7.50 ms
+     - Connection latency:    0
+     - Supervision Timeout: 5000 ms
+STREAM: connected (handle 0x0802)
+  DLE 251 requested.
+DLE UPDATE: MaxTxOctets=251 MaxRxOctets=27
+  2M PHY requested.
+DLE UPDATE: MaxTxOctets=251 MaxRxOctets=251
+  Warning: hci_le_set_phy 2M request failed: 0x07
+DLE UPDATE: MaxTxOctets=251 MaxRxOctets=251
+  2M PHY requested.
+PHY update: TX=2M RX=2M status=0x00
+CPUP: skipped (WB09KE_HF — central controls CI).
+PHY update: TX=2M RX=2M status=0x00
+CPUP: skipped (WB09KE_HF — central controls CI).
+STREAM: CCCD enabled (conn=0x0802) – seq+counter reset to 0

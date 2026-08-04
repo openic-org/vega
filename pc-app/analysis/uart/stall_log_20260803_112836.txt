@@ -1,0 +1,5 @@
+STREAM: flow-off #12 (batch=303735 tot=862896)
+STREAM: LONG STALL - flow-off #12 took 4937 us to resume (longest=19406 us) resumed_at=1710.10353
+STREAM: ring drained to 0 at 1710.10684 (backlog was 59 pairs)
+STREAM: post-drain +  6187 us  SKP ch0=-28066 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain +  8093 us  SKP ch0=-28014 step=  +52  (ring=0 fpga=59)

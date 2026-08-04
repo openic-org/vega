@@ -5,6 +5,7 @@ MainWindow — top-level PyQt6 window for the Vega PC app.
 import csv
 import datetime
 import time
+from pathlib import Path
 from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
@@ -16,6 +17,9 @@ from PyQt6.QtGui import QFont
 from serial_reader import SerialReader
 from graph_widget  import GraphWidget
 from csv_recorder  import CsvRecorder
+
+RECORDINGS_DIR = Path(__file__).parent / "recordings"
+BENCH_DIR      = Path(__file__).parent / "bench"
 
 # Measured at ~4 500 SPS with current CI (~13 ms). Update when CI is tightened to 7.5 ms.
 DELIVERED_SPS = 5_000
@@ -31,7 +35,8 @@ class MainWindow(QMainWindow):
         self._recorder = CsvRecorder()
         self._rate_ts   = 0.0
         self._rate_pkts = 0
-        self._drops_prev = 0   # drops seen at previous status update — tracks per-interval rate
+        self._drops_prev = 0      # drops seen at previous status update
+        self._total_underruns = 0 # cumulative FPGA FIFO underrun samples
 
         # GPIO bench logging — opened on BLE connect, closed on disconnect
         self._bench_log: "csv.writer | None" = None
@@ -125,14 +130,14 @@ class MainWindow(QMainWindow):
         # Right column
         grid.addWidget(lbl("Rate:"),       0, 2)
         grid.addWidget(lbl("Throughput:"), 1, 2)
-        grid.addWidget(lbl("Char:"),       2, 2)
+        grid.addWidget(lbl("Underruns:"),  2, 2)
 
         self._lbl_rate  = lbl("—")
         self._lbl_thru  = lbl("—")
-        self._lbl_char  = lbl("0xFFF2 (notify)")
-        grid.addWidget(self._lbl_rate, 0, 3)
-        grid.addWidget(self._lbl_thru, 1, 3)
-        grid.addWidget(self._lbl_char, 2, 3)
+        self._lbl_underruns = lbl("—")
+        grid.addWidget(self._lbl_rate,       0, 3)
+        grid.addWidget(self._lbl_thru,       1, 3)
+        grid.addWidget(self._lbl_underruns,  2, 3)
 
         grid.setColumnStretch(1, 1)
         grid.setColumnStretch(3, 1)
@@ -173,7 +178,8 @@ class MainWindow(QMainWindow):
 
     def _toggle_recording(self, checked: bool):
         if checked:
-            path = self._recorder.start(".")
+            RECORDINGS_DIR.mkdir(exist_ok=True)
+            path = self._recorder.start(str(RECORDINGS_DIR))
             self._btn_rec.setText("■ Stop")
             self._lbl_rec_path.setText(f"Recording → {path}")
         else:
@@ -185,11 +191,14 @@ class MainWindow(QMainWindow):
             )
 
     def _on_batch(self, packet):
+        self._total_underruns += packet.fifo_underruns
         self._graph.add_batch(packet.timestamps_us, packet.ch0, packet.ch1)
 
         # CSV
         if self._recorder.info.is_recording:
-            ok = self._recorder.write_batch(packet.timestamps_us, packet.ch0, packet.ch1)
+            ok = self._recorder.write_batch(
+                packet.timestamps_us, packet.ch0, packet.ch1, packet.header.seq_num
+            )
             if not ok and self._recorder.info.auto_stopped:
                 self._btn_rec.setChecked(False)
                 self._toggle_recording(False)
@@ -200,12 +209,14 @@ class MainWindow(QMainWindow):
             self._lbl_status.setStyleSheet("font-size: 11px; color: green;")
             self._btn_rec.setEnabled(True)
             self._graph.clear()
-            self._rate_ts   = time.time()
-            self._rate_pkts = 0
+            self._rate_ts         = time.time()
+            self._rate_pkts       = 0
+            self._total_underruns = 0
             self.statusBar().showMessage(f"Connected on {port}")
             # Open bench log for this session
             ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-            self._bench_path = f"bench_{ts}.csv"
+            BENCH_DIR.mkdir(exist_ok=True)
+            self._bench_path = str(BENCH_DIR / f"bench_{ts}.csv")
             self._bench_file = open(self._bench_path, "w", newline="")
             self._bench_log  = csv.writer(self._bench_file)
             self._bench_log.writerow(["elapsed_s", "kbps", "pps"])
@@ -251,6 +262,8 @@ class MainWindow(QMainWindow):
             sps          = pps * 59
             self._lbl_rate.setText(f"{pps:.1f} pkt/s")
             self._lbl_thru.setText(f"{kbps:.0f} kbit/s")
+            ur_pct = 100.0 * self._total_underruns / max(1, pkts * 59)
+            self._lbl_underruns.setText(f"{self._total_underruns:,}  ({ur_pct:.1f}%)")
             self._rate_ts    = now
             self._rate_pkts  = pkts
             self._drops_prev = drops
@@ -266,7 +279,7 @@ class MainWindow(QMainWindow):
             port = self._port_combo.currentText()
             drop_str = f"drops: {drops}" if drop_delta == 0 else f"drops: {drops} (+{drop_delta})"
             self.statusBar().showMessage(
-                f"{port}  |  {pps:.0f} pkt/s  {sps:.0f} SPS  {kbps:.0f} kbit/s  |  {drop_str}"
+                f"{port}  |  {pps:.0f} pkt/s  {sps:.0f} SPS  {kbps:.0f} kbit/s  |  {drop_str}  |  underruns: {self._total_underruns:,} ({ur_pct:.1f}%)"
             )
 
         if self._recorder.info.is_recording:

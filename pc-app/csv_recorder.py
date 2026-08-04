@@ -1,6 +1,15 @@
 """
-CSV recorder — identical format to the Android Vega app:
-  timestamp_us,ch0,ch1
+CSV recorder — PC-app format extends the shared Android format
+(timestamp_us,ch0,ch1) with a trailing seq_num column so BLE packet
+drops / UART framing resyncs can be correlated against sample-level
+gaps after the fact. seq_num is the packet's rolling header byte,
+repeated for every row that came from the same packet.
+
+Writes every row verbatim, including FIFO-underrun sentinel samples
+(ch0/ch1 == -32768) — analyze_recording.py needs them to measure the
+true underrun rate. GraphWidget filters sentinels separately for live
+display; this recorder must not also filter them or underrun stats
+become unmeasurable after the fact.
 
 Auto-stops at MAX_DURATION_SEC or MIN_FREE_MB free disk space.
 """
@@ -11,7 +20,7 @@ import time
 from pathlib import Path
 from dataclasses import dataclass, field
 
-MAX_DURATION_SEC = 600      # 10 minutes
+MAX_DURATION_SEC = 4000     # ~66 minutes
 MIN_FREE_MB      = 200
 
 
@@ -39,13 +48,13 @@ class CsvRecorder:
         ts = time.strftime("%Y%m%d_%H%M%S")
         path = str(Path(directory) / f"vega_{ts}.csv")
         self._file = open(path, "w", buffering=1 << 16)
-        self._file.write("timestamp_us,ch0,ch1\n")
+        self._file.write("timestamp_us,ch0,ch1,seq_num\n")
         self._start_time   = time.time()
         self._rows_written = 0
         self.info = RecordingInfo(is_recording=True, file_path=path)
         return path
 
-    def write_batch(self, timestamps_us, ch0, ch1) -> bool:
+    def write_batch(self, timestamps_us, ch0, ch1, seq_num: int) -> bool:
         """Write a batch of samples. Returns False if recording should stop."""
         if not self.info.is_recording or self._file is None:
             return False
@@ -65,8 +74,8 @@ class CsvRecorder:
             return False
 
         for t, c0, c1 in zip(timestamps_us, ch0, ch1):
-            self._file.write(f"{t},{c0},{c1}\n")
-        self._rows_written += len(timestamps_us)
+            self._file.write(f"{t},{c0},{c1},{seq_num}\n")
+        self._rows_written += len(ch0)
         return True
 
     def stop(self, auto_stopped: bool = False):

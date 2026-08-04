@@ -1,0 +1,129 @@
+�
+*** KUNTUR UART OK — 115200 8N1 ***
+  Success: aci_hal_set_tx_power_level command
+  Success: aci_gatt_srv_profile_init command
+  Success: aci_gap_init command
+  Static Random Bluetooth Address: d1:b8:af:56:8f:ab
+  Success: Gap_profile_set_dev_name - Device Name
+  Success: Gap_profile_set_appearance - Appearance
+  Success: aci_gap_set_io_capability command
+  Success: aci_gap_set_security_requirements command
+  Success: aci_gap_configure_filter_accept_and_resolving_list command
+==>> End BLE_Init function
+
+Services and Characteristics creation
+  Success: aci_gatt_srv_add_service command: DIS 
+  Success: aci_gatt_srv_add_service command: Stream service
+  Stream handles: Svc=0x001B  Write=0x001C  Notify=0x001E
+STREAM: service initialised.  Send=2 ms  (sync SPI pull)
+FPGA_SPI: init done (sync bit-bang pull, O2)
+End of Services and Characteristics creation
+
+==>> Success: aci_gap_set_advertising_configuration
+==>> Success: aci_gap_set_advertising_data
+==>> Success: aci_gap_set_advertising_enable
+STREAM: fifo_full SET at 5.03710
+STREAM: ring peak=0/2048 (0%) at 7.03293
+STREAM: ring peak=0/2048 (0%) at 9.03301
+�
+*** KUNTUR UART OK — 115200 8N1 ***
+  Success: aci_hal_set_tx_power_level command
+  Success: aci_gatt_srv_profile_init command
+  Success: aci_gap_init command
+  Static Random Bluetooth Address: d1:b8:af:56:8f:ab
+  Success: Gap_profile_set_dev_name - Device Name
+  Success: Gap_profile_set_appearance - Appearance
+  Success: aci_gap_set_io_capability command
+  Success: aci_gap_set_security_requirements command
+  Success: aci_gap_configure_filter_accept_and_resolving_list command
+==>> End BLE_Init function
+
+Services and Characteristics creation
+  Success: aci_gatt_srv_add_service command: DIS 
+  Success: aci_gatt_srv_add_service command: Stream service
+  Stream handles: Svc=0x001B  Write=0x001C  Notify=0x001E
+STREAM: service initialised.  Send=2 ms  (sync SPI pull)
+FPGA_SPI: init done (sync bit-bang pull, O2)
+End of Services and Characteristics creation
+
+==>> Success: aci_gap_set_advertising_configuration
+==>> Success: aci_gap_set_advertising_data
+==>> Success: aci_gap_set_advertising_enable
+STREAM: fifo_full SET at 5.03709
+STREAM: ring peak=0/2048 (0%) at 7.03301
+�
+*** KUNTUR UART OK — 115200 8N1 ***
+  Success: aci_hal_set_tx_power_level command
+  Success: aci_gatt_srv_profile_init command
+  Success: aci_gap_init command
+  Static Random Bluetooth Address: d1:b8:af:56:8f:ab
+  Success: Gap_profile_set_dev_name - Device Name
+  Success: Gap_profile_set_appearance - Appearance
+  Success: aci_gap_set_io_capability command
+  Success: aci_gap_set_security_requirements command
+  Success: aci_gap_configure_filter_accept_and_resolving_list command
+==>> End BLE_Init function
+
+Services and Characteristics creation
+  Success: aci_gatt_srv_add_service command: DIS 
+  Success: aci_gatt_srv_add_service command: Stream service
+  Stream handles: Svc=0x001B  Write=0x001C  Notify=0x001E
+STREAM: service initialised.  Send=2 ms  (sync SPI pull)
+FPGA_SPI: init done (sync bit-bang pull, O2)
+End of Services and Characteristics creation
+
+==>> Success: aci_gap_set_advertising_configuration
+==>> Success: aci_gap_set_advertising_data
+==>> Success: aci_gap_set_advertising_enable
+>>== hci_le_connection_complete_event - Connection handle: 0x0801
+     - Connection established with @:f2:95:aa:c8:51:6a
+     - Connection Interval:   7.50 ms
+     - Connection latency:    0
+     - Supervision Timeout: 5000 ms
+STREAM: connected (handle 0x0801)
+  DLE 251 requested.
+STREAM: fifo_full SET at 5.04573
+DLE UPDATE: MaxTxOctets=251 MaxRxOctets=27
+  2M PHY requested.
+DLE UPDATE: MaxTxOctets=251 MaxRxOctets=251
+  Warning: hci_le_set_phy 2M request failed: 0x07
+DLE UPDATE: MaxTxOctets=251 MaxRxOctets=251
+  2M PHY requested.
+PHY update: TX=2M RX=2M status=0x00
+CPUP: skipped (WB09KE_HF — central controls CI).
+PHY update: TX=2M RX=2M status=0x00
+CPUP: skipped (WB09KE_HF — central controls CI).
+STREAM: CCCD enabled (conn=0x0801) – seq+counter reset to 0
+STREAM: flow-off #1 (batch=4884 tot=4884)
+STREAM: ring peak=59/2048 (2%) at 14.29151
+STREAM: fifo_full CLR at 14.29744
+STREAM: fifo_full SET at 15.04126
+STREAM: ring peak=2048/2048 (100%) at 16.29210
+STREAM: ring peak=2048/2048 (100%) at 18.29267
+>>== HCI_DISCONNECTION_COMPLETE_EVT_CODE
+     - Connection Handle:   0x801
+     - Reason:    0x08
+STREAM: disconnected, sending stopped.
+==>> Success: aci_gap_set_advertising_configuration
+==>> Success: aci_gap_set_advertising_data
+==>> Success: aci_gap_set_advertising_enable
+STREAM: LONG STALL - flow-off #1 took 4979282 us to resume (longest=4979282 us) resumed_at=19.28347
+STREAM: pool-avail #1  flowoffs=1  notifs=4884  batch_now=0
+>>== hci_le_connection_complete_event - Connection handle: 0x0802
+     - Connection established with @:f2:95:aa:c8:51:6a
+     - Connection Interval:   7.50 ms
+     - Connection latency:    0
+     - Supervision Timeout: 5000 ms
+STREAM: connected (handle 0x0802)
+  DLE 251 requested.
+DLE UPDATE: MaxTxOctets=251 MaxRxOctets=27
+  2M PHY requested.
+DLE UPDATE: MaxTxOctets=251 MaxRxOctets=251
+  Warning: hci_le_set_phy 2M request failed: 0x07
+DLE UPDATE: MaxTxOctets=251 MaxRxOctets=251
+  2M PHY requested.
+PHY update: TX=2M RX=2M status=0x00
+CPUP: skipped (WB09KE_HF — central controls CI).
+PHY update: TX=2M RX=2M status=0x00
+CPUP: skipped (WB09KE_HF — central controls CI).
+STREAM: CCCD enabled (conn=0x0802) – seq+counter reset to 0

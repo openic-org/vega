@@ -1,0 +1,213 @@
+ÿÿÿÿÿÿÿÿÿÿÿSTREAM: flow-off #266 (batch=176 tot=166051)
+STREAM: LONG STALL - flow-off #266 took 4937 us to resume (longest=15027031 us) resumed_at=452.12657
+STREAM: ring drained to 0 at 452.12993 (backlog was 59 pairs)
+STREAM: flow-off #267 (batch=91 tot=166142)
+STREAM: LONG STALL - flow-off #267 took 4656 us to resume (longest=15027031 us) resumed_at=452.19054
+STREAM: ring drained to 0 at 452.19390 (backlog was 59 pairs)
+STREAM: flow-off #268 (batch=200 tot=166342)
+STREAM: LONG STALL - flow-off #268 took 4937 us to resume (longest=15027031 us) resumed_at=453.00349
+STREAM: ring drained to 0 at 453.00684 (backlog was 59 pairs)
+STREAM: flow-off #269 (batch=404 tot=166746)
+STREAM: LONG STALL - flow-off #269 took 4875 us to resume (longest=15027031 us) resumed_at=453.26518
+STREAM: ring drained to 0 at 453.26854 (backlog was 59 pairs)
+STREAM: flow-off #270 (batch=301 tot=167047)
+STREAM: LONG STALL - flow-off #270 took 4906 us to resume (longest=15027031 us) resumed_at=454.14172
+STREAM: ring drained to 0 at 454.14507 (backlog was 59 pairs)
+STREAM: flow-off #271 (batch=716 tot=167763)
+STREAM: LONG STALL - flow-off #271 took 4875 us to resume (longest=15027031 us) resumed_at=455.28036
+STREAM: ring drained to 0 at 455.28372 (backlog was 59 pairs)
+STREAM: flow-off #272 (batch=612 tot=168375)
+STREAM: LONG STALL - flow-off #272 took 4718 us to resume (longest=15027031 us) resumed_at=457.03349
+STREAM: ring drained to 0 at 457.03690 (backlog was 59 pairs)
+STREAM: flow-off #273 (batch=508 tot=168883)
+STREAM: LONG STALL - flow-off #273 took 4875 us to resume (longest=15027031 us) resumed_at=458.04090
+STREAM: ring drained to 0 at 458.04426 (backlog was 59 pairs)
+STREAM: flow-off #274 (batch=19 tot=168902)
+STREAM: LONG STALL - flow-off #274 took 4875 us to resume (longest=15027031 us) resumed_at=458.05948
+STREAM: ring drained to 0 at 458.06284 (backlog was 59 pairs)
+STREAM: flow-off #275 (batch=1107 tot=170009)
+STREAM: LONG STALL - flow-off #275 took 5093 us to resume (longest=15027031 us) resumed_at=460.12518
+STREAM: ring drained to 0 at 460.12853 (backlog was 59 pairs)
+STREAM: flow-off #276 (batch=400 tot=170409)
+STREAM: LONG STALL - flow-off #276 took 4937 us to resume (longest=15027031 us) resumed_at=461.06423
+STREAM: ring drained to 0 at 461.06758 (backlog was 59 pairs)
+STREAM: flow-off #277 (batch=613 tot=171022)
+STREAM: LONG STALL - flow-off #277 took 4937 us to resume (longest=15027031 us) resumed_at=462.13795
+STREAM: ring drained to 0 at 462.14131 (backlog was 59 pairs)
+STREAM: flow-off #278 (batch=1027 tot=172049)
+STREAM: LONG STALL - flow-off #278 took 5062 us to resume (longest=15027031 us) resumed_at=464.15313
+STREAM: ring drained to 0 at 464.15649 (backlog was 59 pairs)
+STREAM: flow-off #279 (batch=263 tot=172312)
+STREAM: LONG STALL - flow-off #279 took 4937 us to resume (longest=15027031 us) resumed_at=465.00590
+STREAM: ring drained to 0 at 465.00926 (backlog was 59 pairs)
+STREAM: flow-off #280 (batch=130 tot=172442)
+STREAM: LONG STALL - flow-off #280 took 4968 us to resume (longest=15027031 us) resumed_at=465.09458
+STREAM: ring drained to 0 at 465.09793 (backlog was 59 pairs)
+STREAM: flow-off #281 (batch=769 tot=173211)
+STREAM: LONG STALL - flow-off #281 took 4968 us to resume (longest=15027031 us) resumed_at=466.26662
+STREAM: ring drained to 0 at 466.26998 (backlog was 59 pairs)
+STREAM: flow-off #282 (batch=248 tot=173459)
+STREAM: LONG STALL - flow-off #282 took 5000 us to resume (longest=15027031 us) resumed_at=467.10998
+STREAM: ring drained to 0 at 467.11333 (backlog was 59 pairs)
+STREAM: flow-off #283 (batch=457 tot=173916)
+STREAM: LONG STALL - flow-off #283 took 4968 us to resume (longest=15027031 us) resumed_at=468.08500
+STREAM: ring drained to 0 at 468.08835 (backlog was 59 pairs)
+STREAM: flow-off #284 (batch=613 tot=174529)
+STREAM: LONG STALL - flow-off #284 took 4906 us to resume (longest=15027031 us) resumed_at=469.15872
+STREAM: ring drained to 0 at 469.16208 (backlog was 59 pairs)
+STREAM: flow-off #285 (batch=92 tot=174621)
+STREAM: LONG STALL - flow-off #285 took 4812 us to resume (longest=15027031 us) resumed_at=469.22343
+STREAM: ring drained to 0 at 469.22678 (backlog was 59 pairs)
+STREAM: flow-off #286 (batch=89 tot=174710)
+STREAM: LONG STALL - flow-off #286 took 4593 us to resume (longest=15027031 us) resumed_at=469.28598
+STREAM: ring drained to 0 at 469.28937 (backlog was 59 pairs)
+STREAM: flow-off #287 (batch=928 tot=175638)
+STREAM: LONG STALL - flow-off #287 took 4906 us to resume (longest=15027031 us) resumed_at=471.23875
+STREAM: ring drained to 0 at 471.24211 (backlog was 59 pairs)
+STREAM: flow-off #288 (batch=355 tot=175993)
+STREAM: LONG STALL - flow-off #288 took 4812 us to resume (longest=15027031 us) resumed_at=472.14934
+STREAM: ring drained to 0 at 472.15269 (backlog was 59 pairs)
+STREAM: flow-off #289 (batch=974 tot=176967)
+STREAM: LONG STALL - flow-off #289 took 4812 us to resume (longest=15027031 us) resumed_at=474.13091
+STREAM: ring drained to 0 at 474.13427 (backlog was 59 pairs)
+STREAM: flow-off #290 (batch=301 tot=177268)
+STREAM: LONG STALL - flow-off #290 took 4968 us to resume (longest=15027031 us) resumed_at=475.00753
+STREAM: ring drained to 0 at 475.01089 (backlog was 59 pairs)
+STREAM: flow-off #291 (batch=166 tot=177434)
+STREAM: LONG STALL - flow-off #291 took 4687 us to resume (longest=15027031 us) resumed_at=475.11900
+STREAM: ring drained to 0 at 475.12237 (backlog was 59 pairs)
+STREAM: flow-off #292 (batch=14 tot=177448)
+STREAM: LONG STALL - flow-off #292 took 4687 us to resume (longest=15027031 us) resumed_at=475.13439
+STREAM: ring drained to 0 at 475.13780 (backlog was 59 pairs)
+STREAM: flow-off #293 (batch=723 tot=178171)
+STREAM: LONG STALL - flow-off #293 took 4906 us to resume (longest=15027031 us) resumed_at=476.27748
+STREAM: ring drained to 0 at 476.28092 (backlog was 59 pairs)
+STREAM: flow-off #294 (batch=716 tot=178887)
+STREAM: LONG STALL - flow-off #294 took 4875 us to resume (longest=15027031 us) resumed_at=478.09628
+STREAM: ring drained to 0 at 478.09964 (backlog was 59 pairs)
+STREAM: flow-off #295 (batch=720 tot=179607)
+STREAM: LONG STALL - flow-off #295 took 8562 us to resume (longest=15027031 us) resumed_at=479.23874
+STREAM: ring drained to 0 at 479.24226 (backlog was 59 pairs)
+STREAM: flow-off #296 (batch=1544 tot=181151)
+STREAM: LONG STALL - flow-off #296 took 4937 us to resume (longest=15027031 us) resumed_at=482.25891
+STREAM: ring drained to 0 at 482.26227 (backlog was 59 pairs)
+STREAM: flow-off #297 (batch=1130 tot=182281)
+STREAM: LONG STALL - flow-off #297 took 4937 us to resume (longest=15027031 us) resumed_at=485.01892
+STREAM: ring drained to 0 at 485.02228 (backlog was 59 pairs)
+STREAM: flow-off #298 (batch=229 tot=182510)
+STREAM: LONG STALL - flow-off #298 took 4875 us to resume (longest=15027031 us) resumed_at=485.17006
+STREAM: ring drained to 0 at 485.17342 (backlog was 59 pairs)
+STREAM: flow-off #299 (batch=2760 tot=185270)
+STREAM: LONG STALL - flow-off #299 took 4968 us to resume (longest=15027031 us) resumed_at=490.31913
+STREAM: ring drained to 0 at 491.00257 (backlog was 59 pairs)
+STREAM: flow-off #300 (batch=2845 tot=188115)
+STREAM: LONG STALL - flow-off #300 took 5062 us to resume (longest=15027031 us) resumed_at=496.20193
+STREAM: ring drained to 0 at 496.20528 (backlog was 59 pairs)
+STREAM: flow-off #301 (batch=777 tot=188892)
+STREAM: LONG STALL - flow-off #301 took 4812 us to resume (longest=15027031 us) resumed_at=498.05897
+STREAM: ring drained to 0 at 498.06232 (backlog was 59 pairs)
+STREAM: flow-off #302 (batch=1848 tot=190740)
+STREAM: LONG STALL - flow-off #302 took 5125 us to resume (longest=15027031 us) resumed_at=501.27247
+STREAM: ring drained to 0 at 501.27582 (backlog was 59 pairs)
+STREAM: flow-off #303 (batch=362 tot=191102)
+STREAM: LONG STALL - flow-off #303 took 4906 us to resume (longest=15027031 us) resumed_at=502.18751
+STREAM: ring drained to 0 at 502.19087 (backlog was 59 pairs)
+STREAM: flow-off #304 (batch=431 tot=191533)
+STREAM: LONG STALL - flow-off #304 took 4843 us to resume (longest=15027031 us) resumed_at=503.14619
+STREAM: ring drained to 0 at 503.14955 (backlog was 59 pairs)
+STREAM: flow-off #305 (batch=1540 tot=193073)
+STREAM: LONG STALL - flow-off #305 took 5031 us to resume (longest=15027031 us) resumed_at=506.16519
+STREAM: ring drained to 0 at 506.16854 (backlog was 59 pairs)
+STREAM: flow-off #306 (batch=169 tot=193242)
+STREAM: LONG STALL - flow-off #306 took 4843 us to resume (longest=15027031 us) resumed_at=506.27826
+STREAM: ring drained to 0 at 506.28162 (backlog was 59 pairs)
+STREAM: flow-off #307 (batch=1494 tot=194736)
+STREAM: LONG STALL - flow-off #307 took 5062 us to resume (longest=15027031 us) resumed_at=509.26843
+STREAM: ring drained to 0 at 509.27178 (backlog was 59 pairs)
+STREAM: flow-off #308 (batch=302 tot=195038)
+STREAM: LONG STALL - flow-off #308 took 4875 us to resume (longest=15027031 us) resumed_at=510.14547
+STREAM: ring drained to 0 at 510.14882 (backlog was 59 pairs)
+STREAM: flow-off #309 (batch=301 tot=195339)
+STREAM: LONG STALL - flow-off #309 took 4812 us to resume (longest=15027031 us) resumed_at=511.02218
+STREAM: ring drained to 0 at 511.02554 (backlog was 59 pairs)
+STREAM: flow-off #310 (batch=457 tot=195796)
+STREAM: LONG STALL - flow-off #310 took 4812 us to resume (longest=15027031 us) resumed_at=511.31733
+STREAM: ring drained to 0 at 512.00068 (backlog was 59 pairs)
+STREAM: flow-off #311 (batch=558 tot=196354)
+STREAM: LONG STALL - flow-off #311 took 4718 us to resume (longest=15027031 us) resumed_at=513.03619
+STREAM: ring drained to 0 at 513.03957 (backlog was 59 pairs)
+STREAM: flow-off #312 (batch=3158 tot=199512)
+STREAM: LONG STALL - flow-off #312 took 5031 us to resume (longest=15027031 us) resumed_at=519.11643
+STREAM: ring drained to 0 at 519.11979 (backlog was 59 pairs)
+STREAM: flow-off #313 (batch=613 tot=200125)
+STREAM: LONG STALL - flow-off #313 took 4875 us to resume (longest=15027031 us) resumed_at=520.19000
+STREAM: ring drained to 0 at 520.19336 (backlog was 59 pairs)
+STREAM: flow-off #314 (batch=1130 tot=201255)
+STREAM: LONG STALL - flow-off #314 took 5062 us to resume (longest=15027031 us) resumed_at=522.27004
+STREAM: ring drained to 0 at 522.27340 (backlog was 59 pairs)
+STREAM: flow-off #315 (batch=291 tot=201546)
+STREAM: LONG STALL - flow-off #315 took 14875 us to resume (longest=15027031 us) resumed_at=523.14366
+STREAM: ring drained to 0 at 523.14746 (backlog was 59 pairs)
+STREAM: flow-off #316 (batch=1246 tot=202792)
+STREAM: LONG STALL - flow-off #316 took 4968 us to resume (longest=15027031 us) resumed_at=525.29438
+STREAM: ring drained to 0 at 525.29774 (backlog was 59 pairs)
+STREAM: flow-off #317 (batch=164 tot=202956)
+STREAM: LONG STALL - flow-off #317 took 4968 us to resume (longest=15027031 us) resumed_at=526.08452
+STREAM: ring drained to 0 at 526.08788 (backlog was 59 pairs)
+STREAM: flow-off #318 (batch=1993 tot=204949)
+STREAM: LONG STALL - flow-off #318 took 4937 us to resume (longest=15027031 us) resumed_at=530.06951
+STREAM: ring drained to 0 at 530.07287 (backlog was 59 pairs)
+STREAM: flow-off #319 (batch=43 tot=204992)
+STREAM: LONG STALL - flow-off #319 took 4781 us to resume (longest=15027031 us) resumed_at=530.10314
+STREAM: ring drained to 0 at 530.10650 (backlog was 59 pairs)
+STREAM: flow-off #320 (batch=1183 tot=206175)
+STREAM: LONG STALL - flow-off #320 took 4906 us to resume (longest=15027031 us) resumed_at=532.21663
+STREAM: ring drained to 0 at 532.21999 (backlog was 59 pairs)
+STREAM: flow-off #321 (batch=145 tot=206320)
+STREAM: LONG STALL - flow-off #321 took 4906 us to resume (longest=15027031 us) resumed_at=532.31480
+STREAM: ring drained to 0 at 532.31815 (backlog was 59 pairs)
+STREAM: flow-off #322 (batch=816 tot=207136)
+STREAM: LONG STALL - flow-off #322 took 4593 us to resume (longest=15027031 us) resumed_at=534.19664
+STREAM: ring drained to 0 at 534.20000 (backlog was 59 pairs)
+STREAM: flow-off #323 (batch=148 tot=207284)
+STREAM: LONG STALL - flow-off #323 took 4781 us to resume (longest=15027031 us) resumed_at=534.29675
+STREAM: ring drained to 0 at 534.30011 (backlog was 59 pairs)
+STREAM: flow-off #324 (batch=32 tot=207316)
+STREAM: LONG STALL - flow-off #324 took 4687 us to resume (longest=15027031 us) resumed_at=535.00354
+STREAM: ring drained to 0 at 535.00690 (backlog was 59 pairs)
+STREAM: flow-off #325 (batch=102 tot=207418)
+STREAM: LONG STALL - flow-off #325 took 4906 us to resume (longest=15027031 us) resumed_at=535.07454
+STREAM: ring drained to 0 at 535.07797 (backlog was 59 pairs)
+STREAM: flow-off #326 (batch=123 tot=207541)
+STREAM: LONG STALL - flow-off #326 took 4937 us to resume (longest=15027031 us) resumed_at=535.15901
+STREAM: ring drained to 0 at 535.16237 (backlog was 59 pairs)
+STREAM: flow-off #327 (batch=1050 tot=208591)
+STREAM: LONG STALL - flow-off #327 took 5062 us to resume (longest=15027031 us) resumed_at=537.18850
+STREAM: ring drained to 0 at 537.19185 (backlog was 59 pairs)
+STREAM: flow-off #328 (batch=199 tot=208790)
+STREAM: LONG STALL - flow-off #328 took 4875 us to resume (longest=15027031 us) resumed_at=538.00074
+STREAM: ring drained to 0 at 538.00410 (backlog was 59 pairs)
+STREAM: flow-off #329 (batch=1597 tot=210387)
+STREAM: LONG STALL - flow-off #329 took 4968 us to resume (longest=15027031 us) resumed_at=541.05595
+STREAM: ring drained to 0 at 541.05930 (backlog was 59 pairs)
+STREAM: flow-off #330 (batch=457 tot=210844)
+STREAM: LONG STALL - flow-off #330 took 4781 us to resume (longest=15027031 us) resumed_at=542.03103
+STREAM: ring drained to 0 at 542.03439 (backlog was 59 pairs)
+STREAM: flow-off #331 (batch=560 tot=211404)
+STREAM: LONG STALL - flow-off #331 took 4875 us to resume (longest=15027031 us) resumed_at=543.07119
+STREAM: ring drained to 0 at 543.07455 (backlog was 59 pairs)
+STREAM: flow-off #332 (batch=457 tot=211861)
+STREAM: LONG STALL - flow-off #332 took 4843 us to resume (longest=15027031 us) resumed_at=544.04627
+STREAM: ring drained to 0 at 544.04962 (backlog was 59 pairs)
+STREAM: flow-off #333 (batch=96 tot=211957)
+STREAM: LONG STALL - flow-off #333 took 4781 us to resume (longest=15027031 us) resumed_at=544.11356
+STREAM: ring drained to 0 at 544.11692 (backlog was 59 pairs)
+STREAM: flow-off #334 (batch=195 tot=212152)
+STREAM: LONG STALL - flow-off #334 took 4843 us to resume (longest=15027031 us) resumed_at=544.24316
+STREAM: ring drained to 0 at 544.24652 (backlog was 59 pairs)
+STREAM: flow-off #335 (batch=769 tot=212921)
+STREAM: LONG STALL - flow-off #335 took 4875 us to resume (longest=15027031 us) resumed_at=546.09520
+STREAM: ring drained to 0 at 546.09855 (backlog was 59 pairs)
+STREAM: flow-off #336 (batch=677 tot=213598)
+STREAM: LONG STALL - flow-off #336 took 4937 us to resume (longest=15027031 us) resumed_at=547.20927
+STREAM: ring drained to 0 at 547.21262 (backlog was 59 pairs)

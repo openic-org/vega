@@ -1,0 +1,3553 @@
+��������STREAM: flow-off #45 (batch=2160 tot=27889)
+STREAM: LONG STALL - flow-off #45 took 4843 us to resume (longest=5010343 us) resumed_at=75.09550
+STREAM: fifo_full CLR at 71.00382
+STREAM: fifo_full SET at 71.00383
+STREAM: fifo_full CLR at 71.00385
+STREAM: fifo_full SET at 71.00385
+STREAM: fifo_full CLR at 71.00387
+STREAM: fifo_full SET at 71.00388
+STREAM: fifo_full CLR at 71.00389
+STREAM: fifo_full SET at 71.00390
+STREAM: fifo_full CLR at 71.00391
+STREAM: fifo_full SET at 71.00392
+STREAM: fifo_full SET at 71.00393
+STREAM: fifo_full CLR at 71.00395
+STREAM: fifo_full SET at 71.00396
+STREAM: fifo_full CLR at 71.00397
+STREAM: fifo_full SET at 71.00398
+STREAM: fifo_full CLR at 71.00399
+STREAM: fifo_full SET at 71.00400
+STREAM: fifo_full CLR at 71.00401
+STREAM: fifo_full SET at 71.00402
+STREAM: fifo_full CLR at 71.00403
+STREAM: fifo_full SET at 71.00404
+STREAM: fifo_full CLR at 71.00406
+STREAM: fifo_full SET at 71.00407
+STREAM: fifo_full CLR at 71.00408
+STREAM: fifo_full SET at 71.00409
+STREAM: fifo_full SET at 71.00410
+STREAM: fifo_full SET at 71.00411
+STREAM: fifo_full CLR at 71.00412
+STREAM: fifo_full SET at 71.00413
+STREAM: fifo_full CLR at 71.00414
+STREAM: fifo_full SET at 71.00415
+STREAM: fifo_full CLR at 71.00416
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 75.13539 (backlog was 59 pairs)
+STREAM: flow-off #46 (batch=57 tot=27946)
+STREAM: post-drain +  6000 us  SKP ch0= 25243 step=   +0  (ring=59 fpga=0)
+STREAM: LONG STALL - flow-off #46 took 11937 us to resume (longest=5010343 us) resumed_at=75.17715
+STREAM: fifo_full SET at 75.11766
+STREAM: fifo_full CLR at 75.13739
+STREAM: fifo_full SET at 75.13740
+STREAM: fifo_full CLR at 75.13742
+STREAM: fifo_full SET at 75.13742
+STREAM: fifo_full CLR at 75.13744
+STREAM: fifo_full SET at 75.13744
+STREAM: fifo_full CLR at 75.13746
+STREAM: fifo_full SET at 75.13747
+STREAM: fifo_full CLR at 75.13748
+STREAM: fifo_full SET at 75.13749
+STREAM: fifo_full CLR at 75.13750
+STREAM: fifo_full SET at 75.13750
+STREAM: fifo_full CLR at 75.13751
+STREAM: fifo_full SET at 75.13752
+STREAM: fifo_full CLR at 75.13754
+STREAM: fifo_full SET at 75.13754
+STREAM: fifo_full CLR at 75.13756
+STREAM: fifo_full SET at 75.13756
+STREAM: fifo_full CLR at 75.13758
+STREAM: fifo_full SET at 75.13759
+STREAM: fifo_full CLR at 75.13760
+STREAM: fifo_full SET at 75.13761
+STREAM: fifo_full CLR at 75.13762
+STREAM: fifo_full SET at 75.13763
+STREAM: fifo_full CLR at 75.13764
+STREAM: fifo_full SET at 75.13765
+STREAM: fifo_full CLR at 75.13767
+STREAM: fifo_full SET at 75.13768
+STREAM: fifo_full SET at 75.13769
+STREAM: fifo_full CLR at 75.13770
+STREAM: fifo_full SET at 75.13771
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 75.21705 (backlog was 59 pairs)
+STREAM: post-drain +  6000 us  SKP ch0= 28606 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 34000 us  SKP ch0= 31262 step=+1889  (ring=0 fpga=59)
+STREAM: flow-off #47 (batch=1268 tot=29214)
+STREAM: LONG STALL - flow-off #47 took 4750 us to resume (longest=5010343 us) resumed_at=78.06677
+STREAM: fifo_full CLR at 75.21905
+STREAM: fifo_full SET at 75.21906
+STREAM: fifo_full CLR at 75.21907
+STREAM: fifo_full SET at 75.21908
+STREAM: fifo_full CLR at 75.21909
+STREAM: fifo_full SET at 75.21910
+STREAM: fifo_full CLR at 75.21912
+STREAM: fifo_full SET at 75.21912
+STREAM: fifo_full CLR at 75.21914
+STREAM: fifo_full SET at 75.21914
+STREAM: fifo_full CLR at 75.21916
+STREAM: fifo_full SET at 75.21916
+STREAM: fifo_full CLR at 75.21917
+STREAM: fifo_full SET at 75.21918
+STREAM: fifo_full CLR at 75.21919
+STREAM: fifo_full SET at 75.21920
+STREAM: fifo_full CLR at 75.21921
+STREAM: fifo_full SET at 75.21922
+STREAM: fifo_full CLR at 75.21924
+STREAM: fifo_full SET at 75.21924
+STREAM: fifo_full CLR at 75.21926
+STREAM: fifo_full SET at 75.21927
+STREAM: fifo_full CLR at 75.21928
+STREAM: fifo_full SET at 75.21929
+STREAM: fifo_full CLR at 75.21930
+STREAM: fifo_full SET at 75.21931
+STREAM: fifo_full SET at 75.21932
+STREAM: fifo_full CLR at 75.21934
+STREAM: fifo_full SET at 75.21934
+STREAM: fifo_full CLR at 75.21936
+STREAM: fifo_full SET at 75.21937
+STREAM: fifo_full CLR at 75.21938
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 78.10666 (backlog was 59 pairs)
+STREAM: post-drain +  6000 us  SKP ch0=-21301 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #48 (batch=239 tot=29453)
+STREAM: LONG STALL - flow-off #48 took 4687 us to resume (longest=5010343 us) resumed_at=78.26361
+STREAM: fifo_full SET at 78.07927
+STREAM: fifo_full CLR at 78.10867
+STREAM: fifo_full SET at 78.10868
+STREAM: fifo_full CLR at 78.10869
+STREAM: fifo_full SET at 78.10870
+STREAM: fifo_full CLR at 78.10871
+STREAM: fifo_full SET at 78.10872
+STREAM: fifo_full SET at 78.10873
+STREAM: fifo_full CLR at 78.10875
+STREAM: fifo_full SET at 78.10875
+STREAM: fifo_full CLR at 78.10876
+STREAM: fifo_full SET at 78.10877
+STREAM: fifo_full CLR at 78.10878
+STREAM: fifo_full SET at 78.10879
+STREAM: fifo_full CLR at 78.10880
+STREAM: fifo_full SET at 78.10881
+STREAM: fifo_full CLR at 78.10882
+STREAM: fifo_full SET at 78.10883
+STREAM: fifo_full CLR at 78.10885
+STREAM: fifo_full SET at 78.10886
+STREAM: fifo_full CLR at 78.10887
+STREAM: fifo_full SET at 78.10888
+STREAM: fifo_full SET at 78.10889
+STREAM: fifo_full SET at 78.10890
+STREAM: fifo_full CLR at 78.10891
+STREAM: fifo_full SET at 78.10892
+STREAM: fifo_full CLR at 78.10893
+STREAM: fifo_full SET at 78.10894
+STREAM: fifo_full CLR at 78.10895
+STREAM: fifo_full SET at 78.10896
+STREAM: fifo_full CLR at 78.10898
+STREAM: fifo_full SET at 78.10898
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 78.30352 (backlog was 59 pairs)
+STREAM: flow-off #49 (batch=34 tot=29487)
+STREAM: post-drain +  6000 us  SKP ch0= -4338 step=   +0  (ring=59 fpga=0)
+STREAM: LONG STALL - flow-off #49 took 11968 us to resume (longest=5010343 us) resumed_at=79.01077
+STREAM: fifo_full SET at 78.30553
+STREAM: fifo_full CLR at 78.30554
+STREAM: fifo_full SET at 78.30555
+STREAM: fifo_full CLR at 78.30556
+STREAM: fifo_full SET at 78.30557
+STREAM: fifo_full CLR at 78.30558
+STREAM: fifo_full SET at 78.30559
+STREAM: fifo_full CLR at 78.30561
+STREAM: fifo_full SET at 78.30561
+STREAM: fifo_full CLR at 78.30563
+STREAM: fifo_full SET at 78.30564
+STREAM: fifo_full CLR at 78.30565
+STREAM: fifo_full SET at 78.30566
+STREAM: fifo_full CLR at 78.30567
+STREAM: fifo_full SET at 78.30568
+STREAM: fifo_full SET at 78.30569
+STREAM: fifo_full CLR at 78.30571
+STREAM: fifo_full SET at 78.30572
+STREAM: fifo_full CLR at 78.30573
+STREAM: fifo_full SET at 78.30574
+STREAM: fifo_full CLR at 78.30575
+STREAM: fifo_full SET at 78.30576
+STREAM: fifo_full CLR at 78.30577
+STREAM: fifo_full SET at 78.30578
+STREAM: fifo_full CLR at 78.30579
+STREAM: fifo_full SET at 78.30580
+STREAM: fifo_full CLR at 78.30582
+STREAM: fifo_full SET at 78.30583
+STREAM: fifo_full CLR at 78.30583
+STREAM: fifo_full SET at 78.30584
+STREAM: fifo_full SET at 78.30585
+STREAM: fifo_full CLR at 78.30587
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 79.05066 (backlog was 59 pairs)
+STREAM: post-drain +  6000 us  SKP ch0= -2332 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #50 (batch=1427 tot=30914)
+STREAM: LONG STALL - flow-off #50 took 4812 us to resume (longest=5010343 us) resumed_at=81.31864
+STREAM: fifo_full CLR at 79.05266
+STREAM: fifo_full SET at 79.05267
+STREAM: fifo_full SET at 79.05268
+STREAM: fifo_full CLR at 79.05270
+STREAM: fifo_full SET at 79.05271
+STREAM: fifo_full CLR at 79.05272
+STREAM: fifo_full SET at 79.05273
+STREAM: fifo_full CLR at 79.05274
+STREAM: fifo_full SET at 79.05275
+STREAM: fifo_full CLR at 79.05276
+STREAM: fifo_full SET at 79.05277
+STREAM: fifo_full CLR at 79.05278
+STREAM: fifo_full SET at 79.05279
+STREAM: fifo_full CLR at 79.05281
+STREAM: fifo_full SET at 79.05282
+STREAM: fifo_full CLR at 79.05283
+STREAM: fifo_full SET at 79.05284
+STREAM: fifo_full SET at 79.05285
+STREAM: fifo_full CLR at 79.05287
+STREAM: fifo_full SET at 79.05287
+STREAM: fifo_full CLR at 79.05289
+STREAM: fifo_full SET at 79.05289
+STREAM: fifo_full CLR at 79.05291
+STREAM: fifo_full SET at 79.05291
+STREAM: fifo_full CLR at 79.05292
+STREAM: fifo_full SET at 79.05293
+STREAM: fifo_full CLR at 79.05294
+STREAM: fifo_full SET at 79.05295
+STREAM: fifo_full CLR at 79.05296
+STREAM: fifo_full SET at 79.05297
+STREAM: fifo_full CLR at 79.05299
+STREAM: fifo_full SET at 79.05300
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 82.03855 (backlog was 59 pairs)
+STREAM: post-drain +  6000 us  SKP ch0= 24464 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #51 (batch=187 tot=31101)
+STREAM: LONG STALL - flow-off #51 took 4656 us to resume (longest=5010343 us) resumed_at=82.16250
+STREAM: fifo_full SET at 82.01286
+STREAM: fifo_full CLR at 82.04056
+STREAM: fifo_full SET at 82.04057
+STREAM: fifo_full CLR at 82.04058
+STREAM: fifo_full SET at 82.04059
+STREAM: fifo_full CLR at 82.04060
+STREAM: fifo_full SET at 82.04061
+STREAM: fifo_full SET at 82.04062
+STREAM: fifo_full CLR at 82.04064
+STREAM: fifo_full SET at 82.04065
+STREAM: fifo_full CLR at 82.04066
+STREAM: fifo_full SET at 82.04067
+STREAM: fifo_full CLR at 82.04068
+STREAM: fifo_full SET at 82.04069
+STREAM: fifo_full CLR at 82.04070
+STREAM: fifo_full SET at 82.04071
+STREAM: fifo_full CLR at 82.04073
+STREAM: fifo_full SET at 82.04074
+STREAM: fifo_full CLR at 82.04075
+STREAM: fifo_full SET at 82.04076
+STREAM: fifo_full CLR at 82.04077
+STREAM: fifo_full SET at 82.04078
+STREAM: fifo_full SET at 82.04079
+STREAM: fifo_full CLR at 82.04081
+STREAM: fifo_full SET at 82.04081
+STREAM: fifo_full CLR at 82.04083
+STREAM: fifo_full SET at 82.04083
+STREAM: fifo_full CLR at 82.04084
+STREAM: fifo_full SET at 82.04085
+STREAM: fifo_full CLR at 82.04086
+STREAM: fifo_full SET at 82.04087
+STREAM: fifo_full CLR at 82.04088
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 82.20239 (backlog was 59 pairs)
+STREAM: flow-off #52 (batch=37 tot=31138)
+STREAM: post-drain +  6000 us  SKP ch0=-27324 step=   +0  (ring=59 fpga=0)
+STREAM: LONG STALL - flow-off #52 took 12031 us to resume (longest=5010343 us) resumed_at=82.23146
+STREAM: fifo_full CLR at 82.20439
+STREAM: fifo_full SET at 82.20440
+STREAM: fifo_full CLR at 82.20441
+STREAM: fifo_full SET at 82.20442
+STREAM: fifo_full CLR at 82.20444
+STREAM: fifo_full SET at 82.20444
+STREAM: fifo_full CLR at 82.20446
+STREAM: fifo_full SET at 82.20446
+STREAM: fifo_full CLR at 82.20448
+STREAM: fifo_full SET at 82.20449
+STREAM: fifo_full CLR at 82.20450
+STREAM: fifo_full SET at 82.20451
+STREAM: fifo_full CLR at 82.20452
+STREAM: fifo_full SET at 82.20453
+STREAM: fifo_full CLR at 82.20454
+STREAM: fifo_full SET at 82.20455
+STREAM: fifo_full CLR at 82.20457
+STREAM: fifo_full SET at 82.20458
+STREAM: fifo_full CLR at 82.20458
+STREAM: fifo_full SET at 82.20459
+STREAM: fifo_full SET at 82.20460
+STREAM: fifo_full CLR at 82.20461
+STREAM: fifo_full SET at 82.20462
+STREAM: fifo_full CLR at 82.20464
+STREAM: fifo_full SET at 82.20464
+STREAM: fifo_full CLR at 82.20466
+STREAM: fifo_full SET at 82.20467
+STREAM: fifo_full CLR at 82.20468
+STREAM: fifo_full SET at 82.20469
+STREAM: fifo_full CLR at 82.20470
+STREAM: fifo_full SET at 82.20471
+STREAM: fifo_full CLR at 82.20472
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 82.27138 (backlog was 59 pairs)
+STREAM: post-drain +  6031 us  SKP ch0=-25141 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #53 (batch=1063 tot=32201)
+STREAM: LONG STALL - flow-off #53 took 4843 us to resume (longest=5010343 us) resumed_at=84.30916
+STREAM: fifo_full CLR at 82.27338
+STREAM: fifo_full SET at 82.27339
+STREAM: fifo_full CLR at 82.27341
+STREAM: fifo_full SET at 82.27341
+STREAM: fifo_full CLR at 82.27343
+STREAM: fifo_full SET at 82.27344
+STREAM: fifo_full CLR at 82.27345
+STREAM: fifo_full SET at 82.27346
+STREAM: fifo_full CLR at 82.27347
+STREAM: fifo_full SET at 82.27348
+STREAM: fifo_full CLR at 82.27349
+STREAM: fifo_full SET at 82.27350
+STREAM: fifo_full SET at 82.27351
+STREAM: fifo_full SET at 82.27352
+STREAM: fifo_full CLR at 82.27353
+STREAM: fifo_full SET at 82.27354
+STREAM: fifo_full CLR at 82.27356
+STREAM: fifo_full SET at 82.27356
+STREAM: fifo_full CLR at 82.27358
+STREAM: fifo_full SET at 82.27358
+STREAM: fifo_full CLR at 82.27360
+STREAM: fifo_full SET at 82.27361
+STREAM: fifo_full CLR at 82.27362
+STREAM: fifo_full SET at 82.27363
+STREAM: fifo_full CLR at 82.27364
+STREAM: fifo_full SET at 82.27365
+STREAM: fifo_full CLR at 82.27366
+STREAM: fifo_full SET at 82.27367
+STREAM: fifo_full CLR at 82.27369
+STREAM: fifo_full SET at 82.27369
+STREAM: fifo_full CLR at 82.27371
+STREAM: fifo_full SET at 82.27371
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 85.02909 (backlog was 59 pairs)
+STREAM: post-drain +  6000 us  SKP ch0=-19801 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #54 (batch=3401 tot=35602)
+STREAM: LONG STALL - flow-off #54 took 4906 us to resume (longest=5010343 us) resumed_at=91.26514
+STREAM: fifo_full SET at 84.31936
+STREAM: fifo_full CLR at 85.03109
+STREAM: fifo_full SET at 85.03110
+STREAM: fifo_full CLR at 85.03111
+STREAM: fifo_full SET at 85.03112
+STREAM: fifo_full CLR at 85.03114
+STREAM: fifo_full SET at 85.03114
+STREAM: fifo_full CLR at 85.03116
+STREAM: fifo_full SET at 85.03116
+STREAM: fifo_full CLR at 85.03118
+STREAM: fifo_full SET at 85.03119
+STREAM: fifo_full CLR at 85.03120
+STREAM: fifo_full SET at 85.03121
+STREAM: fifo_full CLR at 85.03122
+STREAM: fifo_full SET at 85.03123
+STREAM: fifo_full CLR at 85.03124
+STREAM: fifo_full SET at 85.03125
+STREAM: fifo_full CLR at 85.03126
+STREAM: fifo_full SET at 85.03126
+STREAM: fifo_full CLR at 85.03128
+STREAM: fifo_full SET at 85.03129
+STREAM: fifo_full CLR at 85.03130
+STREAM: fifo_full SET at 85.03131
+STREAM: fifo_full CLR at 85.03132
+STREAM: fifo_full SET at 85.03133
+STREAM: fifo_full CLR at 85.03134
+STREAM: fifo_full SET at 85.03135
+STREAM: fifo_full SET at 85.03136
+STREAM: fifo_full CLR at 85.03138
+STREAM: fifo_full SET at 85.03139
+STREAM: fifo_full CLR at 85.03140
+STREAM: fifo_full SET at 85.03141
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 91.30502 (backlog was 59 pairs)
+STREAM: post-drain +  6031 us  SKP ch0=-12675 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #55 (batch=964 tot=36566)
+STREAM: LONG STALL - flow-off #55 took 4781 us to resume (longest=5010343 us) resumed_at=93.28026
+STREAM: fifo_full SET at 91.30081
+STREAM: fifo_full CLR at 91.30704
+STREAM: fifo_full SET at 91.30705
+STREAM: fifo_full SET at 91.30706
+STREAM: fifo_full SET at 91.30706
+STREAM: fifo_full CLR at 91.30708
+STREAM: fifo_full SET at 91.30708
+STREAM: fifo_full CLR at 91.30709
+STREAM: fifo_full SET at 91.30710
+STREAM: fifo_full CLR at 91.30711
+STREAM: fifo_full SET at 91.30712
+STREAM: fifo_full CLR at 91.30713
+STREAM: fifo_full SET at 91.30714
+STREAM: fifo_full CLR at 91.30716
+STREAM: fifo_full SET at 91.30716
+STREAM: fifo_full CLR at 91.30718
+STREAM: fifo_full SET at 91.30718
+STREAM: fifo_full CLR at 91.30720
+STREAM: fifo_full SET at 91.30721
+STREAM: fifo_full CLR at 91.30722
+STREAM: fifo_full SET at 91.30723
+STREAM: fifo_full CLR at 91.30724
+STREAM: fifo_full SET at 91.30725
+STREAM: fifo_full CLR at 91.30726
+STREAM: fifo_full SET at 91.30727
+STREAM: fifo_full CLR at 91.30729
+STREAM: fifo_full SET at 91.30729
+STREAM: fifo_full CLR at 91.30731
+STREAM: fifo_full SET at 91.30732
+STREAM: fifo_full CLR at 91.30733
+STREAM: fifo_full SET at 91.30734
+STREAM: fifo_full CLR at 91.30735
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 94.00020 (backlog was 59 pairs)
+STREAM: post-drain +  6000 us  SKP ch0=-20590 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #56 (batch=186 tot=36752)
+STREAM: LONG STALL - flow-off #56 took 4718 us to resume (longest=5010343 us) resumed_at=94.12361
+STREAM: fifo_full SET at 93.28909
+STREAM: fifo_full CLR at 94.00221
+STREAM: fifo_full SET at 94.00222
+STREAM: fifo_full SET at 94.00223
+STREAM: fifo_full CLR at 94.00225
+STREAM: fifo_full SET at 94.00225
+STREAM: fifo_full CLR at 94.00227
+STREAM: fifo_full SET at 94.00228
+STREAM: fifo_full CLR at 94.00229
+STREAM: fifo_full SET at 94.00230
+STREAM: fifo_full CLR at 94.00231
+STREAM: fifo_full SET at 94.00232
+STREAM: fifo_full CLR at 94.00233
+STREAM: fifo_full SET at 94.00234
+STREAM: fifo_full CLR at 94.00235
+STREAM: fifo_full SET at 94.00236
+STREAM: fifo_full CLR at 94.00238
+STREAM: fifo_full SET at 94.00239
+STREAM: fifo_full SET at 94.00240
+STREAM: fifo_full CLR at 94.00241
+STREAM: fifo_full SET at 94.00242
+STREAM: fifo_full CLR at 94.00243
+STREAM: fifo_full SET at 94.00244
+STREAM: fifo_full CLR at 94.00246
+STREAM: fifo_full SET at 94.00247
+STREAM: fifo_full CLR at 94.00248
+STREAM: fifo_full SET at 94.00249
+STREAM: fifo_full CLR at 94.00250
+STREAM: fifo_full SET at 94.00250
+STREAM: fifo_full CLR at 94.00251
+STREAM: fifo_full SET at 94.00252
+STREAM: fifo_full SET at 94.00253
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 94.16352 (backlog was 59 pairs)
+STREAM: post-drain +  6031 us  SKP ch0= -6415 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #57 (batch=82 tot=36834)
+STREAM: LONG STALL - flow-off #57 took 4437 us to resume (longest=5010343 us) resumed_at=94.22100
+STREAM: fifo_full CLR at 94.16553
+STREAM: fifo_full SET at 94.16554
+STREAM: fifo_full CLR at 94.16555
+STREAM: fifo_full SET at 94.16556
+STREAM: fifo_full CLR at 94.16557
+STREAM: fifo_full SET at 94.16558
+STREAM: fifo_full CLR at 94.16559
+STREAM: fifo_full SET at 94.16560
+STREAM: fifo_full CLR at 94.16562
+STREAM: fifo_full SET at 94.16562
+STREAM: fifo_full CLR at 94.16564
+STREAM: fifo_full SET at 94.16565
+STREAM: fifo_full CLR at 94.16566
+STREAM: fifo_full SET at 94.16567
+STREAM: fifo_full CLR at 94.16568
+STREAM: fifo_full SET at 94.16569
+STREAM: fifo_full CLR at 94.16570
+STREAM: fifo_full SET at 94.16571
+STREAM: fifo_full CLR at 94.16572
+STREAM: fifo_full SET at 94.16573
+STREAM: fifo_full CLR at 94.16575
+STREAM: fifo_full SET at 94.16576
+STREAM: fifo_full SET at 94.16577
+STREAM: fifo_full CLR at 94.16578
+STREAM: fifo_full SET at 94.16579
+STREAM: fifo_full CLR at 94.16581
+STREAM: fifo_full SET at 94.16581
+STREAM: fifo_full CLR at 94.16583
+STREAM: fifo_full SET at 94.16583
+STREAM: fifo_full CLR at 94.16584
+STREAM: fifo_full SET at 94.16585
+STREAM: fifo_full CLR at 94.16586
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 94.26096 (backlog was 59 pairs)
+STREAM: post-drain +  5875 us  SKP ch0=  2280 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #58 (batch=190 tot=37024)
+STREAM: LONG STALL - flow-off #58 took 4562 us to resume (longest=5010343 us) resumed_at=95.06669
+STREAM: fifo_full CLR at 94.26292
+STREAM: fifo_full SET at 94.26293
+STREAM: fifo_full CLR at 94.26294
+STREAM: fifo_full SET at 94.26295
+STREAM: fifo_full CLR at 94.26296
+STREAM: fifo_full SET at 94.26297
+STREAM: fifo_full CLR at 94.26298
+STREAM: fifo_full SET at 94.26299
+STREAM: fifo_full CLR at 94.26301
+STREAM: fifo_full SET at 94.26301
+STREAM: fifo_full CLR at 94.26303
+STREAM: fifo_full SET at 94.26303
+STREAM: fifo_full CLR at 94.26305
+STREAM: fifo_full SET at 94.26306
+STREAM: fifo_full CLR at 94.26307
+STREAM: fifo_full SET at 94.26308
+STREAM: fifo_full CLR at 94.26309
+STREAM: fifo_full SET at 94.26310
+STREAM: fifo_full CLR at 94.26311
+STREAM: fifo_full SET at 94.26312
+STREAM: fifo_full CLR at 94.26314
+STREAM: fifo_full SET at 94.26315
+STREAM: fifo_full CLR at 94.26316
+STREAM: fifo_full SET at 94.26317
+STREAM: fifo_full CLR at 94.26318
+STREAM: fifo_full SET at 94.26319
+STREAM: fifo_full CLR at 94.26320
+STREAM: fifo_full SET at 94.26321
+STREAM: fifo_full CLR at 94.26325
+STREAM: fifo_full SET at 94.26326
+STREAM: fifo_full CLR at 94.26328
+STREAM: fifo_full SET at 94.26328
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 95.10663 (backlog was 59 pairs)
+STREAM: post-drain +  5875 us  SKP ch0= 17737 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #59 (batch=80 tot=37104)
+STREAM: LONG STALL - flow-off #59 took 4500 us to resume (longest=5010343 us) resumed_at=95.16288
+STREAM: fifo_full CLR at 95.10860
+STREAM: fifo_full SET at 95.10860
+STREAM: fifo_full CLR at 95.10862
+STREAM: fifo_full SET at 95.10862
+STREAM: fifo_full CLR at 95.10864
+STREAM: fifo_full SET at 95.10864
+STREAM: fifo_full CLR at 95.10866
+STREAM: fifo_full SET at 95.10867
+STREAM: fifo_full CLR at 95.10868
+STREAM: fifo_full SET at 95.10869
+STREAM: fifo_full CLR at 95.10870
+STREAM: fifo_full SET at 95.10871
+STREAM: fifo_full CLR at 95.10872
+STREAM: fifo_full SET at 95.10873
+STREAM: fifo_full CLR at 95.10875
+STREAM: fifo_full SET at 95.10875
+STREAM: fifo_full CLR at 95.10876
+STREAM: fifo_full SET at 95.10877
+STREAM: fifo_full CLR at 95.10878
+STREAM: fifo_full SET at 95.10879
+STREAM: fifo_full CLR at 95.10880
+STREAM: fifo_full SET at 95.10881
+STREAM: fifo_full SET at 95.10886
+STREAM: fifo_full SET at 95.10886
+STREAM: fifo_full CLR at 95.10888
+STREAM: fifo_full SET at 95.10888
+STREAM: fifo_full CLR at 95.10890
+STREAM: fifo_full SET at 95.10890
+STREAM: fifo_full CLR at 95.10892
+STREAM: fifo_full SET at 95.10893
+STREAM: fifo_full CLR at 95.10894
+STREAM: fifo_full SET at 95.10895
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 95.20287 (backlog was 59 pairs)
+STREAM: post-drain +  5875 us  SKP ch0= 26295 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #60 (batch=396 tot=37500)
+STREAM: LONG STALL - flow-off #60 took 4687 us to resume (longest=5010343 us) resumed_at=96.13888
+STREAM: fifo_full CLR at 95.20487
+STREAM: fifo_full SET at 95.20488
+STREAM: fifo_full CLR at 95.20489
+STREAM: fifo_full SET at 95.20490
+STREAM: fifo_full SET at 95.20491
+STREAM: fifo_full SET at 95.20492
+STREAM: fifo_full CLR at 95.20493
+STREAM: fifo_full SET at 95.20494
+STREAM: fifo_full CLR at 95.20495
+STREAM: fifo_full SET at 95.20496
+STREAM: fifo_full CLR at 95.20498
+STREAM: fifo_full SET at 95.20498
+STREAM: fifo_full CLR at 95.20500
+STREAM: fifo_full SET at 95.20500
+STREAM: fifo_full CLR at 95.20501
+STREAM: fifo_full SET at 95.20502
+STREAM: fifo_full CLR at 95.20503
+STREAM: fifo_full SET at 95.20504
+STREAM: fifo_full CLR at 95.20505
+STREAM: fifo_full SET at 95.20506
+STREAM: fifo_full CLR at 95.20507
+STREAM: fifo_full SET at 95.20508
+STREAM: fifo_full CLR at 95.20510
+STREAM: fifo_full SET at 95.20510
+STREAM: fifo_full CLR at 95.20512
+STREAM: fifo_full SET at 95.20512
+STREAM: fifo_full CLR at 95.20514
+STREAM: fifo_full SET at 95.20515
+STREAM: fifo_full CLR at 95.20516
+STREAM: fifo_full SET at 95.20517
+STREAM: fifo_full CLR at 95.20518
+STREAM: fifo_full SET at 95.20519
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 96.17876 (backlog was 59 pairs)
+STREAM: post-drain +  6031 us  SKP ch0=-11609 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #61 (batch=239 tot=37739)
+STREAM: LONG STALL - flow-off #61 took 4718 us to resume (longest=5010343 us) resumed_at=97.01556
+STREAM: fifo_full CLR at 96.18077
+STREAM: fifo_full SET at 96.18078
+STREAM: fifo_full CLR at 96.18080
+STREAM: fifo_full SET at 96.18081
+STREAM: fifo_full CLR at 96.18082
+STREAM: fifo_full SET at 96.18083
+STREAM: fifo_full CLR at 96.18083
+STREAM: fifo_full SET at 96.18084
+STREAM: fifo_full CLR at 96.18085
+STREAM: fifo_full SET at 96.18086
+STREAM: fifo_full CLR at 96.18087
+STREAM: fifo_full SET at 96.18088
+STREAM: fifo_full SET at 96.18090
+STREAM: fifo_full CLR at 96.18091
+STREAM: fifo_full SET at 96.18092
+STREAM: fifo_full CLR at 96.18093
+STREAM: fifo_full SET at 96.18094
+STREAM: fifo_full CLR at 96.18095
+STREAM: fifo_full SET at 96.18096
+STREAM: fifo_full CLR at 96.18098
+STREAM: fifo_full SET at 96.18098
+STREAM: fifo_full CLR at 96.18100
+STREAM: fifo_full SET at 96.18101
+STREAM: fifo_full CLR at 96.18102
+STREAM: fifo_full SET at 96.18103
+STREAM: fifo_full CLR at 96.18104
+STREAM: fifo_full SET at 96.18105
+STREAM: fifo_full SET at 96.18106
+STREAM: fifo_full SET at 96.18107
+STREAM: fifo_full CLR at 96.18108
+STREAM: fifo_full SET at 96.18109
+STREAM: fifo_full CLR at 96.18111
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 97.05544 (backlog was 59 pairs)
+STREAM: post-drain +  6031 us  SKP ch0=  6254 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #62 (batch=394 tot=38133)
+STREAM: LONG STALL - flow-off #62 took 4562 us to resume (longest=5010343 us) resumed_at=97.31044
+STREAM: fifo_full CLR at 97.05746
+STREAM: fifo_full SET at 97.05746
+STREAM: fifo_full CLR at 97.05748
+STREAM: fifo_full SET at 97.05749
+STREAM: fifo_full CLR at 97.05750
+STREAM: fifo_full SET at 97.05750
+STREAM: fifo_full CLR at 97.05751
+STREAM: fifo_full SET at 97.05752
+STREAM: fifo_full CLR at 97.05753
+STREAM: fifo_full SET at 97.05754
+STREAM: fifo_full CLR at 97.05755
+STREAM: fifo_full SET at 97.05756
+STREAM: fifo_full CLR at 97.05758
+STREAM: fifo_full SET at 97.05759
+STREAM: fifo_full CLR at 97.05760
+STREAM: fifo_full SET at 97.05761
+STREAM: fifo_full SET at 97.05762
+STREAM: fifo_full CLR at 97.05764
+STREAM: fifo_full SET at 97.05764
+STREAM: fifo_full CLR at 97.05766
+STREAM: fifo_full SET at 97.05766
+STREAM: fifo_full CLR at 97.05768
+STREAM: fifo_full SET at 97.05769
+STREAM: fifo_full CLR at 97.05770
+STREAM: fifo_full SET at 97.05771
+STREAM: fifo_full CLR at 97.05772
+STREAM: fifo_full SET at 97.05773
+STREAM: fifo_full CLR at 97.05774
+STREAM: fifo_full SET at 97.05775
+STREAM: fifo_full SET at 97.05777
+STREAM: fifo_full CLR at 97.05778
+STREAM: fifo_full SET at 97.05779
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 98.03041 (backlog was 59 pairs)
+STREAM: post-drain +  6000 us  SKP ch0=-32112 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #63 (batch=643 tot=38776)
+STREAM: LONG STALL - flow-off #63 took 4593 us to resume (longest=5010343 us) resumed_at=99.12259
+STREAM: fifo_full CLR at 98.03242
+STREAM: fifo_full SET at 98.03243
+STREAM: fifo_full CLR at 98.03244
+STREAM: fifo_full SET at 98.03245
+STREAM: fifo_full CLR at 98.03246
+STREAM: fifo_full SET at 98.03247
+STREAM: fifo_full CLR at 98.03248
+STREAM: fifo_full SET at 98.03249
+STREAM: fifo_full CLR at 98.03250
+STREAM: fifo_full SET at 98.03251
+STREAM: fifo_full SET at 98.03252
+STREAM: fifo_full SET at 98.03252
+STREAM: fifo_full CLR at 98.03254
+STREAM: fifo_full SET at 98.03254
+STREAM: fifo_full CLR at 98.03256
+STREAM: fifo_full SET at 98.03257
+STREAM: fifo_full CLR at 98.03258
+STREAM: fifo_full SET at 98.03259
+STREAM: fifo_full CLR at 98.03260
+STREAM: fifo_full SET at 98.03261
+STREAM: fifo_full CLR at 98.03262
+STREAM: fifo_full SET at 98.03263
+STREAM: fifo_full CLR at 98.03265
+STREAM: fifo_full SET at 98.03265
+STREAM: fifo_full CLR at 98.03267
+STREAM: fifo_full SET at 98.03267
+STREAM: fifo_full CLR at 98.03269
+STREAM: fifo_full SET at 98.03270
+STREAM: fifo_full CLR at 98.03271
+STREAM: fifo_full SET at 98.03272
+STREAM: fifo_full CLR at 98.03273
+STREAM: fifo_full SET at 98.03274
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 99.16251 (backlog was 59 pairs)
+STREAM: post-drain +  6031 us  SKP ch0=  9625 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #64 (batch=1130 tot=39906)
+STREAM: LONG STALL - flow-off #64 took 4781 us to resume (longest=5010343 us) resumed_at=101.24272
+STREAM: fifo_full SET at 99.12770
+STREAM: fifo_full CLR at 99.16453
+STREAM: fifo_full SET at 99.16454
+STREAM: fifo_full CLR at 99.16455
+STREAM: fifo_full SET at 99.16456
+STREAM: fifo_full SET at 99.16457
+STREAM: fifo_full CLR at 99.16458
+STREAM: fifo_full SET at 99.16458
+STREAM: fifo_full CLR at 99.16460
+STREAM: fifo_full SET at 99.16460
+STREAM: fifo_full CLR at 99.16462
+STREAM: fifo_full SET at 99.16463
+STREAM: fifo_full CLR at 99.16464
+STREAM: fifo_full SET at 99.16465
+STREAM: fifo_full CLR at 99.16466
+STREAM: fifo_full SET at 99.16467
+STREAM: fifo_full CLR at 99.16468
+STREAM: fifo_full SET at 99.16469
+STREAM: fifo_full SET at 99.16470
+STREAM: fifo_full CLR at 99.16472
+STREAM: fifo_full SET at 99.16473
+STREAM: fifo_full CLR at 99.16474
+STREAM: fifo_full SET at 99.16475
+STREAM: fifo_full CLR at 99.16476
+STREAM: fifo_full SET at 99.16477
+STREAM: fifo_full CLR at 99.16478
+STREAM: fifo_full SET at 99.16479
+STREAM: fifo_full CLR at 99.16481
+STREAM: fifo_full SET at 99.16482
+STREAM: fifo_full CLR at 99.16483
+STREAM: fifo_full SET at 99.16484
+STREAM: fifo_full SET at 99.16485
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 101.28266 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0= 14297 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #65 (batch=83 tot=39989)
+STREAM: LONG STALL - flow-off #65 took 4437 us to resume (longest=5010343 us) resumed_at=102.02077
+STREAM: fifo_full SET at 101.25323
+STREAM: fifo_full CLR at 101.28470
+STREAM: fifo_full SET at 101.28471
+STREAM: fifo_full CLR at 101.28472
+STREAM: fifo_full SET at 101.28473
+STREAM: fifo_full CLR at 101.28474
+STREAM: fifo_full SET at 101.28476
+STREAM: fifo_full CLR at 101.28477
+STREAM: fifo_full SET at 101.28478
+STREAM: fifo_full SET at 101.28479
+STREAM: fifo_full CLR at 101.28480
+STREAM: fifo_full SET at 101.28481
+STREAM: fifo_full CLR at 101.28483
+STREAM: fifo_full SET at 101.28483
+STREAM: fifo_full CLR at 101.28485
+STREAM: fifo_full SET at 101.28486
+STREAM: fifo_full CLR at 101.28487
+STREAM: fifo_full SET at 101.28488
+STREAM: fifo_full CLR at 101.28489
+STREAM: fifo_full SET at 101.28490
+STREAM: fifo_full CLR at 101.28491
+STREAM: fifo_full SET at 101.28492
+STREAM: fifo_full CLR at 101.28493
+STREAM: fifo_full SET at 101.28494
+STREAM: fifo_full SET at 101.28496
+STREAM: fifo_full SET at 101.28496
+STREAM: fifo_full CLR at 101.28498
+STREAM: fifo_full SET at 101.28498
+STREAM: fifo_full CLR at 101.28500
+STREAM: fifo_full SET at 101.28500
+STREAM: fifo_full CLR at 101.28501
+STREAM: fifo_full SET at 101.28502
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 102.06172 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0= 22096 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #66 (batch=1172 tot=41161)
+STREAM: LONG STALL - flow-off #66 took 4750 us to resume (longest=5010343 us) resumed_at=104.16857
+STREAM: fifo_full CLR at 102.06376
+STREAM: fifo_full SET at 102.06377
+STREAM: fifo_full SET at 102.06378
+STREAM: fifo_full CLR at 102.06379
+STREAM: fifo_full SET at 102.06380
+STREAM: fifo_full CLR at 102.06382
+STREAM: fifo_full SET at 102.06382
+STREAM: fifo_full CLR at 102.06384
+STREAM: fifo_full SET at 102.06385
+STREAM: fifo_full CLR at 102.06386
+STREAM: fifo_full SET at 102.06387
+STREAM: fifo_full CLR at 102.06388
+STREAM: fifo_full SET at 102.06389
+STREAM: fifo_full CLR at 102.06390
+STREAM: fifo_full SET at 102.06391
+STREAM: fifo_full SET at 102.06392
+STREAM: fifo_full CLR at 102.06394
+STREAM: fifo_full SET at 102.06395
+STREAM: fifo_full CLR at 102.06396
+STREAM: fifo_full SET at 102.06397
+STREAM: fifo_full CLR at 102.06398
+STREAM: fifo_full SET at 102.06399
+STREAM: fifo_full CLR at 102.06400
+STREAM: fifo_full SET at 102.06401
+STREAM: fifo_full CLR at 102.06403
+STREAM: fifo_full SET at 102.06404
+STREAM: fifo_full CLR at 102.06405
+STREAM: fifo_full SET at 102.06406
+STREAM: fifo_full CLR at 102.06407
+STREAM: fifo_full SET at 102.06408
+STREAM: fifo_full SET at 102.06409
+STREAM: fifo_full CLR at 102.06411
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 104.20951 (backlog was 59 pairs)
+STREAM: flow-off #67 (batch=32 tot=41193)
+STREAM: post-drain +  6093 us  SKP ch0= 30062 step=   +0  (ring=59 fpga=0)
+STREAM: LONG STALL - flow-off #67 took 11906 us to resume (longest=5010343 us) resumed_at=104.23564
+STREAM: fifo_full SET at 104.17970
+STREAM: fifo_full SET at 104.21155
+STREAM: fifo_full SET at 104.21156
+STREAM: fifo_full CLR at 104.21157
+STREAM: fifo_full SET at 104.21158
+STREAM: fifo_full CLR at 104.21159
+STREAM: fifo_full SET at 104.21160
+STREAM: fifo_full CLR at 104.21162
+STREAM: fifo_full SET at 104.21162
+STREAM: fifo_full CLR at 104.21164
+STREAM: fifo_full SET at 104.21164
+STREAM: fifo_full CLR at 104.21166
+STREAM: fifo_full SET at 104.21166
+STREAM: fifo_full CLR at 104.21167
+STREAM: fifo_full SET at 104.21168
+STREAM: fifo_full CLR at 104.21169
+STREAM: fifo_full SET at 104.21170
+STREAM: fifo_full CLR at 104.21171
+STREAM: fifo_full SET at 104.21172
+STREAM: fifo_full CLR at 104.21173
+STREAM: fifo_full SET at 104.21174
+STREAM: fifo_full CLR at 104.21176
+STREAM: fifo_full SET at 104.21176
+STREAM: fifo_full CLR at 104.21178
+STREAM: fifo_full SET at 104.21179
+STREAM: fifo_full CLR at 104.21180
+STREAM: fifo_full SET at 104.21181
+STREAM: fifo_full CLR at 104.21182
+STREAM: fifo_full SET at 104.21183
+STREAM: fifo_full CLR at 104.21184
+STREAM: fifo_full SET at 104.21185
+STREAM: fifo_full CLR at 104.21187
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 104.27656 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0= 31950 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 34125 us  SKP ch0=-32760 step=-65477  (ring=0 fpga=59)
+STREAM: flow-off #68 (batch=230 tot=41423)
+STREAM: LONG STALL - flow-off #68 took 4625 us to resume (longest=5010343 us) resumed_at=105.11005
+STREAM: fifo_full CLR at 104.27859
+STREAM: fifo_full SET at 104.27860
+STREAM: fifo_full CLR at 104.27861
+STREAM: fifo_full SET at 104.27862
+STREAM: fifo_full CLR at 104.27863
+STREAM: fifo_full SET at 104.27864
+STREAM: fifo_full CLR at 104.27865
+STREAM: fifo_full SET at 104.27866
+STREAM: fifo_full CLR at 104.27868
+STREAM: fifo_full SET at 104.27869
+STREAM: fifo_full SET at 104.27870
+STREAM: fifo_full CLR at 104.27871
+STREAM: fifo_full SET at 104.27872
+STREAM: fifo_full CLR at 104.27873
+STREAM: fifo_full SET at 104.27874
+STREAM: fifo_full CLR at 104.27875
+STREAM: fifo_full SET at 104.27875
+STREAM: fifo_full CLR at 104.27877
+STREAM: fifo_full SET at 104.27878
+STREAM: fifo_full CLR at 104.27879
+STREAM: fifo_full SET at 104.27880
+STREAM: fifo_full CLR at 104.27881
+STREAM: fifo_full SET at 104.27882
+STREAM: fifo_full CLR at 104.27883
+STREAM: fifo_full SET at 104.27884
+STREAM: fifo_full SET at 104.27885
+STREAM: fifo_full SET at 104.27886
+STREAM: fifo_full CLR at 104.27888
+STREAM: fifo_full SET at 104.27888
+STREAM: fifo_full CLR at 104.27890
+STREAM: fifo_full SET at 104.27890
+STREAM: fifo_full CLR at 104.27892
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 105.15096 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0=-12418 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #69 (batch=525 tot=41948)
+STREAM: LONG STALL - flow-off #69 took 4468 us to resume (longest=5010343 us) resumed_at=106.16851
+STREAM: fifo_full CLR at 105.15299
+STREAM: fifo_full SET at 105.15300
+STREAM: fifo_full SET at 105.15302
+STREAM: fifo_full CLR at 105.15303
+STREAM: fifo_full SET at 105.15304
+STREAM: fifo_full CLR at 105.15305
+STREAM: fifo_full SET at 105.15306
+STREAM: fifo_full CLR at 105.15307
+STREAM: fifo_full SET at 105.15308
+STREAM: fifo_full CLR at 105.15310
+STREAM: fifo_full SET at 105.15310
+STREAM: fifo_full CLR at 105.15312
+STREAM: fifo_full SET at 105.15313
+STREAM: fifo_full CLR at 105.15314
+STREAM: fifo_full SET at 105.15315
+STREAM: fifo_full SET at 105.15316
+STREAM: fifo_full CLR at 105.15318
+STREAM: fifo_full SET at 105.15318
+STREAM: fifo_full CLR at 105.15320
+STREAM: fifo_full SET at 105.15321
+STREAM: fifo_full CLR at 105.15322
+STREAM: fifo_full SET at 105.15323
+STREAM: fifo_full CLR at 105.15324
+STREAM: fifo_full SET at 105.15325
+STREAM: fifo_full CLR at 105.15326
+STREAM: fifo_full SET at 105.15327
+STREAM: fifo_full CLR at 105.15328
+STREAM: fifo_full SET at 105.15329
+STREAM: fifo_full CLR at 105.15331
+STREAM: fifo_full SET at 105.15332
+STREAM: fifo_full SET at 105.15333
+STREAM: fifo_full CLR at 105.15333
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 106.20951 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0= 22575 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #70 (batch=208 tot=42156)
+STREAM: LONG STALL - flow-off #70 took 4781 us to resume (longest=5010343 us) resumed_at=107.02674
+STREAM: fifo_full SET at 106.17264
+STREAM: fifo_full CLR at 106.21155
+STREAM: fifo_full SET at 106.21156
+STREAM: fifo_full CLR at 106.21157
+STREAM: fifo_full SET at 106.21158
+STREAM: fifo_full CLR at 106.21159
+STREAM: fifo_full SET at 106.21160
+STREAM: fifo_full CLR at 106.21161
+STREAM: fifo_full SET at 106.21162
+STREAM: fifo_full CLR at 106.21164
+STREAM: fifo_full SET at 106.21164
+STREAM: fifo_full CLR at 106.21166
+STREAM: fifo_full SET at 106.21166
+STREAM: fifo_full CLR at 106.21167
+STREAM: fifo_full SET at 106.21168
+STREAM: fifo_full CLR at 106.21169
+STREAM: fifo_full SET at 106.21170
+STREAM: fifo_full CLR at 106.21171
+STREAM: fifo_full SET at 106.21172
+STREAM: fifo_full CLR at 106.21173
+STREAM: fifo_full SET at 106.21174
+STREAM: fifo_full CLR at 106.21176
+STREAM: fifo_full SET at 106.21176
+STREAM: fifo_full CLR at 106.21178
+STREAM: fifo_full SET at 106.21179
+STREAM: fifo_full CLR at 106.21180
+STREAM: fifo_full SET at 106.21181
+STREAM: fifo_full CLR at 106.21182
+STREAM: fifo_full SET at 106.21183
+STREAM: fifo_full CLR at 106.21184
+STREAM: fifo_full SET at 106.21185
+STREAM: fifo_full SET at 106.21186
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 107.06761 (backlog was 59 pairs)
+STREAM: post-drain +  6156 us  SKP ch0=-26947 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #71 (batch=82 tot=42238)
+STREAM: LONG STALL - flow-off #71 took 4625 us to resume (longest=5010343 us) resumed_at=107.12520
+STREAM: fifo_full CLR at 107.06965
+STREAM: fifo_full SET at 107.06966
+STREAM: fifo_full CLR at 107.06967
+STREAM: fifo_full SET at 107.06968
+STREAM: fifo_full CLR at 107.06969
+STREAM: fifo_full SET at 107.06970
+STREAM: fifo_full CLR at 107.06972
+STREAM: fifo_full SET at 107.06972
+STREAM: fifo_full CLR at 107.06974
+STREAM: fifo_full SET at 107.06975
+STREAM: fifo_full CLR at 107.06976
+STREAM: fifo_full SET at 107.06977
+STREAM: fifo_full CLR at 107.06978
+STREAM: fifo_full SET at 107.06979
+STREAM: fifo_full CLR at 107.06980
+STREAM: fifo_full SET at 107.06981
+STREAM: fifo_full CLR at 107.06983
+STREAM: fifo_full SET at 107.06984
+STREAM: fifo_full CLR at 107.06985
+STREAM: fifo_full SET at 107.06986
+STREAM: fifo_full SET at 107.06987
+STREAM: fifo_full CLR at 107.06988
+STREAM: fifo_full SET at 107.06989
+STREAM: fifo_full CLR at 107.06991
+STREAM: fifo_full SET at 107.06991
+STREAM: fifo_full CLR at 107.06993
+STREAM: fifo_full SET at 107.06994
+STREAM: fifo_full CLR at 107.06995
+STREAM: fifo_full SET at 107.06996
+STREAM: fifo_full CLR at 107.06997
+STREAM: fifo_full SET at 107.06998
+STREAM: fifo_full CLR at 107.06999
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 107.16611 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0=-18201 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #72 (batch=150 tot=42388)
+STREAM: LONG STALL - flow-off #72 took 4687 us to resume (longest=5010343 us) resumed_at=107.26687
+STREAM: fifo_full CLR at 107.16815
+STREAM: fifo_full SET at 107.16815
+STREAM: fifo_full CLR at 107.16817
+STREAM: fifo_full SET at 107.16818
+STREAM: fifo_full CLR at 107.16819
+STREAM: fifo_full SET at 107.16820
+STREAM: fifo_full CLR at 107.16821
+STREAM: fifo_full SET at 107.16822
+STREAM: fifo_full CLR at 107.16823
+STREAM: fifo_full SET at 107.16824
+STREAM: fifo_full CLR at 107.16825
+STREAM: fifo_full SET at 107.16826
+STREAM: fifo_full SET at 107.16828
+STREAM: fifo_full CLR at 107.16829
+STREAM: fifo_full SET at 107.16830
+STREAM: fifo_full CLR at 107.16831
+STREAM: fifo_full SET at 107.16832
+STREAM: fifo_full CLR at 107.16833
+STREAM: fifo_full SET at 107.16833
+STREAM: fifo_full CLR at 107.16835
+STREAM: fifo_full SET at 107.16836
+STREAM: fifo_full CLR at 107.16837
+STREAM: fifo_full SET at 107.16838
+STREAM: fifo_full CLR at 107.16839
+STREAM: fifo_full SET at 107.16840
+STREAM: fifo_full CLR at 107.16841
+STREAM: fifo_full SET at 107.16842
+STREAM: fifo_full SET at 107.16843
+STREAM: fifo_full CLR at 107.16845
+STREAM: fifo_full SET at 107.16846
+STREAM: fifo_full CLR at 107.16847
+STREAM: fifo_full SET at 107.16848
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 107.30777 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0= -4992 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #73 (batch=85 tot=42473)
+STREAM: LONG STALL - flow-off #73 took 4718 us to resume (longest=5010343 us) resumed_at=108.04754
+STREAM: fifo_full CLR at 107.30981
+STREAM: fifo_full SET at 107.30981
+STREAM: fifo_full CLR at 107.30983
+STREAM: fifo_full SET at 107.30984
+STREAM: fifo_full CLR at 107.30985
+STREAM: fifo_full SET at 107.30986
+STREAM: fifo_full CLR at 107.30987
+STREAM: fifo_full SET at 107.30988
+STREAM: fifo_full CLR at 107.30989
+STREAM: fifo_full SET at 107.30990
+STREAM: fifo_full CLR at 107.30992
+STREAM: fifo_full SET at 107.30992
+STREAM: fifo_full CLR at 107.30994
+STREAM: fifo_full SET at 107.30995
+STREAM: fifo_full CLR at 107.30996
+STREAM: fifo_full SET at 107.30997
+STREAM: fifo_full CLR at 107.30998
+STREAM: fifo_full SET at 107.30999
+STREAM: fifo_full CLR at 107.31000
+STREAM: fifo_full SET at 107.31000
+STREAM: fifo_full SET at 107.31001
+STREAM: fifo_full CLR at 107.31003
+STREAM: fifo_full SET at 107.31004
+STREAM: fifo_full CLR at 107.31005
+STREAM: fifo_full SET at 107.31006
+STREAM: fifo_full CLR at 107.31007
+STREAM: fifo_full SET at 107.31008
+STREAM: fifo_full CLR at 107.31010
+STREAM: fifo_full SET at 107.31010
+STREAM: fifo_full CLR at 107.31012
+STREAM: fifo_full SET at 107.31013
+STREAM: fifo_full CLR at 107.31014
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 108.08839 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0=  4006 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #74 (batch=1198 tot=43671)
+STREAM: LONG STALL - flow-off #74 took 4875 us to resume (longest=5010343 us) resumed_at=110.21159
+STREAM: fifo_full CLR at 108.09042
+STREAM: fifo_full SET at 108.09043
+STREAM: fifo_full CLR at 108.09044
+STREAM: fifo_full SET at 108.09045
+STREAM: fifo_full CLR at 108.09047
+STREAM: fifo_full SET at 108.09047
+STREAM: fifo_full CLR at 108.09049
+STREAM: fifo_full SET at 108.09049
+STREAM: fifo_full CLR at 108.09051
+STREAM: fifo_full SET at 108.09052
+STREAM: fifo_full CLR at 108.09053
+STREAM: fifo_full SET at 108.09054
+STREAM: fifo_full CLR at 108.09055
+STREAM: fifo_full SET at 108.09056
+STREAM: fifo_full CLR at 108.09057
+STREAM: fifo_full SET at 108.09058
+STREAM: fifo_full CLR at 108.09060
+STREAM: fifo_full SET at 108.09061
+STREAM: fifo_full CLR at 108.09062
+STREAM: fifo_full SET at 108.09063
+STREAM: fifo_full CLR at 108.09064
+STREAM: fifo_full SET at 108.09065
+STREAM: fifo_full SET at 108.09066
+STREAM: fifo_full SET at 108.09067
+STREAM: fifo_full CLR at 108.09068
+STREAM: fifo_full SET at 108.09069
+STREAM: fifo_full CLR at 108.09070
+STREAM: fifo_full SET at 108.09071
+STREAM: fifo_full CLR at 108.09073
+STREAM: fifo_full SET at 108.09073
+STREAM: fifo_full CLR at 108.09075
+STREAM: fifo_full SET at 108.09075
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 110.25246 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0= 13514 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #75 (batch=708 tot=44379)
+STREAM: LONG STALL - flow-off #75 took 4656 us to resume (longest=5010343 us) resumed_at=112.06599
+STREAM: fifo_full SET at 110.22301
+STREAM: fifo_full SET at 110.25450
+STREAM: fifo_full CLR at 110.25452
+STREAM: fifo_full SET at 110.25452
+STREAM: fifo_full CLR at 110.25454
+STREAM: fifo_full SET at 110.25455
+STREAM: fifo_full CLR at 110.25456
+STREAM: fifo_full SET at 110.25457
+STREAM: fifo_full CLR at 110.25458
+STREAM: fifo_full SET at 110.25458
+STREAM: fifo_full CLR at 110.25459
+STREAM: fifo_full SET at 110.25460
+STREAM: fifo_full CLR at 110.25461
+STREAM: fifo_full SET at 110.25463
+STREAM: fifo_full SET at 110.25464
+STREAM: fifo_full CLR at 110.25465
+STREAM: fifo_full SET at 110.25466
+STREAM: fifo_full CLR at 110.25467
+STREAM: fifo_full SET at 110.25468
+STREAM: fifo_full CLR at 110.25469
+STREAM: fifo_full SET at 110.25470
+STREAM: fifo_full CLR at 110.25472
+STREAM: fifo_full SET at 110.25473
+STREAM: fifo_full CLR at 110.25474
+STREAM: fifo_full SET at 110.25475
+STREAM: fifo_full CLR at 110.25476
+STREAM: fifo_full SET at 110.25477
+STREAM: fifo_full CLR at 110.25478
+STREAM: fifo_full SET at 110.25479
+STREAM: fifo_full SET at 110.25480
+STREAM: fifo_full CLR at 110.25482
+STREAM: fifo_full SET at 110.25483
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 112.10687 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0= -7190 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #76 (batch=81 tot=44460)
+STREAM: LONG STALL - flow-off #76 took 4468 us to resume (longest=5010343 us) resumed_at=112.16378
+STREAM: fifo_full SET at 112.07184
+STREAM: fifo_full CLR at 112.10890
+STREAM: fifo_full SET at 112.10891
+STREAM: fifo_full CLR at 112.10893
+STREAM: fifo_full SET at 112.10893
+STREAM: fifo_full CLR at 112.10895
+STREAM: fifo_full SET at 112.10896
+STREAM: fifo_full CLR at 112.10897
+STREAM: fifo_full SET at 112.10898
+STREAM: fifo_full CLR at 112.10899
+STREAM: fifo_full SET at 112.10900
+STREAM: fifo_full SET at 112.10901
+STREAM: fifo_full SET at 112.10902
+STREAM: fifo_full CLR at 112.10903
+STREAM: fifo_full SET at 112.10904
+STREAM: fifo_full CLR at 112.10905
+STREAM: fifo_full SET at 112.10906
+STREAM: fifo_full CLR at 112.10908
+STREAM: fifo_full SET at 112.10908
+STREAM: fifo_full CLR at 112.10910
+STREAM: fifo_full SET at 112.10910
+STREAM: fifo_full CLR at 112.10912
+STREAM: fifo_full SET at 112.10913
+STREAM: fifo_full CLR at 112.10914
+STREAM: fifo_full SET at 112.10915
+STREAM: fifo_full CLR at 112.10916
+STREAM: fifo_full SET at 112.10916
+STREAM: fifo_full CLR at 112.10917
+STREAM: fifo_full SET at 112.10918
+STREAM: fifo_full CLR at 112.10920
+STREAM: fifo_full SET at 112.10920
+STREAM: fifo_full CLR at 112.10922
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 112.20473 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0=  1003 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #77 (batch=731 tot=45191)
+STREAM: LONG STALL - flow-off #77 took 4562 us to resume (longest=5010343 us) resumed_at=114.03255
+STREAM: fifo_full SET at 112.20677
+STREAM: fifo_full SET at 112.20678
+STREAM: fifo_full CLR at 112.20679
+STREAM: fifo_full SET at 112.20680
+STREAM: fifo_full CLR at 112.20681
+STREAM: fifo_full SET at 112.20682
+STREAM: fifo_full CLR at 112.20683
+STREAM: fifo_full SET at 112.20684
+STREAM: fifo_full CLR at 112.20686
+STREAM: fifo_full SET at 112.20686
+STREAM: fifo_full CLR at 112.20688
+STREAM: fifo_full SET at 112.20688
+STREAM: fifo_full CLR at 112.20690
+STREAM: fifo_full SET at 112.20691
+STREAM: fifo_full CLR at 112.20692
+STREAM: fifo_full SET at 112.20693
+STREAM: fifo_full CLR at 112.20694
+STREAM: fifo_full SET at 112.20695
+STREAM: fifo_full CLR at 112.20696
+STREAM: fifo_full SET at 112.20697
+STREAM: fifo_full CLR at 112.20699
+STREAM: fifo_full SET at 112.20699
+STREAM: fifo_full CLR at 112.20701
+STREAM: fifo_full SET at 112.20702
+STREAM: fifo_full CLR at 112.20703
+STREAM: fifo_full SET at 112.20704
+STREAM: fifo_full CLR at 112.20705
+STREAM: fifo_full SET at 112.20706
+STREAM: fifo_full SET at 112.20707
+STREAM: fifo_full CLR at 112.20708
+STREAM: fifo_full SET at 112.20708
+STREAM: fifo_full CLR at 112.20710
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 114.07351 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0=-17064 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #78 (batch=1040 tot=46231)
+STREAM: LONG STALL - flow-off #78 took 4781 us to resume (longest=5010343 us) resumed_at=116.09668
+STREAM: fifo_full SET at 114.03875
+STREAM: fifo_full CLR at 114.07555
+STREAM: fifo_full SET at 114.07556
+STREAM: fifo_full SET at 114.07557
+STREAM: fifo_full CLR at 114.07558
+STREAM: fifo_full SET at 114.07559
+STREAM: fifo_full CLR at 114.07561
+STREAM: fifo_full SET at 114.07561
+STREAM: fifo_full CLR at 114.07563
+STREAM: fifo_full SET at 114.07564
+STREAM: fifo_full CLR at 114.07565
+STREAM: fifo_full SET at 114.07566
+STREAM: fifo_full CLR at 114.07567
+STREAM: fifo_full SET at 114.07568
+STREAM: fifo_full CLR at 114.07569
+STREAM: fifo_full SET at 114.07570
+STREAM: fifo_full SET at 114.07571
+STREAM: fifo_full CLR at 114.07573
+STREAM: fifo_full SET at 114.07574
+STREAM: fifo_full CLR at 114.07575
+STREAM: fifo_full SET at 114.07576
+STREAM: fifo_full CLR at 114.07577
+STREAM: fifo_full SET at 114.07578
+STREAM: fifo_full CLR at 114.07579
+STREAM: fifo_full SET at 114.07580
+STREAM: fifo_full CLR at 114.07582
+STREAM: fifo_full SET at 114.07582
+STREAM: fifo_full CLR at 114.07583
+STREAM: fifo_full SET at 114.07584
+STREAM: fifo_full CLR at 114.07585
+STREAM: fifo_full SET at 114.07586
+STREAM: fifo_full SET at 114.07587
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 116.13760 (backlog was 59 pairs)
+STREAM: post-drain +  6156 us  SKP ch0=-17708 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #79 (batch=1091 tot=47322)
+STREAM: LONG STALL - flow-off #79 took 4843 us to resume (longest=5010343 us) resumed_at=118.19314
+STREAM: fifo_full SET at 116.10631
+STREAM: fifo_full SET at 116.13965
+STREAM: fifo_full CLR at 116.13966
+STREAM: fifo_full SET at 116.13967
+STREAM: fifo_full CLR at 116.13968
+STREAM: fifo_full SET at 116.13969
+STREAM: fifo_full CLR at 116.13971
+STREAM: fifo_full SET at 116.13971
+STREAM: fifo_full CLR at 116.13973
+STREAM: fifo_full SET at 116.13974
+STREAM: fifo_full CLR at 116.13975
+STREAM: fifo_full SET at 116.13976
+STREAM: fifo_full CLR at 116.13977
+STREAM: fifo_full SET at 116.13978
+STREAM: fifo_full SET at 116.13979
+STREAM: fifo_full CLR at 116.13981
+STREAM: fifo_full SET at 116.13981
+STREAM: fifo_full CLR at 116.13983
+STREAM: fifo_full SET at 116.13984
+STREAM: fifo_full CLR at 116.13985
+STREAM: fifo_full SET at 116.13986
+STREAM: fifo_full CLR at 116.13987
+STREAM: fifo_full SET at 116.13988
+STREAM: fifo_full CLR at 116.13989
+STREAM: fifo_full SET at 116.13990
+STREAM: fifo_full CLR at 116.13992
+STREAM: fifo_full SET at 116.13993
+STREAM: fifo_full CLR at 116.13994
+STREAM: fifo_full SET at 116.13995
+STREAM: fifo_full SET at 116.13996
+STREAM: fifo_full CLR at 116.13997
+STREAM: fifo_full SET at 116.13998
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 118.23404 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0=-15652 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #80 (batch=264 tot=47586)
+STREAM: LONG STALL - flow-off #80 took 4718 us to resume (longest=5010343 us) resumed_at=119.08670
+STREAM: fifo_full SET at 118.20332
+STREAM: fifo_full SET at 118.23607
+STREAM: fifo_full CLR at 118.23609
+STREAM: fifo_full SET at 118.23609
+STREAM: fifo_full CLR at 118.23611
+STREAM: fifo_full SET at 118.23612
+STREAM: fifo_full CLR at 118.23613
+STREAM: fifo_full SET at 118.23614
+STREAM: fifo_full CLR at 118.23615
+STREAM: fifo_full SET at 118.23616
+STREAM: fifo_full CLR at 118.23617
+STREAM: fifo_full SET at 118.23618
+STREAM: fifo_full CLR at 118.23620
+STREAM: fifo_full SET at 118.23621
+STREAM: fifo_full CLR at 118.23622
+STREAM: fifo_full SET at 118.23623
+STREAM: fifo_full SET at 118.23624
+STREAM: fifo_full CLR at 118.23625
+STREAM: fifo_full SET at 118.23625
+STREAM: fifo_full CLR at 118.23627
+STREAM: fifo_full SET at 118.23627
+STREAM: fifo_full CLR at 118.23629
+STREAM: fifo_full SET at 118.23630
+STREAM: fifo_full CLR at 118.23631
+STREAM: fifo_full SET at 118.23632
+STREAM: fifo_full CLR at 118.23633
+STREAM: fifo_full SET at 118.23634
+STREAM: fifo_full CLR at 118.23635
+STREAM: fifo_full SET at 118.23636
+STREAM: fifo_full SET at 118.23637
+STREAM: fifo_full SET at 118.23638
+STREAM: fifo_full CLR at 118.23640
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 119.12757 (backlog was 59 pairs)
+STREAM: post-drain +  6156 us  SKP ch0=  3091 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #81 (batch=409 tot=47995)
+STREAM: LONG STALL - flow-off #81 took 4656 us to resume (longest=5010343 us) resumed_at=120.07228
+STREAM: fifo_full CLR at 119.12961
+STREAM: fifo_full SET at 119.12962
+STREAM: fifo_full CLR at 119.12963
+STREAM: fifo_full SET at 119.12964
+STREAM: fifo_full CLR at 119.12965
+STREAM: fifo_full SET at 119.12966
+STREAM: fifo_full CLR at 119.12967
+STREAM: fifo_full SET at 119.12968
+STREAM: fifo_full CLR at 119.12970
+STREAM: fifo_full SET at 119.12970
+STREAM: fifo_full CLR at 119.12972
+STREAM: fifo_full SET at 119.12973
+STREAM: fifo_full CLR at 119.12974
+STREAM: fifo_full SET at 119.12975
+STREAM: fifo_full CLR at 119.12976
+STREAM: fifo_full SET at 119.12977
+STREAM: fifo_full CLR at 119.12978
+STREAM: fifo_full SET at 119.12979
+STREAM: fifo_full SET at 119.12980
+STREAM: fifo_full CLR at 119.12982
+STREAM: fifo_full SET at 119.12983
+STREAM: fifo_full CLR at 119.12984
+STREAM: fifo_full SET at 119.12985
+STREAM: fifo_full CLR at 119.12986
+STREAM: fifo_full SET at 119.12987
+STREAM: fifo_full CLR at 119.12988
+STREAM: fifo_full SET at 119.12989
+STREAM: fifo_full CLR at 119.12991
+STREAM: fifo_full SET at 119.12992
+STREAM: fifo_full CLR at 119.12993
+STREAM: fifo_full SET at 119.12994
+STREAM: fifo_full CLR at 119.12995
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 120.11323 (backlog was 59 pairs)
+STREAM: post-drain +  5937 us  SKP ch0= 31228 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #82 (batch=429 tot=48424)
+STREAM: LONG STALL - flow-off #82 took 4812 us to resume (longest=5010343 us) resumed_at=121.07075
+STREAM: fifo_full CLR at 120.11521
+STREAM: fifo_full SET at 120.11522
+STREAM: fifo_full CLR at 120.11524
+STREAM: fifo_full SET at 120.11524
+STREAM: fifo_full SET at 120.11526
+STREAM: fifo_full SET at 120.11527
+STREAM: fifo_full CLR at 120.11528
+STREAM: fifo_full SET at 120.11529
+STREAM: fifo_full CLR at 120.11530
+STREAM: fifo_full SET at 120.11531
+STREAM: fifo_full CLR at 120.11532
+STREAM: fifo_full SET at 120.11536
+STREAM: fifo_full CLR at 120.11538
+STREAM: fifo_full SET at 120.11538
+STREAM: fifo_full CLR at 120.11540
+STREAM: fifo_full SET at 120.11541
+STREAM: fifo_full CLR at 120.11541
+STREAM: fifo_full SET at 120.11542
+STREAM: fifo_full CLR at 120.11543
+STREAM: fifo_full SET at 120.11544
+STREAM: fifo_full CLR at 120.11545
+STREAM: fifo_full SET at 120.11546
+STREAM: fifo_full CLR at 120.11547
+STREAM: fifo_full SET at 120.11548
+STREAM: fifo_full CLR at 120.11550
+STREAM: fifo_full SET at 120.11551
+STREAM: fifo_full CLR at 120.11552
+STREAM: fifo_full SET at 120.11553
+STREAM: fifo_full SET at 120.11554
+STREAM: fifo_full SET at 120.11555
+STREAM: fifo_full CLR at 120.11556
+STREAM: fifo_full SET at 120.11557
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 121.11165 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0= -4991 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #83 (batch=560 tot=48984)
+STREAM: LONG STALL - flow-off #83 took 4656 us to resume (longest=5010343 us) resumed_at=122.15184
+STREAM: fifo_full SET at 121.07415
+STREAM: fifo_full CLR at 121.11368
+STREAM: fifo_full SET at 121.11369
+STREAM: fifo_full CLR at 121.11371
+STREAM: fifo_full SET at 121.11371
+STREAM: fifo_full CLR at 121.11373
+STREAM: fifo_full SET at 121.11374
+STREAM: fifo_full CLR at 121.11375
+STREAM: fifo_full SET at 121.11375
+STREAM: fifo_full CLR at 121.11376
+STREAM: fifo_full SET at 121.11377
+STREAM: fifo_full SET at 121.11378
+STREAM: fifo_full CLR at 121.11380
+STREAM: fifo_full SET at 121.11381
+STREAM: fifo_full CLR at 121.11382
+STREAM: fifo_full SET at 121.11383
+STREAM: fifo_full CLR at 121.11384
+STREAM: fifo_full SET at 121.11385
+STREAM: fifo_full CLR at 121.11386
+STREAM: fifo_full SET at 121.11387
+STREAM: fifo_full CLR at 121.11388
+STREAM: fifo_full SET at 121.11389
+STREAM: fifo_full CLR at 121.11391
+STREAM: fifo_full SET at 121.11392
+STREAM: fifo_full CLR at 121.11393
+STREAM: fifo_full SET at 121.11394
+STREAM: fifo_full SET at 121.11395
+STREAM: fifo_full CLR at 121.11397
+STREAM: fifo_full SET at 121.11397
+STREAM: fifo_full CLR at 121.11399
+STREAM: fifo_full SET at 121.11399
+STREAM: fifo_full CLR at 121.11401
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 122.19269 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0= 31860 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 37968 us  SKP ch0=-32732 step=-65477  (ring=0 fpga=59)
+STREAM: flow-off #84 (batch=1877 tot=50861)
+STREAM: LONG STALL - flow-off #84 took 4718 us to resume (longest=5010343 us) resumed_at=126.10742
+STREAM: fifo_full SET at 122.15595
+STREAM: fifo_full CLR at 122.19473
+STREAM: fifo_full SET at 122.19473
+STREAM: fifo_full CLR at 122.19475
+STREAM: fifo_full SET at 122.19476
+STREAM: fifo_full CLR at 122.19477
+STREAM: fifo_full SET at 122.19478
+STREAM: fifo_full CLR at 122.19479
+STREAM: fifo_full SET at 122.19480
+STREAM: fifo_full CLR at 122.19481
+STREAM: fifo_full SET at 122.19482
+STREAM: fifo_full SET at 122.19483
+STREAM: fifo_full CLR at 122.19485
+STREAM: fifo_full SET at 122.19486
+STREAM: fifo_full CLR at 122.19487
+STREAM: fifo_full SET at 122.19488
+STREAM: fifo_full CLR at 122.19489
+STREAM: fifo_full SET at 122.19490
+STREAM: fifo_full CLR at 122.19491
+STREAM: fifo_full SET at 122.19492
+STREAM: fifo_full CLR at 122.19494
+STREAM: fifo_full SET at 122.19495
+STREAM: fifo_full CLR at 122.19496
+STREAM: fifo_full SET at 122.19497
+STREAM: fifo_full SET at 122.19498
+STREAM: fifo_full CLR at 122.19499
+STREAM: fifo_full SET at 122.19500
+STREAM: fifo_full CLR at 122.19501
+STREAM: fifo_full SET at 122.19501
+STREAM: fifo_full CLR at 122.19503
+STREAM: fifo_full SET at 122.19504
+STREAM: fifo_full CLR at 122.19505
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 126.14834 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0= 15460 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #85 (batch=963 tot=51824)
+STREAM: LONG STALL - flow-off #85 took 4781 us to resume (longest=5010343 us) resumed_at=128.12283
+STREAM: fifo_full SET at 126.12629
+STREAM: fifo_full CLR at 126.15039
+STREAM: fifo_full SET at 126.15039
+STREAM: fifo_full CLR at 126.15041
+STREAM: fifo_full SET at 126.15041
+STREAM: fifo_full CLR at 126.15042
+STREAM: fifo_full SET at 126.15043
+STREAM: fifo_full CLR at 126.15044
+STREAM: fifo_full SET at 126.15045
+STREAM: fifo_full CLR at 126.15046
+STREAM: fifo_full SET at 126.15047
+STREAM: fifo_full CLR at 126.15049
+STREAM: fifo_full SET at 126.15050
+STREAM: fifo_full SET at 126.15051
+STREAM: fifo_full CLR at 126.15052
+STREAM: fifo_full SET at 126.15053
+STREAM: fifo_full CLR at 126.15054
+STREAM: fifo_full SET at 126.15055
+STREAM: fifo_full CLR at 126.15057
+STREAM: fifo_full SET at 126.15057
+STREAM: fifo_full CLR at 126.15059
+STREAM: fifo_full SET at 126.15060
+STREAM: fifo_full CLR at 126.15061
+STREAM: fifo_full SET at 126.15062
+STREAM: fifo_full CLR at 126.15063
+STREAM: fifo_full SET at 126.15064
+STREAM: fifo_full SET at 126.15065
+STREAM: fifo_full CLR at 126.15067
+STREAM: fifo_full SET at 126.15067
+STREAM: fifo_full CLR at 126.15069
+STREAM: fifo_full SET at 126.15070
+STREAM: fifo_full CLR at 126.15071
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 128.16371 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0=  9108 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #86 (batch=963 tot=52787)
+STREAM: LONG STALL - flow-off #86 took 4656 us to resume (longest=5010343 us) resumed_at=130.13825
+STREAM: fifo_full SET at 128.13162
+STREAM: fifo_full CLR at 128.16574
+STREAM: fifo_full SET at 128.16575
+STREAM: fifo_full CLR at 128.16577
+STREAM: fifo_full SET at 128.16577
+STREAM: fifo_full CLR at 128.16579
+STREAM: fifo_full SET at 128.16579
+STREAM: fifo_full CLR at 128.16581
+STREAM: fifo_full SET at 128.16581
+STREAM: fifo_full CLR at 128.16583
+STREAM: fifo_full SET at 128.16583
+STREAM: fifo_full CLR at 128.16584
+STREAM: fifo_full SET at 128.16585
+STREAM: fifo_full CLR at 128.16586
+STREAM: fifo_full SET at 128.16587
+STREAM: fifo_full CLR at 128.16588
+STREAM: fifo_full SET at 128.16589
+STREAM: fifo_full CLR at 128.16591
+STREAM: fifo_full SET at 128.16591
+STREAM: fifo_full CLR at 128.16593
+STREAM: fifo_full SET at 128.16594
+STREAM: fifo_full CLR at 128.16595
+STREAM: fifo_full SET at 128.16596
+STREAM: fifo_full CLR at 128.16597
+STREAM: fifo_full SET at 128.16598
+STREAM: fifo_full CLR at 128.16599
+STREAM: fifo_full SET at 128.16600
+STREAM: fifo_full CLR at 128.16601
+STREAM: fifo_full SET at 128.16603
+STREAM: fifo_full SET at 128.16604
+STREAM: fifo_full CLR at 128.16605
+STREAM: fifo_full SET at 128.16606
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 130.17913 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0=  3679 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #87 (batch=131 tot=52918)
+STREAM: LONG STALL - flow-off #87 took 4500 us to resume (longest=5010343 us) resumed_at=130.26782
+STREAM: fifo_full SET at 130.14700
+STREAM: fifo_full CLR at 130.18116
+STREAM: fifo_full SET at 130.18117
+STREAM: fifo_full CLR at 130.18118
+STREAM: fifo_full SET at 130.18119
+STREAM: fifo_full CLR at 130.18120
+STREAM: fifo_full SET at 130.18121
+STREAM: fifo_full CLR at 130.18123
+STREAM: fifo_full SET at 130.18123
+STREAM: fifo_full CLR at 130.18125
+STREAM: fifo_full SET at 130.18125
+STREAM: fifo_full CLR at 130.18126
+STREAM: fifo_full SET at 130.18126
+STREAM: fifo_full CLR at 130.18128
+STREAM: fifo_full SET at 130.18129
+STREAM: fifo_full CLR at 130.18130
+STREAM: fifo_full SET at 130.18131
+STREAM: fifo_full CLR at 130.18132
+STREAM: fifo_full SET at 130.18133
+STREAM: fifo_full CLR at 130.18135
+STREAM: fifo_full SET at 130.18135
+STREAM: fifo_full CLR at 130.18137
+STREAM: fifo_full SET at 130.18138
+STREAM: fifo_full CLR at 130.18139
+STREAM: fifo_full SET at 130.18140
+STREAM: fifo_full CLR at 130.18141
+STREAM: fifo_full SET at 130.18142
+STREAM: fifo_full SET at 130.18143
+STREAM: fifo_full CLR at 130.18145
+STREAM: fifo_full SET at 130.18145
+STREAM: fifo_full CLR at 130.18147
+STREAM: fifo_full SET at 130.18148
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 130.30881 (backlog was 59 pairs)
+STREAM: flow-off #88 (batch=13 tot=52931)
+STREAM: LONG STALL - flow-off #88 took 4500 us to resume (longest=5010343 us) resumed_at=131.00056
+STREAM: fifo_full CLR at 130.31085
+STREAM: fifo_full SET at 130.31086
+STREAM: fifo_full CLR at 130.31087
+STREAM: fifo_full SET at 130.31088
+STREAM: fifo_full CLR at 130.31089
+STREAM: fifo_full SET at 130.31090
+STREAM: fifo_full CLR at 130.31092
+STREAM: fifo_full SET at 130.31092
+STREAM: fifo_full CLR at 130.31094
+STREAM: fifo_full SET at 130.31094
+STREAM: fifo_full CLR at 130.31096
+STREAM: fifo_full SET at 130.31097
+STREAM: fifo_full CLR at 130.31098
+STREAM: fifo_full SET at 130.31099
+STREAM: fifo_full CLR at 130.31100
+STREAM: fifo_full SET at 130.31101
+STREAM: fifo_full CLR at 130.31102
+STREAM: fifo_full SET at 130.31103
+STREAM: fifo_full CLR at 130.31105
+STREAM: fifo_full SET at 130.31106
+STREAM: fifo_full CLR at 130.31107
+STREAM: fifo_full SET at 130.31108
+STREAM: fifo_full CLR at 130.31109
+STREAM: fifo_full SET at 130.31110
+STREAM: fifo_full SET at 130.31111
+STREAM: fifo_full CLR at 130.31113
+STREAM: fifo_full SET at 130.31113
+STREAM: fifo_full CLR at 130.31115
+STREAM: fifo_full SET at 130.31116
+STREAM: fifo_full CLR at 130.31117
+STREAM: fifo_full SET at 130.31118
+STREAM: fifo_full CLR at 130.31119
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 131.04147 (backlog was 59 pairs)
+STREAM: flow-off #89 (batch=56 tot=52987)
+STREAM: post-drain +  6062 us  SKP ch0= 15477 step=   +0  (ring=59 fpga=0)
+STREAM: LONG STALL - flow-off #89 took 12031 us to resume (longest=5010343 us) resumed_at=131.08262
+STREAM: fifo_full CLR at 131.04350
+STREAM: fifo_full SET at 131.04351
+STREAM: fifo_full CLR at 131.04352
+STREAM: fifo_full SET at 131.04353
+STREAM: fifo_full CLR at 131.04354
+STREAM: fifo_full SET at 131.04355
+STREAM: fifo_full CLR at 131.04356
+STREAM: fifo_full SET at 131.04357
+STREAM: fifo_full CLR at 131.04359
+STREAM: fifo_full SET at 131.04359
+STREAM: fifo_full CLR at 131.04361
+STREAM: fifo_full SET at 131.04361
+STREAM: fifo_full CLR at 131.04363
+STREAM: fifo_full SET at 131.04364
+STREAM: fifo_full CLR at 131.04365
+STREAM: fifo_full SET at 131.04366
+STREAM: fifo_full CLR at 131.04367
+STREAM: fifo_full SET at 131.04368
+STREAM: fifo_full CLR at 131.04369
+STREAM: fifo_full SET at 131.04370
+STREAM: fifo_full CLR at 131.04372
+STREAM: fifo_full SET at 131.04372
+STREAM: fifo_full CLR at 131.04374
+STREAM: fifo_full SET at 131.04375
+STREAM: fifo_full CLR at 131.04375
+STREAM: fifo_full SET at 131.04376
+STREAM: fifo_full CLR at 131.04377
+STREAM: fifo_full SET at 131.04378
+STREAM: fifo_full CLR at 131.04379
+STREAM: fifo_full SET at 131.04380
+STREAM: fifo_full SET at 131.04381
+STREAM: fifo_full CLR at 131.04383
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 131.12361 (backlog was 59 pairs)
+STREAM: post-drain +  5937 us  SKP ch0= 18781 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 10750 us  SKP ch0= 22911 step=+4071  (ring=0 fpga=59)
+STREAM: post-drain + 12531 us  SKP ch0= 22979 step=  +68  (ring=0 fpga=59)
+STREAM: post-drain + 14437 us  SKP ch0= 23040 step=  +61  (ring=0 fpga=59)
+STREAM: post-drain + 36312 us  SKP ch0= 27739 step=+4109  (ring=0 fpga=59)
+STREAM: flow-off #90 (batch=229 tot=53216)
+STREAM: LONG STALL - flow-off #90 took 4781 us to resume (longest=5010343 us) resumed_at=131.28368
+STREAM: fifo_full CLR at 131.12559
+STREAM: fifo_full SET at 131.12560
+STREAM: fifo_full CLR at 131.12562
+STREAM: fifo_full SET at 131.12562
+STREAM: fifo_full CLR at 131.12564
+STREAM: fifo_full SET at 131.12564
+STREAM: fifo_full CLR at 131.12566
+STREAM: fifo_full SET at 131.12566
+STREAM: fifo_full CLR at 131.12568
+STREAM: fifo_full SET at 131.12569
+STREAM: fifo_full CLR at 131.12570
+STREAM: fifo_full SET at 131.12571
+STREAM: fifo_full CLR at 131.12573
+STREAM: fifo_full SET at 131.12573
+STREAM: fifo_full CLR at 131.12575
+STREAM: fifo_full SET at 131.12575
+STREAM: fifo_full CLR at 131.12577
+STREAM: fifo_full SET at 131.12580
+STREAM: fifo_full CLR at 131.12582
+STREAM: fifo_full SET at 131.12583
+STREAM: fifo_full CLR at 131.12583
+STREAM: fifo_full SET at 131.12584
+STREAM: fifo_full CLR at 131.12585
+STREAM: fifo_full SET at 131.12586
+STREAM: fifo_full SET at 131.12587
+STREAM: fifo_full CLR at 131.12589
+STREAM: fifo_full SET at 131.12590
+STREAM: fifo_full CLR at 131.12591
+STREAM: fifo_full SET at 131.12592
+STREAM: fifo_full CLR at 131.12593
+STREAM: fifo_full SET at 131.12594
+STREAM: fifo_full CLR at 131.12596
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 132.00455 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0=-19910 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #91 (batch=746 tot=53962)
+STREAM: LONG STALL - flow-off #91 took 4687 us to resume (longest=5010343 us) resumed_at=133.16202
+STREAM: fifo_full CLR at 132.00659
+STREAM: fifo_full SET at 132.00660
+STREAM: fifo_full CLR at 132.00661
+STREAM: fifo_full SET at 132.00662
+STREAM: fifo_full CLR at 132.00663
+STREAM: fifo_full SET at 132.00664
+STREAM: fifo_full CLR at 132.00665
+STREAM: fifo_full SET at 132.00666
+STREAM: fifo_full SET at 132.00666
+STREAM: fifo_full CLR at 132.00668
+STREAM: fifo_full SET at 132.00669
+STREAM: fifo_full CLR at 132.00670
+STREAM: fifo_full SET at 132.00671
+STREAM: fifo_full CLR at 132.00672
+STREAM: fifo_full SET at 132.00673
+STREAM: fifo_full CLR at 132.00674
+STREAM: fifo_full SET at 132.00675
+STREAM: fifo_full CLR at 132.00677
+STREAM: fifo_full SET at 132.00678
+STREAM: fifo_full CLR at 132.00679
+STREAM: fifo_full SET at 132.00680
+STREAM: fifo_full SET at 132.00681
+STREAM: fifo_full CLR at 132.00682
+STREAM: fifo_full SET at 132.00683
+STREAM: fifo_full CLR at 132.00685
+STREAM: fifo_full SET at 132.00685
+STREAM: fifo_full CLR at 132.00687
+STREAM: fifo_full SET at 132.00688
+STREAM: fifo_full CLR at 132.00689
+STREAM: fifo_full SET at 132.00690
+STREAM: fifo_full CLR at 132.00691
+STREAM: fifo_full SET at 132.00692
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 133.20290 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0= 28144 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #92 (batch=183 tot=54145)
+STREAM: LONG STALL - flow-off #92 took 4562 us to resume (longest=5010343 us) resumed_at=134.00439
+STREAM: fifo_full SET at 133.16833
+STREAM: fifo_full CLR at 133.20493
+STREAM: fifo_full SET at 133.20494
+STREAM: fifo_full SET at 133.20496
+STREAM: fifo_full CLR at 133.20497
+STREAM: fifo_full SET at 133.20498
+STREAM: fifo_full CLR at 133.20499
+STREAM: fifo_full SET at 133.20500
+STREAM: fifo_full CLR at 133.20500
+STREAM: fifo_full SET at 133.20501
+STREAM: fifo_full CLR at 133.20503
+STREAM: fifo_full SET at 133.20504
+STREAM: fifo_full CLR at 133.20505
+STREAM: fifo_full SET at 133.20506
+STREAM: fifo_full CLR at 133.20507
+STREAM: fifo_full SET at 133.20508
+STREAM: fifo_full CLR at 133.20509
+STREAM: fifo_full SET at 133.20510
+STREAM: fifo_full SET at 133.20511
+STREAM: fifo_full CLR at 133.20513
+STREAM: fifo_full SET at 133.20514
+STREAM: fifo_full CLR at 133.20515
+STREAM: fifo_full SET at 133.20516
+STREAM: fifo_full CLR at 133.20517
+STREAM: fifo_full SET at 133.20518
+STREAM: fifo_full CLR at 133.20519
+STREAM: fifo_full SET at 133.20520
+STREAM: fifo_full CLR at 133.20522
+STREAM: fifo_full SET at 133.20523
+STREAM: fifo_full CLR at 133.20524
+STREAM: fifo_full SET at 133.20525
+STREAM: fifo_full CLR at 133.20526
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 134.04532 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0=-23064 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #93 (batch=292 tot=54437)
+STREAM: LONG STALL - flow-off #93 took 4656 us to resume (longest=5010343 us) resumed_at=134.23592
+STREAM: fifo_full CLR at 134.04736
+STREAM: fifo_full SET at 134.04737
+STREAM: fifo_full CLR at 134.04738
+STREAM: fifo_full SET at 134.04739
+STREAM: fifo_full CLR at 134.04741
+STREAM: fifo_full SET at 134.04741
+STREAM: fifo_full CLR at 134.04743
+STREAM: fifo_full SET at 134.04743
+STREAM: fifo_full CLR at 134.04745
+STREAM: fifo_full SET at 134.04745
+STREAM: fifo_full CLR at 134.04747
+STREAM: fifo_full SET at 134.04748
+STREAM: fifo_full CLR at 134.04749
+STREAM: fifo_full SET at 134.04750
+STREAM: fifo_full CLR at 134.04750
+STREAM: fifo_full SET at 134.04751
+STREAM: fifo_full CLR at 134.04752
+STREAM: fifo_full SET at 134.04753
+STREAM: fifo_full CLR at 134.04755
+STREAM: fifo_full SET at 134.04755
+STREAM: fifo_full CLR at 134.04757
+STREAM: fifo_full SET at 134.04758
+STREAM: fifo_full CLR at 134.04759
+STREAM: fifo_full SET at 134.04760
+STREAM: fifo_full CLR at 134.04761
+STREAM: fifo_full SET at 134.04762
+STREAM: fifo_full CLR at 134.04763
+STREAM: fifo_full SET at 134.04764
+STREAM: fifo_full SET at 134.04765
+STREAM: fifo_full CLR at 134.04767
+STREAM: fifo_full SET at 134.04768
+STREAM: fifo_full CLR at 134.04769
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 134.27683 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0= -1750 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #94 (batch=909 tot=55346)
+STREAM: LONG STALL - flow-off #94 took 4656 us to resume (longest=5010343 us) resumed_at=136.21745
+STREAM: fifo_full CLR at 134.27886
+STREAM: fifo_full SET at 134.27887
+STREAM: fifo_full CLR at 134.27888
+STREAM: fifo_full SET at 134.27889
+STREAM: fifo_full CLR at 134.27891
+STREAM: fifo_full SET at 134.27891
+STREAM: fifo_full CLR at 134.27893
+STREAM: fifo_full SET at 134.27893
+STREAM: fifo_full CLR at 134.27895
+STREAM: fifo_full SET at 134.27896
+STREAM: fifo_full CLR at 134.27897
+STREAM: fifo_full SET at 134.27898
+STREAM: fifo_full CLR at 134.27899
+STREAM: fifo_full SET at 134.27900
+STREAM: fifo_full CLR at 134.27901
+STREAM: fifo_full SET at 134.27902
+STREAM: fifo_full CLR at 134.27904
+STREAM: fifo_full SET at 134.27904
+STREAM: fifo_full CLR at 134.27906
+STREAM: fifo_full SET at 134.27907
+STREAM: fifo_full CLR at 134.27908
+STREAM: fifo_full SET at 134.27909
+STREAM: fifo_full CLR at 134.27910
+STREAM: fifo_full SET at 134.27911
+STREAM: fifo_full CLR at 134.27912
+STREAM: fifo_full SET at 134.27913
+STREAM: fifo_full CLR at 134.27914
+STREAM: fifo_full SET at 134.27916
+STREAM: fifo_full SET at 134.27916
+STREAM: fifo_full CLR at 134.27917
+STREAM: fifo_full SET at 134.27918
+STREAM: fifo_full CLR at 134.27919
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 136.25832 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0= -9641 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #95 (batch=340 tot=55686)
+STREAM: LONG STALL - flow-off #95 took 4625 us to resume (longest=5010343 us) resumed_at=137.15896
+STREAM: fifo_full SET at 136.22550
+STREAM: fifo_full SET at 136.26036
+STREAM: fifo_full CLR at 136.26037
+STREAM: fifo_full SET at 136.26038
+STREAM: fifo_full CLR at 136.26039
+STREAM: fifo_full SET at 136.26040
+STREAM: fifo_full CLR at 136.26041
+STREAM: fifo_full SET at 136.26041
+STREAM: fifo_full CLR at 136.26043
+STREAM: fifo_full SET at 136.26044
+STREAM: fifo_full CLR at 136.26045
+STREAM: fifo_full SET at 136.26046
+STREAM: fifo_full CLR at 136.26047
+STREAM: fifo_full SET at 136.26048
+STREAM: fifo_full CLR at 136.26049
+STREAM: fifo_full SET at 136.26050
+STREAM: fifo_full CLR at 136.26051
+STREAM: fifo_full SET at 136.26053
+STREAM: fifo_full SET at 136.26054
+STREAM: fifo_full SET at 136.26054
+STREAM: fifo_full CLR at 136.26056
+STREAM: fifo_full SET at 136.26056
+STREAM: fifo_full CLR at 136.26058
+STREAM: fifo_full SET at 136.26059
+STREAM: fifo_full CLR at 136.26060
+STREAM: fifo_full SET at 136.26061
+STREAM: fifo_full CLR at 136.26062
+STREAM: fifo_full SET at 136.26063
+STREAM: fifo_full CLR at 136.26064
+STREAM: fifo_full SET at 136.26065
+STREAM: fifo_full CLR at 136.26067
+STREAM: fifo_full SET at 136.26067
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 137.19983 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0= 13792 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #96 (batch=651 tot=56337)
+STREAM: LONG STALL - flow-off #96 took 4781 us to resume (longest=5010343 us) resumed_at=138.29730
+STREAM: fifo_full CLR at 137.20187
+STREAM: fifo_full SET at 137.20188
+STREAM: fifo_full CLR at 137.20189
+STREAM: fifo_full SET at 137.20190
+STREAM: fifo_full CLR at 137.20191
+STREAM: fifo_full SET at 137.20192
+STREAM: fifo_full CLR at 137.20193
+STREAM: fifo_full SET at 137.20194
+STREAM: fifo_full SET at 137.20196
+STREAM: fifo_full CLR at 137.20197
+STREAM: fifo_full SET at 137.20198
+STREAM: fifo_full CLR at 137.20199
+STREAM: fifo_full SET at 137.20200
+STREAM: fifo_full CLR at 137.20201
+STREAM: fifo_full SET at 137.20202
+STREAM: fifo_full CLR at 137.20204
+STREAM: fifo_full SET at 137.20204
+STREAM: fifo_full CLR at 137.20206
+STREAM: fifo_full SET at 137.20207
+STREAM: fifo_full CLR at 137.20208
+STREAM: fifo_full SET at 137.20208
+STREAM: fifo_full SET at 137.20209
+STREAM: fifo_full CLR at 137.20211
+STREAM: fifo_full SET at 137.20211
+STREAM: fifo_full CLR at 137.20213
+STREAM: fifo_full SET at 137.20214
+STREAM: fifo_full CLR at 137.20215
+STREAM: fifo_full SET at 137.20216
+STREAM: fifo_full CLR at 137.20217
+STREAM: fifo_full SET at 137.20218
+STREAM: fifo_full CLR at 137.20219
+STREAM: fifo_full SET at 137.20220
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 139.01818 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0= -9421 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #97 (batch=705 tot=57042)
+STREAM: LONG STALL - flow-off #97 took 4625 us to resume (longest=5010343 us) resumed_at=140.14952
+STREAM: fifo_full SET at 138.30249
+STREAM: fifo_full CLR at 139.02021
+STREAM: fifo_full SET at 139.02022
+STREAM: fifo_full CLR at 139.02024
+STREAM: fifo_full SET at 139.02025
+STREAM: fifo_full CLR at 139.02026
+STREAM: fifo_full SET at 139.02027
+STREAM: fifo_full SET at 139.02028
+STREAM: fifo_full CLR at 139.02029
+STREAM: fifo_full SET at 139.02030
+STREAM: fifo_full CLR at 139.02032
+STREAM: fifo_full SET at 139.02032
+STREAM: fifo_full CLR at 139.02034
+STREAM: fifo_full SET at 139.02035
+STREAM: fifo_full CLR at 139.02036
+STREAM: fifo_full SET at 139.02037
+STREAM: fifo_full CLR at 139.02038
+STREAM: fifo_full SET at 139.02039
+STREAM: fifo_full CLR at 139.02040
+STREAM: fifo_full SET at 139.02041
+STREAM: fifo_full CLR at 139.02041
+STREAM: fifo_full SET at 139.02043
+STREAM: fifo_full SET at 139.02044
+STREAM: fifo_full CLR at 139.02045
+STREAM: fifo_full SET at 139.02046
+STREAM: fifo_full CLR at 139.02047
+STREAM: fifo_full SET at 139.02048
+STREAM: fifo_full CLR at 139.02049
+STREAM: fifo_full SET at 139.02050
+STREAM: fifo_full CLR at 139.02052
+STREAM: fifo_full SET at 139.02053
+STREAM: fifo_full CLR at 139.02054
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 140.19045 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0=-29736 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #98 (batch=856 tot=57898)
+STREAM: LONG STALL - flow-off #98 took 4656 us to resume (longest=5010343 us) resumed_at=142.09738
+STREAM: fifo_full SET at 140.15556
+STREAM: fifo_full CLR at 140.19249
+STREAM: fifo_full SET at 140.19250
+STREAM: fifo_full CLR at 140.19251
+STREAM: fifo_full SET at 140.19252
+STREAM: fifo_full SET at 140.19253
+STREAM: fifo_full CLR at 140.19254
+STREAM: fifo_full SET at 140.19255
+STREAM: fifo_full CLR at 140.19257
+STREAM: fifo_full SET at 140.19257
+STREAM: fifo_full CLR at 140.19259
+STREAM: fifo_full SET at 140.19260
+STREAM: fifo_full CLR at 140.19261
+STREAM: fifo_full SET at 140.19262
+STREAM: fifo_full CLR at 140.19263
+STREAM: fifo_full SET at 140.19264
+STREAM: fifo_full CLR at 140.19265
+STREAM: fifo_full SET at 140.19266
+STREAM: fifo_full SET at 140.19267
+STREAM: fifo_full CLR at 140.19269
+STREAM: fifo_full SET at 140.19270
+STREAM: fifo_full CLR at 140.19271
+STREAM: fifo_full SET at 140.19272
+STREAM: fifo_full CLR at 140.19273
+STREAM: fifo_full SET at 140.19274
+STREAM: fifo_full CLR at 140.19275
+STREAM: fifo_full SET at 140.19276
+STREAM: fifo_full CLR at 140.19278
+STREAM: fifo_full SET at 140.19279
+STREAM: fifo_full CLR at 140.19280
+STREAM: fifo_full SET at 140.19281
+STREAM: fifo_full SET at 140.19282
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 142.13825 (backlog was 59 pairs)
+STREAM: flow-off #99 (batch=36 tot=57934)
+STREAM: post-drain +  6125 us  SKP ch0= 24315 step=   +0  (ring=59 fpga=0)
+STREAM: LONG STALL - flow-off #99 took 11937 us to resume (longest=5010343 us) resumed_at=142.16697
+STREAM: fifo_full SET at 142.10491
+STREAM: fifo_full CLR at 142.14029
+STREAM: fifo_full SET at 142.14030
+STREAM: fifo_full CLR at 142.14031
+STREAM: fifo_full SET at 142.14032
+STREAM: fifo_full CLR at 142.14033
+STREAM: fifo_full SET at 142.14034
+STREAM: fifo_full CLR at 142.14036
+STREAM: fifo_full SET at 142.14036
+STREAM: fifo_full CLR at 142.14038
+STREAM: fifo_full SET at 142.14038
+STREAM: fifo_full CLR at 142.14040
+STREAM: fifo_full SET at 142.14041
+STREAM: fifo_full CLR at 142.14041
+STREAM: fifo_full SET at 142.14042
+STREAM: fifo_full CLR at 142.14043
+STREAM: fifo_full SET at 142.14044
+STREAM: fifo_full CLR at 142.14045
+STREAM: fifo_full SET at 142.14046
+STREAM: fifo_full CLR at 142.14048
+STREAM: fifo_full SET at 142.14049
+STREAM: fifo_full SET at 142.14050
+STREAM: fifo_full SET at 142.14050
+STREAM: fifo_full CLR at 142.14052
+STREAM: fifo_full SET at 142.14052
+STREAM: fifo_full CLR at 142.14054
+STREAM: fifo_full SET at 142.14055
+STREAM: fifo_full CLR at 142.14056
+STREAM: fifo_full SET at 142.14057
+STREAM: fifo_full CLR at 142.14058
+STREAM: fifo_full SET at 142.14059
+STREAM: fifo_full CLR at 142.14060
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 142.20786 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0= 26439 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #100 (batch=337 tot=58271)
+STREAM: LONG STALL - flow-off #100 took 4718 us to resume (longest=5010343 us) resumed_at=143.10671
+STREAM: fifo_full CLR at 142.20989
+STREAM: fifo_full SET at 142.20989
+STREAM: fifo_full CLR at 142.20991
+STREAM: fifo_full SET at 142.20992
+STREAM: fifo_full CLR at 142.20993
+STREAM: fifo_full SET at 142.20994
+STREAM: fifo_full CLR at 142.20995
+STREAM: fifo_full SET at 142.20996
+STREAM: fifo_full SET at 142.20997
+STREAM: fifo_full CLR at 142.20999
+STREAM: fifo_full SET at 142.20999
+STREAM: fifo_full CLR at 142.21000
+STREAM: fifo_full SET at 142.21001
+STREAM: fifo_full CLR at 142.21002
+STREAM: fifo_full SET at 142.21003
+STREAM: fifo_full CLR at 142.21004
+STREAM: fifo_full SET at 142.21005
+STREAM: fifo_full CLR at 142.21006
+STREAM: fifo_full SET at 142.21007
+STREAM: fifo_full CLR at 142.21009
+STREAM: fifo_full SET at 142.21010
+STREAM: fifo_full CLR at 142.21011
+STREAM: fifo_full SET at 142.21012
+STREAM: fifo_full SET at 142.21013
+STREAM: fifo_full SET at 142.21014
+STREAM: fifo_full CLR at 142.21015
+STREAM: fifo_full SET at 142.21016
+STREAM: fifo_full CLR at 142.21017
+STREAM: fifo_full SET at 142.21018
+STREAM: fifo_full CLR at 142.21019
+STREAM: fifo_full SET at 142.21020
+STREAM: fifo_full CLR at 142.21022
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 143.14772 (backlog was 59 pairs)
+STREAM: post-drain +  5937 us  SKP ch0=-11494 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #101 (batch=599 tot=58870)
+STREAM: LONG STALL - flow-off #101 took 4500 us to resume (longest=5010343 us) resumed_at=144.21222
+STREAM: fifo_full CLR at 143.14971
+STREAM: fifo_full SET at 143.14971
+STREAM: fifo_full CLR at 143.14973
+STREAM: fifo_full SET at 143.14974
+STREAM: fifo_full CLR at 143.14975
+STREAM: fifo_full SET at 143.14976
+STREAM: fifo_full CLR at 143.14977
+STREAM: fifo_full SET at 143.14978
+STREAM: fifo_full CLR at 143.14980
+STREAM: fifo_full SET at 143.14980
+STREAM: fifo_full CLR at 143.14982
+STREAM: fifo_full SET at 143.14985
+STREAM: fifo_full CLR at 143.14987
+STREAM: fifo_full SET at 143.14988
+STREAM: fifo_full SET at 143.14989
+STREAM: fifo_full SET at 143.14990
+STREAM: fifo_full CLR at 143.14991
+STREAM: fifo_full SET at 143.14992
+STREAM: fifo_full CLR at 143.14993
+STREAM: fifo_full SET at 143.14994
+STREAM: fifo_full CLR at 143.14996
+STREAM: fifo_full SET at 143.14996
+STREAM: fifo_full CLR at 143.14998
+STREAM: fifo_full SET at 143.14998
+STREAM: fifo_full CLR at 143.15000
+STREAM: fifo_full SET at 143.15000
+STREAM: fifo_full CLR at 143.15001
+STREAM: fifo_full SET at 143.15002
+STREAM: fifo_full CLR at 143.15003
+STREAM: fifo_full SET at 143.15004
+STREAM: fifo_full CLR at 143.15005
+STREAM: fifo_full SET at 143.15006
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 144.25325 (backlog was 59 pairs)
+STREAM: post-drain +  6062 us  SKP ch0= 27754 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #102 (batch=186 tot=59056)
+STREAM: LONG STALL - flow-off #102 took 4562 us to resume (longest=5010343 us) resumed_at=145.05665
+STREAM: fifo_full SET at 144.21699
+STREAM: fifo_full SET at 144.25528
+STREAM: fifo_full SET at 144.25529
+STREAM: fifo_full CLR at 144.25531
+STREAM: fifo_full SET at 144.25531
+STREAM: fifo_full CLR at 144.25533
+STREAM: fifo_full SET at 144.25533
+STREAM: fifo_full CLR at 144.25535
+STREAM: fifo_full SET at 144.25536
+STREAM: fifo_full CLR at 144.25537
+STREAM: fifo_full SET at 144.25538
+STREAM: fifo_full CLR at 144.25539
+STREAM: fifo_full SET at 144.25540
+STREAM: fifo_full CLR at 144.25541
+STREAM: fifo_full SET at 144.25541
+STREAM: fifo_full CLR at 144.25543
+STREAM: fifo_full SET at 144.25543
+STREAM: fifo_full CLR at 144.25545
+STREAM: fifo_full SET at 144.25545
+STREAM: fifo_full CLR at 144.25547
+STREAM: fifo_full SET at 144.25548
+STREAM: fifo_full CLR at 144.25549
+STREAM: fifo_full SET at 144.25550
+STREAM: fifo_full CLR at 144.25551
+STREAM: fifo_full SET at 144.25552
+STREAM: fifo_full CLR at 144.25553
+STREAM: fifo_full SET at 144.25554
+STREAM: fifo_full CLR at 144.25556
+STREAM: fifo_full SET at 144.25557
+STREAM: fifo_full CLR at 144.25558
+STREAM: fifo_full SET at 144.25559
+STREAM: fifo_full CLR at 144.25560
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 145.09767 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0=-23114 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #103 (batch=548 tot=59604)
+STREAM: LONG STALL - flow-off #103 took 4843 us to resume (longest=5010343 us) resumed_at=146.13010
+STREAM: fifo_full CLR at 145.09971
+STREAM: fifo_full SET at 145.09972
+STREAM: fifo_full CLR at 145.09973
+STREAM: fifo_full SET at 145.09974
+STREAM: fifo_full CLR at 145.09976
+STREAM: fifo_full SET at 145.09976
+STREAM: fifo_full CLR at 145.09978
+STREAM: fifo_full SET at 145.09979
+STREAM: fifo_full CLR at 145.09980
+STREAM: fifo_full SET at 145.09981
+STREAM: fifo_full CLR at 145.09982
+STREAM: fifo_full SET at 145.09983
+STREAM: fifo_full CLR at 145.09984
+STREAM: fifo_full SET at 145.09985
+STREAM: fifo_full CLR at 145.09986
+STREAM: fifo_full SET at 145.09988
+STREAM: fifo_full SET at 145.09989
+STREAM: fifo_full CLR at 145.09990
+STREAM: fifo_full SET at 145.09991
+STREAM: fifo_full CLR at 145.09992
+STREAM: fifo_full SET at 145.09993
+STREAM: fifo_full CLR at 145.09994
+STREAM: fifo_full SET at 145.09995
+STREAM: fifo_full CLR at 145.09997
+STREAM: fifo_full SET at 145.09998
+STREAM: fifo_full CLR at 145.09999
+STREAM: fifo_full SET at 145.10000
+STREAM: fifo_full CLR at 145.10000
+STREAM: fifo_full SET at 145.10001
+STREAM: fifo_full SET at 145.10002
+STREAM: fifo_full CLR at 145.10004
+STREAM: fifo_full SET at 145.10004
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 146.17101 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0= 13327 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #104 (batch=393 tot=59997)
+STREAM: LONG STALL - flow-off #104 took 4718 us to resume (longest=5010343 us) resumed_at=147.10545
+STREAM: fifo_full SET at 146.13426
+STREAM: fifo_full CLR at 146.17304
+STREAM: fifo_full SET at 146.17305
+STREAM: fifo_full CLR at 146.17306
+STREAM: fifo_full SET at 146.17307
+STREAM: fifo_full CLR at 146.17309
+STREAM: fifo_full SET at 146.17309
+STREAM: fifo_full CLR at 146.17311
+STREAM: fifo_full SET at 146.17311
+STREAM: fifo_full CLR at 146.17313
+STREAM: fifo_full SET at 146.17314
+STREAM: fifo_full CLR at 146.17315
+STREAM: fifo_full SET at 146.17316
+STREAM: fifo_full CLR at 146.17317
+STREAM: fifo_full SET at 146.17318
+STREAM: fifo_full CLR at 146.17319
+STREAM: fifo_full SET at 146.17320
+STREAM: fifo_full CLR at 146.17322
+STREAM: fifo_full SET at 146.17322
+STREAM: fifo_full CLR at 146.17324
+STREAM: fifo_full SET at 146.17325
+STREAM: fifo_full CLR at 146.17326
+STREAM: fifo_full SET at 146.17327
+STREAM: fifo_full SET at 146.17328
+STREAM: fifo_full SET at 146.17329
+STREAM: fifo_full CLR at 146.17330
+STREAM: fifo_full SET at 146.17331
+STREAM: fifo_full CLR at 146.17332
+STREAM: fifo_full SET at 146.17333
+STREAM: fifo_full CLR at 146.17333
+STREAM: fifo_full SET at 146.17334
+STREAM: fifo_full CLR at 146.17336
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 147.14636 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0=-25296 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #105 (batch=132 tot=60129)
+STREAM: LONG STALL - flow-off #105 took 4750 us to resume (longest=5010343 us) resumed_at=147.23551
+STREAM: fifo_full CLR at 147.14839
+STREAM: fifo_full SET at 147.14840
+STREAM: fifo_full CLR at 147.14841
+STREAM: fifo_full SET at 147.14842
+STREAM: fifo_full CLR at 147.14844
+STREAM: fifo_full SET at 147.14845
+STREAM: fifo_full SET at 147.14846
+STREAM: fifo_full CLR at 147.14847
+STREAM: fifo_full SET at 147.14848
+STREAM: fifo_full CLR at 147.14849
+STREAM: fifo_full SET at 147.14850
+STREAM: fifo_full CLR at 147.14852
+STREAM: fifo_full SET at 147.14853
+STREAM: fifo_full CLR at 147.14854
+STREAM: fifo_full SET at 147.14855
+STREAM: fifo_full CLR at 147.14856
+STREAM: fifo_full SET at 147.14857
+STREAM: fifo_full CLR at 147.14858
+STREAM: fifo_full SET at 147.14859
+STREAM: fifo_full SET at 147.14860
+STREAM: fifo_full CLR at 147.14862
+STREAM: fifo_full SET at 147.14863
+STREAM: fifo_full CLR at 147.14864
+STREAM: fifo_full SET at 147.14865
+STREAM: fifo_full CLR at 147.14866
+STREAM: fifo_full SET at 147.14867
+STREAM: fifo_full CLR at 147.14868
+STREAM: fifo_full SET at 147.14869
+STREAM: fifo_full CLR at 147.14870
+STREAM: fifo_full SET at 147.14872
+STREAM: fifo_full CLR at 147.14873
+STREAM: fifo_full SET at 147.14874
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 147.27648 (backlog was 59 pairs)
+STREAM: post-drain +  5937 us  SKP ch0=-13762 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 26343 us  SKP ch0=-13031 step= +200  (ring=0 fpga=59)
+STREAM: flow-off #106 (batch=286 tot=60415)
+STREAM: LONG STALL - flow-off #106 took 4687 us to resume (longest=5010343 us) resumed_at=148.14543
+STREAM: fifo_full CLR at 147.27847
+STREAM: fifo_full SET at 147.27847
+STREAM: fifo_full CLR at 147.27849
+STREAM: fifo_full SET at 147.27850
+STREAM: fifo_full CLR at 147.27851
+STREAM: fifo_full SET at 147.27852
+STREAM: fifo_full CLR at 147.27853
+STREAM: fifo_full SET at 147.27854
+STREAM: fifo_full CLR at 147.27855
+STREAM: fifo_full SET at 147.27856
+STREAM: fifo_full CLR at 147.27858
+STREAM: fifo_full SET at 147.27859
+STREAM: fifo_full CLR at 147.27860
+STREAM: fifo_full SET at 147.27861
+STREAM: fifo_full SET at 147.27862
+STREAM: fifo_full CLR at 147.27863
+STREAM: fifo_full SET at 147.27867
+STREAM: fifo_full CLR at 147.27869
+STREAM: fifo_full SET at 147.27870
+STREAM: fifo_full SET at 147.27871
+STREAM: fifo_full CLR at 147.27872
+STREAM: fifo_full SET at 147.27873
+STREAM: fifo_full CLR at 147.27874
+STREAM: fifo_full SET at 147.27875
+STREAM: fifo_full CLR at 147.27876
+STREAM: fifo_full SET at 147.27877
+STREAM: fifo_full CLR at 147.27878
+STREAM: fifo_full SET at 147.27879
+STREAM: fifo_full CLR at 147.27880
+STREAM: fifo_full SET at 147.27881
+STREAM: fifo_full CLR at 147.27882
+STREAM: fifo_full SET at 147.27883
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 148.18633 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0=  7628 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #107 (batch=392 tot=60807)
+STREAM: LONG STALL - flow-off #107 took 4781 us to resume (longest=5010343 us) resumed_at=149.12002
+STREAM: fifo_full CLR at 148.18837
+STREAM: fifo_full SET at 148.18837
+STREAM: fifo_full CLR at 148.18839
+STREAM: fifo_full SET at 148.18840
+STREAM: fifo_full CLR at 148.18841
+STREAM: fifo_full SET at 148.18842
+STREAM: fifo_full CLR at 148.18843
+STREAM: fifo_full SET at 148.18844
+STREAM: fifo_full CLR at 148.18846
+STREAM: fifo_full SET at 148.18846
+STREAM: fifo_full CLR at 148.18848
+STREAM: fifo_full SET at 148.18849
+STREAM: fifo_full CLR at 148.18850
+STREAM: fifo_full SET at 148.18851
+STREAM: fifo_full CLR at 148.18852
+STREAM: fifo_full SET at 148.18853
+STREAM: fifo_full SET at 148.18854
+STREAM: fifo_full CLR at 148.18856
+STREAM: fifo_full SET at 148.18856
+STREAM: fifo_full CLR at 148.18858
+STREAM: fifo_full SET at 148.18859
+STREAM: fifo_full CLR at 148.18860
+STREAM: fifo_full SET at 148.18861
+STREAM: fifo_full CLR at 148.18862
+STREAM: fifo_full SET at 148.18863
+STREAM: fifo_full CLR at 148.18864
+STREAM: fifo_full SET at 148.18865
+STREAM: fifo_full CLR at 148.18867
+STREAM: fifo_full SET at 148.18868
+STREAM: fifo_full SET at 148.18869
+STREAM: fifo_full CLR at 148.18870
+STREAM: fifo_full SET at 148.18871
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 149.16100 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0=-30801 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #108 (batch=1036 tot=61843)
+STREAM: LONG STALL - flow-off #108 took 4875 us to resume (longest=5010343 us) resumed_at=151.18204
+STREAM: fifo_full CLR at 149.16304
+STREAM: fifo_full SET at 149.16305
+STREAM: fifo_full CLR at 149.16306
+STREAM: fifo_full SET at 149.16307
+STREAM: fifo_full CLR at 149.16308
+STREAM: fifo_full SET at 149.16309
+STREAM: fifo_full CLR at 149.16310
+STREAM: fifo_full SET at 149.16311
+STREAM: fifo_full CLR at 149.16313
+STREAM: fifo_full SET at 149.16314
+STREAM: fifo_full SET at 149.16315
+STREAM: fifo_full CLR at 149.16316
+STREAM: fifo_full SET at 149.16317
+STREAM: fifo_full CLR at 149.16318
+STREAM: fifo_full SET at 149.16319
+STREAM: fifo_full CLR at 149.16321
+STREAM: fifo_full SET at 149.16321
+STREAM: fifo_full CLR at 149.16323
+STREAM: fifo_full SET at 149.16324
+STREAM: fifo_full CLR at 149.16325
+STREAM: fifo_full SET at 149.16326
+STREAM: fifo_full CLR at 149.16327
+STREAM: fifo_full SET at 149.16328
+STREAM: fifo_full SET at 149.16329
+STREAM: fifo_full CLR at 149.16331
+STREAM: fifo_full SET at 149.16332
+STREAM: fifo_full CLR at 149.16333
+STREAM: fifo_full SET at 149.16333
+STREAM: fifo_full CLR at 149.16334
+STREAM: fifo_full SET at 149.16335
+STREAM: fifo_full CLR at 149.16336
+STREAM: fifo_full SET at 149.16337
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 151.22298 (backlog was 59 pairs)
+STREAM: post-drain +  5968 us  SKP ch0=-31319 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #109 (batch=267 tot=62110)
+STREAM: LONG STALL - flow-off #109 took 4906 us to resume (longest=5010343 us) resumed_at=152.07739
+STREAM: fifo_full SET at 151.19121
+STREAM: fifo_full CLR at 151.22498
+STREAM: fifo_full SET at 151.22499
+STREAM: fifo_full CLR at 151.22500
+STREAM: fifo_full SET at 151.22500
+STREAM: fifo_full CLR at 151.22501
+STREAM: fifo_full SET at 151.22502
+STREAM: fifo_full CLR at 151.22503
+STREAM: fifo_full SET at 151.22504
+STREAM: fifo_full CLR at 151.22508
+STREAM: fifo_full SET at 151.22509
+STREAM: fifo_full CLR at 151.22511
+STREAM: fifo_full SET at 151.22511
+STREAM: fifo_full CLR at 151.22513
+STREAM: fifo_full SET at 151.22513
+STREAM: fifo_full CLR at 151.22515
+STREAM: fifo_full SET at 151.22516
+STREAM: fifo_full CLR at 151.22517
+STREAM: fifo_full SET at 151.22518
+STREAM: fifo_full CLR at 151.22519
+STREAM: fifo_full SET at 151.22520
+STREAM: fifo_full CLR at 151.22521
+STREAM: fifo_full SET at 151.22522
+STREAM: fifo_full CLR at 151.22524
+STREAM: fifo_full SET at 151.22524
+STREAM: fifo_full CLR at 151.22526
+STREAM: fifo_full SET at 151.22527
+STREAM: fifo_full CLR at 151.22528
+STREAM: fifo_full SET at 151.22529
+STREAM: fifo_full CLR at 151.22530
+STREAM: fifo_full SET at 151.22531
+STREAM: fifo_full CLR at 151.22532
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 152.11829 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0=-12315 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #110 (batch=549 tot=62659)
+STREAM: LONG STALL - flow-off #110 took 4812 us to resume (longest=5010343 us) resumed_at=153.15124
+STREAM: fifo_full SET at 152.12033
+STREAM: fifo_full CLR at 152.12035
+STREAM: fifo_full SET at 152.12035
+STREAM: fifo_full CLR at 152.12037
+STREAM: fifo_full SET at 152.12038
+STREAM: fifo_full CLR at 152.12039
+STREAM: fifo_full SET at 152.12040
+STREAM: fifo_full CLR at 152.12041
+STREAM: fifo_full SET at 152.12041
+STREAM: fifo_full CLR at 152.12042
+STREAM: fifo_full SET at 152.12043
+STREAM: fifo_full CLR at 152.12044
+STREAM: fifo_full SET at 152.12046
+STREAM: fifo_full SET at 152.12047
+STREAM: fifo_full CLR at 152.12048
+STREAM: fifo_full SET at 152.12049
+STREAM: fifo_full CLR at 152.12050
+STREAM: fifo_full SET at 152.12051
+STREAM: fifo_full CLR at 152.12053
+STREAM: fifo_full SET at 152.12053
+STREAM: fifo_full CLR at 152.12055
+STREAM: fifo_full SET at 152.12056
+STREAM: fifo_full CLR at 152.12057
+STREAM: fifo_full SET at 152.12058
+STREAM: fifo_full CLR at 152.12059
+STREAM: fifo_full SET at 152.12060
+STREAM: fifo_full SET at 152.12061
+STREAM: fifo_full CLR at 152.12063
+STREAM: fifo_full SET at 152.12063
+STREAM: fifo_full CLR at 152.12065
+STREAM: fifo_full SET at 152.12066
+STREAM: fifo_full CLR at 152.12067
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 153.19215 (backlog was 59 pairs)
+STREAM: post-drain +  6156 us  SKP ch0= 24097 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #111 (batch=143 tot=62802)
+STREAM: LONG STALL - flow-off #111 took 4750 us to resume (longest=5010343 us) resumed_at=153.28844
+STREAM: fifo_full SET at 153.15543
+STREAM: fifo_full CLR at 153.19420
+STREAM: fifo_full SET at 153.19421
+STREAM: fifo_full CLR at 153.19422
+STREAM: fifo_full SET at 153.19423
+STREAM: fifo_full SET at 153.19424
+STREAM: fifo_full CLR at 153.19426
+STREAM: fifo_full SET at 153.19426
+STREAM: fifo_full CLR at 153.19428
+STREAM: fifo_full SET at 153.19429
+STREAM: fifo_full CLR at 153.19430
+STREAM: fifo_full SET at 153.19431
+STREAM: fifo_full CLR at 153.19432
+STREAM: fifo_full SET at 153.19433
+STREAM: fifo_full CLR at 153.19434
+STREAM: fifo_full SET at 153.19435
+STREAM: fifo_full CLR at 153.19436
+STREAM: fifo_full SET at 153.19438
+STREAM: fifo_full CLR at 153.19439
+STREAM: fifo_full SET at 153.19440
+STREAM: fifo_full SET at 153.19441
+STREAM: fifo_full SET at 153.19441
+STREAM: fifo_full CLR at 153.19443
+STREAM: fifo_full SET at 153.19444
+STREAM: fifo_full CLR at 153.19445
+STREAM: fifo_full SET at 153.19446
+STREAM: fifo_full CLR at 153.19447
+STREAM: fifo_full SET at 153.19448
+STREAM: fifo_full CLR at 153.19449
+STREAM: fifo_full SET at 153.19450
+STREAM: fifo_full CLR at 153.19452
+STREAM: fifo_full SET at 153.19452
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 154.00942 (backlog was 59 pairs)
+STREAM: post-drain +  5937 us  SKP ch0=-29270 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #112 (batch=697 tot=63499)
+STREAM: LONG STALL - flow-off #112 took 4468 us to resume (longest=5010343 us) resumed_at=155.13584
+STREAM: fifo_full CLR at 154.01141
+STREAM: fifo_full SET at 154.01141
+STREAM: fifo_full CLR at 154.01143
+STREAM: fifo_full SET at 154.01144
+STREAM: fifo_full CLR at 154.01145
+STREAM: fifo_full SET at 154.01146
+STREAM: fifo_full CLR at 154.01150
+STREAM: fifo_full SET at 154.01151
+STREAM: fifo_full CLR at 154.01153
+STREAM: fifo_full SET at 154.01153
+STREAM: fifo_full CLR at 154.01155
+STREAM: fifo_full SET at 154.01156
+STREAM: fifo_full CLR at 154.01157
+STREAM: fifo_full SET at 154.01158
+STREAM: fifo_full CLR at 154.01159
+STREAM: fifo_full SET at 154.01160
+STREAM: fifo_full SET at 154.01161
+STREAM: fifo_full CLR at 154.01163
+STREAM: fifo_full SET at 154.01163
+STREAM: fifo_full CLR at 154.01165
+STREAM: fifo_full SET at 154.01166
+STREAM: fifo_full CLR at 154.01166
+STREAM: fifo_full SET at 154.01167
+STREAM: fifo_full CLR at 154.01168
+STREAM: fifo_full SET at 154.01169
+STREAM: fifo_full CLR at 154.01170
+STREAM: fifo_full SET at 154.01171
+STREAM: fifo_full CLR at 154.01173
+STREAM: fifo_full SET at 154.01174
+STREAM: fifo_full SET at 154.01175
+STREAM: fifo_full CLR at 154.01176
+STREAM: fifo_full SET at 154.01177
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 155.17687 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0= 15983 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #113 (batch=160 tot=63659)
+STREAM: LONG STALL - flow-off #113 took 4750 us to resume (longest=5010343 us) resumed_at=155.28395
+STREAM: fifo_full SET at 155.14155
+STREAM: fifo_full CLR at 155.17891
+STREAM: fifo_full SET at 155.17891
+STREAM: fifo_full CLR at 155.17893
+STREAM: fifo_full SET at 155.17894
+STREAM: fifo_full CLR at 155.17895
+STREAM: fifo_full SET at 155.17896
+STREAM: fifo_full CLR at 155.17897
+STREAM: fifo_full SET at 155.17898
+STREAM: fifo_full CLR at 155.17899
+STREAM: fifo_full SET at 155.17900
+STREAM: fifo_full CLR at 155.17901
+STREAM: fifo_full SET at 155.17902
+STREAM: fifo_full CLR at 155.17904
+STREAM: fifo_full SET at 155.17905
+STREAM: fifo_full SET at 155.17906
+STREAM: fifo_full CLR at 155.17907
+STREAM: fifo_full SET at 155.17908
+STREAM: fifo_full CLR at 155.17909
+STREAM: fifo_full SET at 155.17910
+STREAM: fifo_full CLR at 155.17912
+STREAM: fifo_full SET at 155.17913
+STREAM: fifo_full CLR at 155.17914
+STREAM: fifo_full SET at 155.17915
+STREAM: fifo_full CLR at 155.17916
+STREAM: fifo_full SET at 155.17916
+STREAM: fifo_full CLR at 155.17917
+STREAM: fifo_full SET at 155.17918
+STREAM: fifo_full CLR at 155.17919
+STREAM: fifo_full SET at 155.17920
+STREAM: fifo_full SET at 155.17922
+STREAM: fifo_full CLR at 155.17923
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 156.00492 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0= 29017 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #114 (batch=203 tot=63862)
+STREAM: fifo_full CLR at 156.00695
+STREAM: fifo_full SET at 156.00696
+STREAM: fifo_full CLR at 156.00697
+STREAM: fifo_full SET at 156.00698
+STREAM: fifo_full CLR at 156.00700
+STREAM: fifo_full SET at 156.00700
+STREAM: fifo_full CLR at 156.00702
+STREAM: fifo_full SET at 156.00702
+STREAM: fifo_full CLR at 156.00704
+STREAM: fifo_full SET at 156.00705
+STREAM: fifo_full CLR at 156.00706
+STREAM: fifo_full SET at 156.00707
+STREAM: fifo_full CLR at 156.00708
+STREAM: fifo_full SET at 156.00708
+STREAM: fifo_full CLR at 156.00709
+STREAM: fifo_full SET at 156.00710
+STREAM: fifo_full CLR at 156.00712
+STREAM: fifo_full SET at 156.00712
+STREAM: fifo_full CLR at 156.00714
+STREAM: fifo_full SET at 156.00715
+STREAM: fifo_full CLR at 156.00716
+STREAM: fifo_full SET at 156.00717
+STREAM: fifo_full CLR at 156.00718
+STREAM: fifo_full SET at 156.00719
+STREAM: fifo_full CLR at 156.00720
+STREAM: fifo_full SET at 156.00721
+STREAM: fifo_full CLR at 156.00722
+STREAM: fifo_full SET at 156.00723
+STREAM: fifo_full CLR at 156.00725
+STREAM: fifo_full SET at 156.00726
+STREAM: fifo_full SET at 156.00727
+STREAM: fifo_full CLR at 156.00728
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: fifo_full SET at 156.13956
+STREAM: fifo_full CLR at 156.17677
+STREAM: fifo_full SET at 156.17677
+STREAM: fifo_full CLR at 156.17679
+STREAM: fifo_full SET at 156.17680
+STREAM: fifo_full CLR at 156.17681
+STREAM: fifo_full SET at 156.17682
+STREAM: fifo_full CLR at 156.17683
+STREAM: fifo_full SET at 156.17684
+STREAM: fifo_full CLR at 156.17686
+STREAM: fifo_full SET at 156.17686
+STREAM: fifo_full CLR at 156.17688
+STREAM: fifo_full SET at 156.17689
+STREAM: fifo_full CLR at 156.17690
+STREAM: fifo_full SET at 156.17691
+STREAM: fifo_full CLR at 156.17692
+STREAM: fifo_full SET at 156.17693
+STREAM: fifo_full SET at 156.17694
+STREAM: fifo_full CLR at 156.17696
+STREAM: fifo_full SET at 156.17696
+STREAM: fifo_full CLR at 156.17698
+STREAM: fifo_full SET at 156.17699
+STREAM: fifo_full CLR at 156.17700
+STREAM: fifo_full SET at 156.17701
+STREAM: fifo_full CLR at 156.17702
+STREAM: fifo_full SET at 156.17703
+STREAM: fifo_full CLR at 156.17704
+STREAM: fifo_full SET at 156.17705
+STREAM: fifo_full CLR at 156.17707
+STREAM: fifo_full SET at 156.17708
+STREAM: fifo_full SET at 156.17708
+STREAM: fifo_full CLR at 156.17709
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: LONG STALL - flow-off #114 took 245406 us to resume (longest=5010343 us) resumed_at=156.21611
+STREAM: fifo_full CLR at 156.21529
+STREAM: fifo_full SET at 156.21530
+STREAM: fifo_full CLR at 156.21532
+STREAM: fifo_full SET at 156.21532
+STREAM: fifo_full CLR at 156.21534
+STREAM: fifo_full SET at 156.21535
+STREAM: fifo_full CLR at 156.21536
+STREAM: fifo_full SET at 156.21537
+STREAM: fifo_full CLR at 156.21538
+STREAM: fifo_full SET at 156.21539
+STREAM: fifo_full SET at 156.21540
+STREAM: fifo_full CLR at 156.21541
+STREAM: fifo_full SET at 156.21541
+STREAM: fifo_full CLR at 156.21543
+STREAM: fifo_full SET at 156.21544
+STREAM: fifo_full CLR at 156.21545
+STREAM: fifo_full SET at 156.21546
+STREAM: fifo_full CLR at 156.21547
+STREAM: fifo_full SET at 156.21548
+STREAM: fifo_full CLR at 156.21549
+STREAM: fifo_full SET at 156.21550
+STREAM: fifo_full CLR at 156.21552
+STREAM: fifo_full SET at 156.21553
+STREAM: fifo_full SET at 156.21554
+STREAM: fifo_full CLR at 156.21555
+STREAM: fifo_full SET at 156.21556
+STREAM: fifo_full CLR at 156.21557
+STREAM: fifo_full SET at 156.21558
+STREAM: fifo_full CLR at 156.21560
+STREAM: fifo_full SET at 156.21560
+STREAM: fifo_full CLR at 156.21562
+STREAM: fifo_full SET at 156.21563
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 156.25716 (backlog was 59 pairs)
+STREAM: flow-off #115 (batch=489 tot=64351)
+STREAM: LONG STALL - flow-off #115 took 4781 us to resume (longest=5010343 us) resumed_at=157.24852
+STREAM: fifo_full CLR at 156.25916
+STREAM: fifo_full SET at 156.25916
+STREAM: fifo_full CLR at 156.25917
+STREAM: fifo_full SET at 156.25918
+STREAM: fifo_full SET at 156.25919
+STREAM: fifo_full CLR at 156.25921
+STREAM: fifo_full SET at 156.25922
+STREAM: fifo_full CLR at 156.25923
+STREAM: fifo_full SET at 156.25924
+STREAM: fifo_full CLR at 156.25925
+STREAM: fifo_full SET at 156.25926
+STREAM: fifo_full CLR at 156.25927
+STREAM: fifo_full SET at 156.25928
+STREAM: fifo_full CLR at 156.25929
+STREAM: fifo_full SET at 156.25930
+STREAM: fifo_full CLR at 156.25932
+STREAM: fifo_full SET at 156.25933
+STREAM: fifo_full SET at 156.25934
+STREAM: fifo_full CLR at 156.25935
+STREAM: fifo_full SET at 156.25936
+STREAM: fifo_full CLR at 156.25937
+STREAM: fifo_full SET at 156.25938
+STREAM: fifo_full CLR at 156.25940
+STREAM: fifo_full SET at 156.25941
+STREAM: fifo_full CLR at 156.25942
+STREAM: fifo_full SET at 156.25943
+STREAM: fifo_full CLR at 156.25944
+STREAM: fifo_full SET at 156.25945
+STREAM: fifo_full CLR at 156.25946
+STREAM: fifo_full SET at 156.25947
+STREAM: fifo_full CLR at 156.25952
+STREAM: fifo_full SET at 156.25953
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 157.28942 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0= 19338 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #116 (batch=184 tot=64535)
+STREAM: LONG STALL - flow-off #116 took 4812 us to resume (longest=5010343 us) resumed_at=158.09166
+STREAM: fifo_full SET at 157.25271
+STREAM: fifo_full SET at 157.29146
+STREAM: fifo_full SET at 157.29147
+STREAM: fifo_full CLR at 157.29148
+STREAM: fifo_full SET at 157.29149
+STREAM: fifo_full CLR at 157.29150
+STREAM: fifo_full SET at 157.29151
+STREAM: fifo_full CLR at 157.29153
+STREAM: fifo_full SET at 157.29153
+STREAM: fifo_full CLR at 157.29155
+STREAM: fifo_full SET at 157.29155
+STREAM: fifo_full CLR at 157.29157
+STREAM: fifo_full SET at 157.29157
+STREAM: fifo_full CLR at 157.29159
+STREAM: fifo_full SET at 157.29160
+STREAM: fifo_full CLR at 157.29161
+STREAM: fifo_full SET at 157.29162
+STREAM: fifo_full CLR at 157.29163
+STREAM: fifo_full SET at 157.29164
+STREAM: fifo_full CLR at 157.29166
+STREAM: fifo_full SET at 157.29166
+STREAM: fifo_full CLR at 157.29167
+STREAM: fifo_full SET at 157.29167
+STREAM: fifo_full CLR at 157.29169
+STREAM: fifo_full SET at 157.29170
+STREAM: fifo_full CLR at 157.29171
+STREAM: fifo_full SET at 157.29172
+STREAM: fifo_full CLR at 157.29173
+STREAM: fifo_full SET at 157.29174
+STREAM: fifo_full CLR at 157.29175
+STREAM: fifo_full SET at 157.29176
+STREAM: fifo_full CLR at 157.29178
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 158.13259 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0=-31619 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #117 (batch=495 tot=65030)
+STREAM: LONG STALL - flow-off #117 took 4718 us to resume (longest=5010343 us) resumed_at=159.13134
+STREAM: fifo_full CLR at 158.13463
+STREAM: fifo_full SET at 158.13463
+STREAM: fifo_full CLR at 158.13465
+STREAM: fifo_full SET at 158.13466
+STREAM: fifo_full CLR at 158.13467
+STREAM: fifo_full SET at 158.13468
+STREAM: fifo_full CLR at 158.13469
+STREAM: fifo_full SET at 158.13470
+STREAM: fifo_full CLR at 158.13471
+STREAM: fifo_full SET at 158.13472
+STREAM: fifo_full CLR at 158.13474
+STREAM: fifo_full SET at 158.13474
+STREAM: fifo_full CLR at 158.13476
+STREAM: fifo_full SET at 158.13476
+STREAM: fifo_full CLR at 158.13478
+STREAM: fifo_full SET at 158.13479
+STREAM: fifo_full CLR at 158.13480
+STREAM: fifo_full SET at 158.13481
+STREAM: fifo_full CLR at 158.13482
+STREAM: fifo_full SET at 158.13483
+STREAM: fifo_full CLR at 158.13484
+STREAM: fifo_full SET at 158.13485
+STREAM: fifo_full CLR at 158.13487
+STREAM: fifo_full SET at 158.13488
+STREAM: fifo_full CLR at 158.13489
+STREAM: fifo_full SET at 158.13490
+STREAM: fifo_full SET at 158.13491
+STREAM: fifo_full SET at 158.13492
+STREAM: fifo_full CLR at 158.13493
+STREAM: fifo_full SET at 158.13494
+STREAM: fifo_full CLR at 158.13495
+STREAM: fifo_full SET at 158.13496
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 159.17230 (backlog was 59 pairs)
+STREAM: flow-off #118 (batch=34 tot=65064)
+STREAM: post-drain +  6093 us  SKP ch0=  1678 step=   +0  (ring=59 fpga=0)
+STREAM: LONG STALL - flow-off #118 took 12125 us to resume (longest=5010343 us) resumed_at=159.19954
+STREAM: fifo_full SET at 159.13473
+STREAM: fifo_full CLR at 159.17434
+STREAM: fifo_full SET at 159.17434
+STREAM: fifo_full CLR at 159.17436
+STREAM: fifo_full SET at 159.17437
+STREAM: fifo_full CLR at 159.17438
+STREAM: fifo_full SET at 159.17439
+STREAM: fifo_full SET at 159.17440
+STREAM: fifo_full CLR at 159.17442
+STREAM: fifo_full SET at 159.17442
+STREAM: fifo_full CLR at 159.17444
+STREAM: fifo_full SET at 159.17445
+STREAM: fifo_full CLR at 159.17446
+STREAM: fifo_full SET at 159.17447
+STREAM: fifo_full CLR at 159.17448
+STREAM: fifo_full SET at 159.17449
+STREAM: fifo_full CLR at 159.17450
+STREAM: fifo_full SET at 159.17451
+STREAM: fifo_full CLR at 159.17452
+STREAM: fifo_full SET at 159.17453
+STREAM: fifo_full SET at 159.17455
+STREAM: fifo_full CLR at 159.17456
+STREAM: fifo_full SET at 159.17457
+STREAM: fifo_full CLR at 159.17458
+STREAM: fifo_full SET at 159.17458
+STREAM: fifo_full CLR at 159.17459
+STREAM: fifo_full SET at 159.17460
+STREAM: fifo_full CLR at 159.17462
+STREAM: fifo_full SET at 159.17462
+STREAM: fifo_full CLR at 159.17464
+STREAM: fifo_full SET at 159.17465
+STREAM: fifo_full CLR at 159.17466
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 159.24055 (backlog was 59 pairs)
+STREAM: post-drain +  6000 us  SKP ch0=  3684 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #119 (batch=179 tot=65243)
+STREAM: LONG STALL - flow-off #119 took 4718 us to resume (longest=5010343 us) resumed_at=160.03953
+STREAM: fifo_full CLR at 159.24253
+STREAM: fifo_full SET at 159.24254
+STREAM: fifo_full CLR at 159.24256
+STREAM: fifo_full SET at 159.24257
+STREAM: fifo_full CLR at 159.24258
+STREAM: fifo_full SET at 159.24259
+STREAM: fifo_full CLR at 159.24260
+STREAM: fifo_full SET at 159.24261
+STREAM: fifo_full CLR at 159.24262
+STREAM: fifo_full SET at 159.24263
+STREAM: fifo_full CLR at 159.24264
+STREAM: fifo_full SET at 159.24266
+STREAM: fifo_full SET at 159.24267
+STREAM: fifo_full CLR at 159.24268
+STREAM: fifo_full SET at 159.24272
+STREAM: fifo_full SET at 159.24273
+STREAM: fifo_full CLR at 159.24275
+STREAM: fifo_full SET at 159.24276
+STREAM: fifo_full CLR at 159.24277
+STREAM: fifo_full SET at 159.24278
+STREAM: fifo_full CLR at 159.24279
+STREAM: fifo_full SET at 159.24280
+STREAM: fifo_full CLR at 159.24281
+STREAM: fifo_full SET at 159.24282
+STREAM: fifo_full CLR at 159.24284
+STREAM: fifo_full SET at 159.24285
+STREAM: fifo_full CLR at 159.24286
+STREAM: fifo_full SET at 159.24287
+STREAM: fifo_full CLR at 159.24288
+STREAM: fifo_full SET at 159.24289
+STREAM: fifo_full SET at 159.24290
+STREAM: fifo_full CLR at 159.24291
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 160.08048 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0= 22323 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #120 (batch=135 tot=65378)
+STREAM: LONG STALL - flow-off #120 took 4843 us to resume (longest=5010343 us) resumed_at=160.17167
+STREAM: fifo_full CLR at 160.08252
+STREAM: fifo_full SET at 160.08252
+STREAM: fifo_full CLR at 160.08254
+STREAM: fifo_full SET at 160.08254
+STREAM: fifo_full CLR at 160.08256
+STREAM: fifo_full SET at 160.08257
+STREAM: fifo_full CLR at 160.08258
+STREAM: fifo_full SET at 160.08259
+STREAM: fifo_full CLR at 160.08260
+STREAM: fifo_full SET at 160.08261
+STREAM: fifo_full CLR at 160.08262
+STREAM: fifo_full SET at 160.08263
+STREAM: fifo_full CLR at 160.08265
+STREAM: fifo_full SET at 160.08266
+STREAM: fifo_full CLR at 160.08267
+STREAM: fifo_full SET at 160.08268
+STREAM: fifo_full CLR at 160.08269
+STREAM: fifo_full SET at 160.08270
+STREAM: fifo_full CLR at 160.08271
+STREAM: fifo_full SET at 160.08272
+STREAM: fifo_full SET at 160.08273
+STREAM: fifo_full CLR at 160.08275
+STREAM: fifo_full SET at 160.08276
+STREAM: fifo_full CLR at 160.08277
+STREAM: fifo_full SET at 160.08278
+STREAM: fifo_full CLR at 160.08279
+STREAM: fifo_full SET at 160.08280
+STREAM: fifo_full CLR at 160.08281
+STREAM: fifo_full SET at 160.08282
+STREAM: fifo_full CLR at 160.08284
+STREAM: fifo_full SET at 160.08285
+STREAM: fifo_full CLR at 160.08286
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 160.21260 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0=-31318 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 20125 us  SKP ch0=-30752 step= +212  (ring=0 fpga=59)
+STREAM: flow-off #121 (batch=491 tot=65869)
+STREAM: LONG STALL - flow-off #121 took 4843 us to resume (longest=5010343 us) resumed_at=161.21131
+STREAM: fifo_full CLR at 160.21464
+STREAM: fifo_full SET at 160.21464
+STREAM: fifo_full CLR at 160.21466
+STREAM: fifo_full SET at 160.21466
+STREAM: fifo_full CLR at 160.21468
+STREAM: fifo_full SET at 160.21469
+STREAM: fifo_full CLR at 160.21470
+STREAM: fifo_full SET at 160.21471
+STREAM: fifo_full CLR at 160.21472
+STREAM: fifo_full SET at 160.21473
+STREAM: fifo_full CLR at 160.21475
+STREAM: fifo_full SET at 160.21475
+STREAM: fifo_full CLR at 160.21477
+STREAM: fifo_full SET at 160.21478
+STREAM: fifo_full CLR at 160.21479
+STREAM: fifo_full SET at 160.21480
+STREAM: fifo_full CLR at 160.21481
+STREAM: fifo_full SET at 160.21482
+STREAM: fifo_full CLR at 160.21483
+STREAM: fifo_full SET at 160.21484
+STREAM: fifo_full SET at 160.21485
+STREAM: fifo_full SET at 160.21486
+STREAM: fifo_full CLR at 160.21487
+STREAM: fifo_full SET at 160.21488
+STREAM: fifo_full CLR at 160.21490
+STREAM: fifo_full SET at 160.21490
+STREAM: fifo_full CLR at 160.21492
+STREAM: fifo_full SET at 160.21492
+STREAM: fifo_full CLR at 160.21494
+STREAM: fifo_full SET at 160.21495
+STREAM: fifo_full CLR at 160.21496
+STREAM: fifo_full SET at 160.21497
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 161.25228 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0=  2160 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #122 (batch=136 tot=66005)
+STREAM: LONG STALL - flow-off #122 took 4781 us to resume (longest=5010343 us) resumed_at=162.02395
+STREAM: fifo_full CLR at 161.25431
+STREAM: fifo_full SET at 161.25432
+STREAM: fifo_full CLR at 161.25434
+STREAM: fifo_full SET at 161.25434
+STREAM: fifo_full CLR at 161.25436
+STREAM: fifo_full SET at 161.25437
+STREAM: fifo_full CLR at 161.25438
+STREAM: fifo_full SET at 161.25439
+STREAM: fifo_full CLR at 161.25440
+STREAM: fifo_full SET at 161.25441
+STREAM: fifo_full SET at 161.25442
+STREAM: fifo_full CLR at 161.25444
+STREAM: fifo_full SET at 161.25445
+STREAM: fifo_full CLR at 161.25446
+STREAM: fifo_full SET at 161.25447
+STREAM: fifo_full CLR at 161.25448
+STREAM: fifo_full SET at 161.25449
+STREAM: fifo_full CLR at 161.25450
+STREAM: fifo_full SET at 161.25451
+STREAM: fifo_full CLR at 161.25452
+STREAM: fifo_full SET at 161.25453
+STREAM: fifo_full CLR at 161.25455
+STREAM: fifo_full SET at 161.25456
+STREAM: fifo_full SET at 161.25457
+STREAM: fifo_full CLR at 161.25458
+STREAM: fifo_full SET at 161.25458
+STREAM: fifo_full CLR at 161.25459
+STREAM: fifo_full SET at 161.25460
+STREAM: fifo_full CLR at 161.25462
+STREAM: fifo_full SET at 161.25462
+STREAM: fifo_full CLR at 161.25464
+STREAM: fifo_full SET at 161.25465
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 162.06485 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0= 13845 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 18437 us  SKP ch0= 14339 step= +199  (ring=0 fpga=59)
+STREAM: flow-off #123 (batch=700 tot=66705)
+STREAM: LONG STALL - flow-off #123 took 4812 us to resume (longest=5010343 us) resumed_at=163.19586
+STREAM: fifo_full CLR at 162.06689
+STREAM: fifo_full SET at 162.06689
+STREAM: fifo_full CLR at 162.06691
+STREAM: fifo_full SET at 162.06692
+STREAM: fifo_full CLR at 162.06693
+STREAM: fifo_full SET at 162.06694
+STREAM: fifo_full CLR at 162.06695
+STREAM: fifo_full SET at 162.06696
+STREAM: fifo_full CLR at 162.06697
+STREAM: fifo_full SET at 162.06698
+STREAM: fifo_full CLR at 162.06700
+STREAM: fifo_full SET at 162.06700
+STREAM: fifo_full CLR at 162.06702
+STREAM: fifo_full SET at 162.06702
+STREAM: fifo_full CLR at 162.06704
+STREAM: fifo_full SET at 162.06705
+STREAM: fifo_full CLR at 162.06706
+STREAM: fifo_full SET at 162.06707
+STREAM: fifo_full CLR at 162.06708
+STREAM: fifo_full SET at 162.06708
+STREAM: fifo_full CLR at 162.06709
+STREAM: fifo_full SET at 162.06710
+STREAM: fifo_full CLR at 162.06712
+STREAM: fifo_full SET at 162.06713
+STREAM: fifo_full CLR at 162.06714
+STREAM: fifo_full SET at 162.06715
+STREAM: fifo_full SET at 162.06716
+STREAM: fifo_full CLR at 162.06717
+STREAM: fifo_full SET at 162.06718
+STREAM: fifo_full CLR at 162.06720
+STREAM: fifo_full SET at 162.06720
+STREAM: fifo_full CLR at 162.06722
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 163.23679 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0= -5881 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #124 (batch=340 tot=67045)
+STREAM: LONG STALL - flow-off #124 took 4843 us to resume (longest=5010343 us) resumed_at=164.13747
+STREAM: fifo_full SET at 163.20147
+STREAM: fifo_full CLR at 163.23883
+STREAM: fifo_full SET at 163.23884
+STREAM: fifo_full CLR at 163.23885
+STREAM: fifo_full SET at 163.23886
+STREAM: fifo_full CLR at 163.23887
+STREAM: fifo_full SET at 163.23888
+STREAM: fifo_full CLR at 163.23889
+STREAM: fifo_full SET at 163.23890
+STREAM: fifo_full CLR at 163.23892
+STREAM: fifo_full SET at 163.23893
+STREAM: fifo_full CLR at 163.23894
+STREAM: fifo_full SET at 163.23895
+STREAM: fifo_full SET at 163.23896
+STREAM: fifo_full CLR at 163.23898
+STREAM: fifo_full SET at 163.23898
+STREAM: fifo_full CLR at 163.23900
+STREAM: fifo_full SET at 163.23900
+STREAM: fifo_full CLR at 163.23902
+STREAM: fifo_full SET at 163.23903
+STREAM: fifo_full CLR at 163.23904
+STREAM: fifo_full SET at 163.23905
+STREAM: fifo_full CLR at 163.23906
+STREAM: fifo_full SET at 163.23907
+STREAM: fifo_full CLR at 163.23908
+STREAM: fifo_full SET at 163.23909
+STREAM: fifo_full SET at 163.23911
+STREAM: fifo_full CLR at 163.23912
+STREAM: fifo_full SET at 163.23913
+STREAM: fifo_full CLR at 163.23914
+STREAM: fifo_full SET at 163.23915
+STREAM: fifo_full CLR at 163.23916
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 164.17840 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0= 17782 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #125 (batch=435 tot=67480)
+STREAM: LONG STALL - flow-off #125 took 4781 us to resume (longest=5010343 us) resumed_at=165.13922
+STREAM: fifo_full CLR at 164.18043
+STREAM: fifo_full SET at 164.18044
+STREAM: fifo_full CLR at 164.18045
+STREAM: fifo_full SET at 164.18046
+STREAM: fifo_full CLR at 164.18048
+STREAM: fifo_full SET at 164.18048
+STREAM: fifo_full CLR at 164.18050
+STREAM: fifo_full SET at 164.18050
+STREAM: fifo_full CLR at 164.18052
+STREAM: fifo_full SET at 164.18053
+STREAM: fifo_full CLR at 164.18054
+STREAM: fifo_full SET at 164.18055
+STREAM: fifo_full CLR at 164.18056
+STREAM: fifo_full SET at 164.18057
+STREAM: fifo_full CLR at 164.18058
+STREAM: fifo_full SET at 164.18059
+STREAM: fifo_full CLR at 164.18061
+STREAM: fifo_full SET at 164.18061
+STREAM: fifo_full CLR at 164.18063
+STREAM: fifo_full SET at 164.18064
+STREAM: fifo_full CLR at 164.18065
+STREAM: fifo_full SET at 164.18066
+STREAM: fifo_full SET at 164.18067
+STREAM: fifo_full CLR at 164.18069
+STREAM: fifo_full SET at 164.18069
+STREAM: fifo_full CLR at 164.18071
+STREAM: fifo_full SET at 164.18072
+STREAM: fifo_full CLR at 164.18073
+STREAM: fifo_full SET at 164.18074
+STREAM: fifo_full CLR at 164.18075
+STREAM: fifo_full SET at 164.18076
+STREAM: fifo_full CLR at 164.18077
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 165.18015 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0=-18165 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #126 (batch=552 tot=68032)
+STREAM: LONG STALL - flow-off #126 took 4843 us to resume (longest=5010343 us) resumed_at=166.21504
+STREAM: fifo_full CLR at 165.18219
+STREAM: fifo_full SET at 165.18219
+STREAM: fifo_full CLR at 165.18221
+STREAM: fifo_full SET at 165.18222
+STREAM: fifo_full CLR at 165.18223
+STREAM: fifo_full SET at 165.18224
+STREAM: fifo_full CLR at 165.18225
+STREAM: fifo_full SET at 165.18226
+STREAM: fifo_full CLR at 165.18228
+STREAM: fifo_full SET at 165.18228
+STREAM: fifo_full CLR at 165.18230
+STREAM: fifo_full SET at 165.18231
+STREAM: fifo_full CLR at 165.18232
+STREAM: fifo_full SET at 165.18233
+STREAM: fifo_full CLR at 165.18234
+STREAM: fifo_full SET at 165.18235
+STREAM: fifo_full CLR at 165.18236
+STREAM: fifo_full SET at 165.18237
+STREAM: fifo_full CLR at 165.18238
+STREAM: fifo_full SET at 165.18239
+STREAM: fifo_full SET at 165.18241
+STREAM: fifo_full CLR at 165.18242
+STREAM: fifo_full SET at 165.18243
+STREAM: fifo_full CLR at 165.18244
+STREAM: fifo_full SET at 165.18245
+STREAM: fifo_full CLR at 165.18246
+STREAM: fifo_full SET at 165.18247
+STREAM: fifo_full CLR at 165.18249
+STREAM: fifo_full SET at 165.18249
+STREAM: fifo_full CLR at 165.18250
+STREAM: fifo_full SET at 165.18251
+STREAM: fifo_full CLR at 165.18252
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 166.25595 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0= 18253 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #127 (batch=397 tot=68429)
+STREAM: LONG STALL - flow-off #127 took 4781 us to resume (longest=5010343 us) resumed_at=167.19286
+STREAM: fifo_full SET at 166.21920
+STREAM: fifo_full SET at 166.25798
+STREAM: fifo_full SET at 166.25799
+STREAM: fifo_full CLR at 166.25800
+STREAM: fifo_full SET at 166.25801
+STREAM: fifo_full CLR at 166.25803
+STREAM: fifo_full SET at 166.25803
+STREAM: fifo_full CLR at 166.25805
+STREAM: fifo_full SET at 166.25805
+STREAM: fifo_full CLR at 166.25807
+STREAM: fifo_full SET at 166.25808
+STREAM: fifo_full CLR at 166.25809
+STREAM: fifo_full SET at 166.25810
+STREAM: fifo_full CLR at 166.25811
+STREAM: fifo_full SET at 166.25812
+STREAM: fifo_full CLR at 166.25813
+STREAM: fifo_full SET at 166.25814
+STREAM: fifo_full CLR at 166.25816
+STREAM: fifo_full SET at 166.25816
+STREAM: fifo_full CLR at 166.25818
+STREAM: fifo_full SET at 166.25818
+STREAM: fifo_full CLR at 166.25820
+STREAM: fifo_full SET at 166.25821
+STREAM: fifo_full CLR at 166.25822
+STREAM: fifo_full SET at 166.25823
+STREAM: fifo_full CLR at 166.25824
+STREAM: fifo_full SET at 166.25825
+STREAM: fifo_full CLR at 166.25826
+STREAM: fifo_full SET at 166.25827
+STREAM: fifo_full CLR at 166.25829
+STREAM: fifo_full SET at 166.25830
+STREAM: fifo_full CLR at 166.25831
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 167.23380 (backlog was 59 pairs)
+STREAM: post-drain +  6187 us  SKP ch0=-20128 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #128 (batch=216 tot=68645)
+STREAM: LONG STALL - flow-off #128 took 4500 us to resume (longest=5010343 us) resumed_at=168.05634
+STREAM: fifo_full CLR at 167.23585
+STREAM: fifo_full SET at 167.23586
+STREAM: fifo_full CLR at 167.23588
+STREAM: fifo_full SET at 167.23588
+STREAM: fifo_full CLR at 167.23590
+STREAM: fifo_full SET at 167.23590
+STREAM: fifo_full CLR at 167.23592
+STREAM: fifo_full SET at 167.23593
+STREAM: fifo_full CLR at 167.23594
+STREAM: fifo_full SET at 167.23595
+STREAM: fifo_full CLR at 167.23596
+STREAM: fifo_full SET at 167.23597
+STREAM: fifo_full CLR at 167.23598
+STREAM: fifo_full SET at 167.23599
+STREAM: fifo_full CLR at 167.23601
+STREAM: fifo_full SET at 167.23602
+STREAM: fifo_full CLR at 167.23603
+STREAM: fifo_full SET at 167.23604
+STREAM: fifo_full CLR at 167.23605
+STREAM: fifo_full SET at 167.23606
+STREAM: fifo_full CLR at 167.23607
+STREAM: fifo_full SET at 167.23608
+STREAM: fifo_full SET at 167.23609
+STREAM: fifo_full SET at 167.23610
+STREAM: fifo_full CLR at 167.23611
+STREAM: fifo_full SET at 167.23612
+STREAM: fifo_full CLR at 167.23614
+STREAM: fifo_full SET at 167.23614
+STREAM: fifo_full CLR at 167.23616
+STREAM: fifo_full SET at 167.23616
+STREAM: fifo_full CLR at 167.23618
+STREAM: fifo_full SET at 167.23619
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 168.09734 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0= -3492 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #129 (batch=414 tot=69059)
+STREAM: LONG STALL - flow-off #129 took 4750 us to resume (longest=5010343 us) resumed_at=169.04492
+STREAM: fifo_full CLR at 168.09938
+STREAM: fifo_full SET at 168.09939
+STREAM: fifo_full CLR at 168.09940
+STREAM: fifo_full SET at 168.09941
+STREAM: fifo_full CLR at 168.09942
+STREAM: fifo_full SET at 168.09943
+STREAM: fifo_full CLR at 168.09944
+STREAM: fifo_full SET at 168.09945
+STREAM: fifo_full CLR at 168.09947
+STREAM: fifo_full SET at 168.09947
+STREAM: fifo_full CLR at 168.09949
+STREAM: fifo_full SET at 168.09949
+STREAM: fifo_full CLR at 168.09951
+STREAM: fifo_full SET at 168.09952
+STREAM: fifo_full CLR at 168.09953
+STREAM: fifo_full SET at 168.09954
+STREAM: fifo_full CLR at 168.09955
+STREAM: fifo_full SET at 168.09956
+STREAM: fifo_full CLR at 168.09957
+STREAM: fifo_full SET at 168.09958
+STREAM: fifo_full CLR at 168.09959
+STREAM: fifo_full SET at 168.09960
+STREAM: fifo_full CLR at 168.09961
+STREAM: fifo_full SET at 168.09962
+STREAM: fifo_full SET at 168.09963
+STREAM: fifo_full CLR at 168.09964
+STREAM: fifo_full SET at 168.09965
+STREAM: fifo_full CLR at 168.09967
+STREAM: fifo_full SET at 168.09967
+STREAM: fifo_full CLR at 168.09969
+STREAM: fifo_full SET at 168.09970
+STREAM: fifo_full CLR at 168.09971
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 169.08584 (backlog was 59 pairs)
+STREAM: flow-off #130 (batch=32 tot=69091)
+STREAM: post-drain +  6156 us  SKP ch0= 25023 step=   +0  (ring=59 fpga=0)
+STREAM: LONG STALL - flow-off #130 took 12062 us to resume (longest=5010343 us) resumed_at=169.11191
+STREAM: fifo_full CLR at 169.08790
+STREAM: fifo_full SET at 169.08791
+STREAM: fifo_full CLR at 169.08792
+STREAM: fifo_full SET at 169.08792
+STREAM: fifo_full CLR at 169.08794
+STREAM: fifo_full SET at 169.08794
+STREAM: fifo_full CLR at 169.08796
+STREAM: fifo_full SET at 169.08797
+STREAM: fifo_full CLR at 169.08798
+STREAM: fifo_full SET at 169.08799
+STREAM: fifo_full CLR at 169.08800
+STREAM: fifo_full SET at 169.08801
+STREAM: fifo_full CLR at 169.08802
+STREAM: fifo_full SET at 169.08803
+STREAM: fifo_full CLR at 169.08805
+STREAM: fifo_full SET at 169.08805
+STREAM: fifo_full CLR at 169.08807
+STREAM: fifo_full SET at 169.08807
+STREAM: fifo_full CLR at 169.08809
+STREAM: fifo_full SET at 169.08810
+STREAM: fifo_full CLR at 169.08811
+STREAM: fifo_full SET at 169.08812
+STREAM: fifo_full CLR at 169.08813
+STREAM: fifo_full SET at 169.08814
+STREAM: fifo_full CLR at 169.08815
+STREAM: fifo_full SET at 169.08816
+STREAM: fifo_full CLR at 169.08818
+STREAM: fifo_full SET at 169.08819
+STREAM: fifo_full CLR at 169.08820
+STREAM: fifo_full SET at 169.08821
+STREAM: fifo_full SET at 169.08822
+STREAM: fifo_full CLR at 169.08823
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 169.15282 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0= 26911 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #131 (batch=131 tot=69222)
+STREAM: LONG STALL - flow-off #131 took 4843 us to resume (longest=5010343 us) resumed_at=169.24137
+STREAM: fifo_full CLR at 169.15485
+STREAM: fifo_full SET at 169.15486
+STREAM: fifo_full CLR at 169.15487
+STREAM: fifo_full SET at 169.15488
+STREAM: fifo_full CLR at 169.15490
+STREAM: fifo_full SET at 169.15491
+STREAM: fifo_full CLR at 169.15492
+STREAM: fifo_full SET at 169.15493
+STREAM: fifo_full SET at 169.15494
+STREAM: fifo_full CLR at 169.15496
+STREAM: fifo_full SET at 169.15496
+STREAM: fifo_full CLR at 169.15498
+STREAM: fifo_full SET at 169.15498
+STREAM: fifo_full CLR at 169.15500
+STREAM: fifo_full SET at 169.15500
+STREAM: fifo_full CLR at 169.15501
+STREAM: fifo_full SET at 169.15502
+STREAM: fifo_full CLR at 169.15503
+STREAM: fifo_full SET at 169.15504
+STREAM: fifo_full CLR at 169.15505
+STREAM: fifo_full SET at 169.15506
+STREAM: fifo_full CLR at 169.15508
+STREAM: fifo_full SET at 169.15509
+STREAM: fifo_full SET at 169.15510
+STREAM: fifo_full CLR at 169.15511
+STREAM: fifo_full SET at 169.15512
+STREAM: fifo_full CLR at 169.15513
+STREAM: fifo_full SET at 169.15514
+STREAM: fifo_full CLR at 169.15516
+STREAM: fifo_full SET at 169.15516
+STREAM: fifo_full CLR at 169.15518
+STREAM: fifo_full SET at 169.15519
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 169.28227 (backlog was 59 pairs)
+STREAM: post-drain +  6093 us  SKP ch0=-22740 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #132 (batch=496 tot=69718)
+STREAM: LONG STALL - flow-off #132 took 4718 us to resume (longest=5010343 us) resumed_at=170.28164
+STREAM: fifo_full CLR at 169.28431
+STREAM: fifo_full SET at 169.28432
+STREAM: fifo_full SET at 169.28433
+STREAM: fifo_full CLR at 169.28434
+STREAM: fifo_full SET at 169.28435
+STREAM: fifo_full CLR at 169.28437
+STREAM: fifo_full SET at 169.28437
+STREAM: fifo_full CLR at 169.28439
+STREAM: fifo_full SET at 169.28440
+STREAM: fifo_full CLR at 169.28441
+STREAM: fifo_full SET at 169.28442
+STREAM: fifo_full CLR at 169.28443
+STREAM: fifo_full SET at 169.28444
+STREAM: fifo_full CLR at 169.28445
+STREAM: fifo_full SET at 169.28446
+STREAM: fifo_full CLR at 169.28447
+STREAM: fifo_full SET at 169.28449
+STREAM: fifo_full SET at 169.28450
+STREAM: fifo_full SET at 169.28450
+STREAM: fifo_full CLR at 169.28452
+STREAM: fifo_full SET at 169.28452
+STREAM: fifo_full CLR at 169.28454
+STREAM: fifo_full SET at 169.28455
+STREAM: fifo_full CLR at 169.28456
+STREAM: fifo_full SET at 169.28457
+STREAM: fifo_full CLR at 169.28458
+STREAM: fifo_full SET at 169.28458
+STREAM: fifo_full CLR at 169.28459
+STREAM: fifo_full SET at 169.28460
+STREAM: fifo_full CLR at 169.28462
+STREAM: fifo_full SET at 169.28462
+STREAM: fifo_full CLR at 169.28464
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 171.00257 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0= 10623 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #133 (batch=962 tot=70680)
+STREAM: LONG STALL - flow-off #133 took 4906 us to resume (longest=5010343 us) resumed_at=172.29665
+STREAM: fifo_full SET at 170.28517
+STREAM: fifo_full CLR at 171.00461
+STREAM: fifo_full SET at 171.00461
+STREAM: fifo_full CLR at 171.00463
+STREAM: fifo_full SET at 171.00464
+STREAM: fifo_full CLR at 171.00465
+STREAM: fifo_full SET at 171.00466
+STREAM: fifo_full CLR at 171.00467
+STREAM: fifo_full SET at 171.00468
+STREAM: fifo_full CLR at 171.00469
+STREAM: fifo_full SET at 171.00470
+STREAM: fifo_full CLR at 171.00472
+STREAM: fifo_full SET at 171.00473
+STREAM: fifo_full CLR at 171.00474
+STREAM: fifo_full SET at 171.00475
+STREAM: fifo_full SET at 171.00476
+STREAM: fifo_full CLR at 171.00477
+STREAM: fifo_full SET at 171.00478
+STREAM: fifo_full CLR at 171.00480
+STREAM: fifo_full SET at 171.00480
+STREAM: fifo_full CLR at 171.00482
+STREAM: fifo_full SET at 171.00483
+STREAM: fifo_full CLR at 171.00484
+STREAM: fifo_full SET at 171.00485
+STREAM: fifo_full CLR at 171.00486
+STREAM: fifo_full SET at 171.00487
+STREAM: fifo_full CLR at 171.00488
+STREAM: fifo_full SET at 171.00489
+STREAM: fifo_full SET at 171.00490
+STREAM: fifo_full CLR at 171.00492
+STREAM: fifo_full SET at 171.00493
+STREAM: fifo_full CLR at 171.00494
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 173.01757 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0=  5632 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #134 (batch=442 tot=71122)
+STREAM: LONG STALL - flow-off #134 took 4812 us to resume (longest=5010343 us) resumed_at=173.30293
+STREAM: fifo_full SET at 172.30533
+STREAM: fifo_full CLR at 173.01961
+STREAM: fifo_full SET at 173.01962
+STREAM: fifo_full SET at 173.01963
+STREAM: fifo_full CLR at 173.01964
+STREAM: fifo_full SET at 173.01965
+STREAM: fifo_full CLR at 173.01967
+STREAM: fifo_full SET at 173.01967
+STREAM: fifo_full CLR at 173.01969
+STREAM: fifo_full SET at 173.01970
+STREAM: fifo_full CLR at 173.01971
+STREAM: fifo_full SET at 173.01972
+STREAM: fifo_full CLR at 173.01973
+STREAM: fifo_full SET at 173.01974
+STREAM: fifo_full CLR at 173.01975
+STREAM: fifo_full SET at 173.01976
+STREAM: fifo_full CLR at 173.01977
+STREAM: fifo_full SET at 173.01979
+STREAM: fifo_full SET at 173.01980
+STREAM: fifo_full CLR at 173.01981
+STREAM: fifo_full SET at 173.01982
+STREAM: fifo_full CLR at 173.01983
+STREAM: fifo_full SET at 173.01984
+STREAM: fifo_full CLR at 173.01986
+STREAM: fifo_full SET at 173.01986
+STREAM: fifo_full CLR at 173.01988
+STREAM: fifo_full SET at 173.01989
+STREAM: fifo_full CLR at 173.01990
+STREAM: fifo_full SET at 173.01991
+STREAM: fifo_full CLR at 173.01992
+STREAM: fifo_full SET at 173.01993
+STREAM: fifo_full SET at 173.01994
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 174.02386 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0=-30520 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #135 (batch=989 tot=72111)
+STREAM: LONG STALL - flow-off #135 took 4875 us to resume (longest=5010343 us) resumed_at=176.01508
+STREAM: fifo_full CLR at 174.02589
+STREAM: fifo_full SET at 174.02590
+STREAM: fifo_full CLR at 174.02591
+STREAM: fifo_full SET at 174.02592
+STREAM: fifo_full CLR at 174.02593
+STREAM: fifo_full SET at 174.02594
+STREAM: fifo_full CLR at 174.02596
+STREAM: fifo_full SET at 174.02597
+STREAM: fifo_full CLR at 174.02598
+STREAM: fifo_full SET at 174.02599
+STREAM: fifo_full SET at 174.02600
+STREAM: fifo_full SET at 174.02601
+STREAM: fifo_full CLR at 174.02602
+STREAM: fifo_full SET at 174.02603
+STREAM: fifo_full CLR at 174.02604
+STREAM: fifo_full SET at 174.02605
+STREAM: fifo_full CLR at 174.02606
+STREAM: fifo_full SET at 174.02607
+STREAM: fifo_full CLR at 174.02609
+STREAM: fifo_full SET at 174.02609
+STREAM: fifo_full CLR at 174.02611
+STREAM: fifo_full SET at 174.02611
+STREAM: fifo_full CLR at 174.02613
+STREAM: fifo_full SET at 174.02614
+STREAM: fifo_full CLR at 174.02615
+STREAM: fifo_full SET at 174.02616
+STREAM: fifo_full CLR at 174.02617
+STREAM: fifo_full SET at 174.02618
+STREAM: fifo_full CLR at 174.02619
+STREAM: fifo_full SET at 174.02620
+STREAM: fifo_full CLR at 174.02622
+STREAM: fifo_full SET at 174.02622
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 176.05598 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0= 31673 step=   +0  (ring=59 fpga=0)
+STREAM: post-drain + 43968 us  SKP ch0=-32742 step=-65477  (ring=0 fpga=59)
+STREAM: flow-off #136 (batch=469 tot=72580)
+STREAM: LONG STALL - flow-off #136 took 4781 us to resume (longest=5010343 us) resumed_at=177.04078
+STREAM: fifo_full SET at 176.02385
+STREAM: fifo_full SET at 176.05802
+STREAM: fifo_full CLR at 176.05804
+STREAM: fifo_full SET at 176.05804
+STREAM: fifo_full CLR at 176.05806
+STREAM: fifo_full SET at 176.05807
+STREAM: fifo_full CLR at 176.05808
+STREAM: fifo_full SET at 176.05809
+STREAM: fifo_full CLR at 176.05810
+STREAM: fifo_full SET at 176.05811
+STREAM: fifo_full CLR at 176.05812
+STREAM: fifo_full SET at 176.05813
+STREAM: fifo_full CLR at 176.05815
+STREAM: fifo_full SET at 176.05816
+STREAM: fifo_full CLR at 176.05817
+STREAM: fifo_full SET at 176.05818
+STREAM: fifo_full CLR at 176.05819
+STREAM: fifo_full SET at 176.05820
+STREAM: fifo_full SET at 176.05821
+STREAM: fifo_full CLR at 176.05823
+STREAM: fifo_full SET at 176.05823
+STREAM: fifo_full CLR at 176.05825
+STREAM: fifo_full SET at 176.05826
+STREAM: fifo_full CLR at 176.05827
+STREAM: fifo_full SET at 176.05828
+STREAM: fifo_full CLR at 176.05829
+STREAM: fifo_full SET at 176.05830
+STREAM: fifo_full CLR at 176.05831
+STREAM: fifo_full SET at 176.05832
+STREAM: fifo_full CLR at 176.05833
+STREAM: fifo_full SET at 176.05834
+STREAM: fifo_full CLR at 176.05835
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 177.08167 (backlog was 59 pairs)
+STREAM: post-drain +  6156 us  SKP ch0= -2680 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #137 (batch=82 tot=72662)
+STREAM: LONG STALL - flow-off #137 took 4656 us to resume (longest=5010343 us) resumed_at=177.13929
+STREAM: fifo_full CLR at 177.08372
+STREAM: fifo_full SET at 177.08373
+STREAM: fifo_full CLR at 177.08374
+STREAM: fifo_full SET at 177.08375
+STREAM: fifo_full CLR at 177.08375
+STREAM: fifo_full SET at 177.08376
+STREAM: fifo_full CLR at 177.08378
+STREAM: fifo_full SET at 177.08379
+STREAM: fifo_full CLR at 177.08380
+STREAM: fifo_full SET at 177.08381
+STREAM: fifo_full SET at 177.08382
+STREAM: fifo_full SET at 177.08383
+STREAM: fifo_full CLR at 177.08384
+STREAM: fifo_full SET at 177.08385
+STREAM: fifo_full CLR at 177.08386
+STREAM: fifo_full SET at 177.08387
+STREAM: fifo_full CLR at 177.08388
+STREAM: fifo_full SET at 177.08389
+STREAM: fifo_full CLR at 177.08391
+STREAM: fifo_full SET at 177.08391
+STREAM: fifo_full CLR at 177.08393
+STREAM: fifo_full SET at 177.08393
+STREAM: fifo_full CLR at 177.08395
+STREAM: fifo_full SET at 177.08395
+STREAM: fifo_full CLR at 177.08397
+STREAM: fifo_full SET at 177.08398
+STREAM: fifo_full CLR at 177.08399
+STREAM: fifo_full SET at 177.08400
+STREAM: fifo_full CLR at 177.08401
+STREAM: fifo_full SET at 177.08402
+STREAM: fifo_full CLR at 177.08404
+STREAM: fifo_full SET at 177.08404
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 177.18025 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0=  5833 step=   +0  (ring=59 fpga=0)
+STREAM: flow-off #138 (batch=161 tot=72823)
+STREAM: LONG STALL - flow-off #138 took 4843 us to resume (longest=5010343 us) resumed_at=177.28789
+STREAM: fifo_full CLR at 177.18230
+STREAM: fifo_full SET at 177.18230
+STREAM: fifo_full CLR at 177.18232
+STREAM: fifo_full SET at 177.18233
+STREAM: fifo_full CLR at 177.18234
+STREAM: fifo_full SET at 177.18235
+STREAM: fifo_full CLR at 177.18236
+STREAM: fifo_full SET at 177.18237
+STREAM: fifo_full CLR at 177.18238
+STREAM: fifo_full SET at 177.18239
+STREAM: fifo_full CLR at 177.18241
+STREAM: fifo_full SET at 177.18242
+STREAM: fifo_full SET at 177.18243
+STREAM: fifo_full CLR at 177.18244
+STREAM: fifo_full SET at 177.18245
+STREAM: fifo_full CLR at 177.18246
+STREAM: fifo_full SET at 177.18247
+STREAM: fifo_full CLR at 177.18249
+STREAM: fifo_full SET at 177.18249
+STREAM: fifo_full CLR at 177.18250
+STREAM: fifo_full SET at 177.18251
+STREAM: fifo_full CLR at 177.18252
+STREAM: fifo_full SET at 177.18253
+STREAM: fifo_full CLR at 177.18254
+STREAM: fifo_full SET at 177.18255
+STREAM: fifo_full SET at 177.18256
+STREAM: fifo_full CLR at 177.18258
+STREAM: fifo_full SET at 177.18259
+STREAM: fifo_full CLR at 177.18260
+STREAM: fifo_full SET at 177.18261
+STREAM: fifo_full CLR at 177.18262
+STREAM: fifo_full SET at 177.18263
+STREAM: fifo_full watch buffer overflowed — some transitions dropped
+STREAM: ring drained to 0 at 178.00879 (backlog was 59 pairs)
+STREAM: post-drain +  6125 us  SKP ch0= 19693 step=   +0  (ring=59 fpga=0)

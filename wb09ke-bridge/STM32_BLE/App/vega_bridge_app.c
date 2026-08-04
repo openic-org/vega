@@ -13,10 +13,10 @@
  *           → service/char/desc discovery → enable notify on 0xFFF2 CCCD
  *   MTU exchange response → DLE(251) → symmetric DLE event → PHY 2M
  *
- * A 5-second throughput counter is printed to UART (via printf → ring buffer)
- * to confirm data flow without disrupting the PC re-sync logic.
+ * All throughput monitoring is done on the PC side (test_validator.py).
  */
 
+#include "app_conf.h"  /* must be first — defines DT_INFO_MSG as no-op before app_ble.h can set it to printf */
 #include "main.h"
 #include "app_common.h"
 #include "ble.h"
@@ -73,25 +73,6 @@ static void gatt_cmd_resp_wait(void)
     UTIL_SEQ_WaitEvt(1U << CFG_IDLEEVT_PROC_GATT_COMPLETE);
 }
 
-/* ── Throughput counter ──────────────────────────────────────────────────── */
-
-static void log_throughput(void)
-{
-    static uint32_t last_ms  = 0;
-    static uint32_t pkt_count = 0;
-
-    pkt_count++;
-    uint32_t now = HAL_GetTick();
-    if (now - last_ms >= 5000U) {
-        uint32_t elapsed = now - last_ms;
-        uint32_t pkt_s = (pkt_count * 1000U) / elapsed;
-        /* Assumes 59 FPGA sample pairs per packet at 30 kSPS */
-        printf("Bridge: %lu pkt/s  %lu SPS\r\n",
-               (unsigned long)pkt_s, (unsigned long)(pkt_s * 59U));
-        pkt_count  = 0;
-        last_ms    = now;
-    }
-}
 
 /* ── GATT parsing helpers ────────────────────────────────────────────────── */
 
@@ -179,7 +160,6 @@ static void parse_notification(aci_gatt_clt_notification_event_rp0 *p_evt)
 
     VEGA_UART_Write(hdr, 4U);
     VEGA_UART_Write(p_evt->Attribute_Value, len);
-    log_throughput();
 }
 
 /* ── GATT event handler ──────────────────────────────────────────────────── */
