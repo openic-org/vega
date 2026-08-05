@@ -29,6 +29,16 @@ Assembled 2026-08-04. Restructured into **Phase A** (road to the animal test) an
 - Android app — archived
 - Coin-cell operation — later; likely a different operating mode
 - >2 channel modes (4ch@15k, 8ch@7.5k, …) — roadmap; architecture must not preclude
+- **Multiple simultaneous Kuntur devices in the pc-app** — roadmap; discuss when it
+  comes up. Raised 2026-08-05 during the A.2 command-relay spec work: likely one
+  WB09KE bridge per device (own USB serial port each), not one bridge multiplexing
+  several BLE links — matches the isolation argument above (BLE buys **per-headstage**
+  galvanic isolation, so one device ↔ one isolated wireless link is the natural
+  unit, not a shared bridge). If so, needs **no protocol change** — magic bytes
+  identify frame *type* (data vs. command), not *device*; the OS-level serial port
+  already disambiguates which physical device a byte stream belongs to. Only the
+  multiplexed-single-bridge alternative would need a device/connection-ID field
+  added inside existing frames — architecture must not preclude either path.
 
 **Fixed constraint:** BLE carries a ~60 kSPS aggregate 16-bit budget. Future modes
 trade channel count against per-channel rate within it. This is deliberate —
@@ -108,27 +118,46 @@ only. That loses the simultaneous reference comparison, not the test.
 
 ## A.0 — Start this week (pure lead time / minutes of work)
 
-- [ ] **Procure the companion FPGA dev kit.** COTS, not a custom board — not worn by
-      the subject, so unconstrained by size/power. Criteria in priority order:
-      stay in the **CrossLink-NX family** (one toolchain, shared RTL idioms;
-      LIFCL-40 eval boards are the obvious candidates) · CrossLink-NX boards commonly
-      carry **HDMI connectors**, matching the uHDMI link without a breakout ·
-      verify LVDS pairs are exposed on accessible headers at the needed rate ·
-      pin exact part number + board revision (reproducibility depends on
-      purchasability).
-- [ ] **T1.1 live risks** — `CFG_BONDING_MODE=0` is uncommitted (committed value is
-      `1`; a fresh clone cannot accept BLE connections). Also decide
-      `STREAM_DIAG_POST_DRAIN_WATCH=1` (`stream_app.c:165`), which prints on the hot
-      path. *Minutes, and a broken build during this window would be painful.*
-- [ ] **Verify `RHD_REG13`** (`intan.vh:149`) — `{RHD_ADC_AUX3_EN, RHD_RL_DAC3,
-      RHD_RH1_DAC2}` mixes RL and RH1 prefixes where every other register is
-      consistent. RHD2000 reg 13 is `[7] aux3_en, [6] RL_DAC3, [5:0] RL_DAC2`, and
-      `RH1_DAC2` is 5 bits (per REG9) where 6 are needed — likely a 7-bit
-      concatenation into an 8-bit field, shifting the register. **Reg 13 sets the
-      low-frequency cutoff.** Never noticed because the amplifier path has never run.
-- [ ] Confirm RHS2116 is unpopulated or provably disabled on the test hardware
-- [ ] Confirm whether the collaborator's animal protocol needs an amendment to admit
-      a new device (same logic as an IRB amendment; their protocol may already cover it)
+- [x] **Procure the companion FPGA dev kit.** Decided 2026-08-05: **Lattice
+      LIFCL-40-EVN** (`LIFCL-40-9BG400C`, board silkscreen `LIFCL-40-EVN REV B`) +
+      **IAM Electronic FMC LPC Breakout Board** (passive, ~€145, exposes all LA
+      differential pairs at 1.27 mm pitch). Ordered: LIFCL-40-EVN via Mouser,
+      breakout board directly via IAM Electronic.
+      - Corrected assumption from the original criteria: this board has **no HDMI
+        connector**. CrossLink-NX Family Datasheet Table 2.13 confirms true
+        differential **LVDS output exists only on the Bottom I/O bank**
+        (Top/Left/Right support only emulated `LVDSE`/`SUBLVDSE`). On this eval
+        board, only the **FMC LPC connector** is wired to Bottom-bank balls — the
+        D-PHY1 header/camera connector instead hit the separate hardened
+        MIPI-D-PHY hard IP block (CSI-2/DSI only, not usable as generic LVDS).
+        So FMC LPC + a breakout is the only viable path on this board, not a
+        convenience choice.
+      - Ruled out the Exostiv "HDMI to FMC" module: it routes HDMI's TMDS lanes to
+        the FMC gigabit-transceiver pins (`TXDP/TXDN/RXDP/RXDN_FMC`), which this
+        eval board's own connector table lists as unrouted (LIFCL-40 ball `—`) —
+        would plug in but connect to nothing.
+      - Plan: wire the handful of needed LA pairs from the breakout board to a
+        hand-made uHDMI pigtail for the tunnel link (A.4).
+      - Vendor check on IAM Electronic GmbH (Leipzig, DE, founded 2017): active
+        DigiKey Preferred Supplier, positive Tindie reviews (~170-196 orders
+        across their FMC line), 11 FMC modules currently for sale with 2025-dated
+        updates. No red flags.
+- [x] **T1.1 live risks** — `CFG_BONDING_MODE=0` committed (`0c7a612`, was
+      uncommitted with committed value `1`, which would've blocked BLE on a fresh
+      clone). `STREAM_DIAG_POST_DRAIN_WATCH=1` (`stream_app.c:165`) reviewed and
+      left at `1` — still useful while A.1/A.2 touch `stream_app.c`.
+- [x] **Verify `RHD_REG13`** (`intan.vh:149`) — confirmed the 7-bit concatenation
+      bug and fixed: now `{RHD_ADC_AUX3_EN, RHD_RL_DAC3, RHD_RL_DAC2}` (8 bits),
+      matching RHD2000 reg 13 `[7] aux3_en, [6] RL_DAC3, [5:0] RL_DAC2`.
+      Committed `e07b696` on `fpga-fifo-sentinel`.
+- [x] Confirm RHS2116 is unpopulated or provably disabled on the test hardware —
+      populated and powered (board wiring requires it), but FPGA SPI to it was
+      undriven/absent from the design (undefined idle state). Fixed: `spi2_csb`
+      tied high (deselected), `spi2_sck`/`spi2_mosi0` tied low — chip can never
+      latch a command. Committed `4f0e31d` on `fpga-fifo-sentinel`.
+- [x] Confirm whether the collaborator's animal protocol needs an amendment to admit
+      a new device — communicated to collaborator 2026-08-05, amendment in progress.
+      Revisit 2026-09-05.
 
 ## A.1 — Make the signal real  → **A1**  *(Manuel, RTL)*
 
@@ -148,6 +177,26 @@ only. That loses the simultaneous reference comparison, not the test.
       must be undone before bidirectional tunnel work · `assign cmd_is_00 = fifo_full`
       · `mode` hardwired `2'b00` with `mode1_*`/`mode2_*`/`mode3_*` declared and
       unwired · delete `old.v`.
+- [ ] **SPI0 opcode decode, 4-way** (from A.2 control-plane spec review,
+      2026-08-05) — `main_controller` currently only distinguishes `opcode==01`
+      from everything else. Needs explicit decode: `00`=FIFO pop (existing),
+      `01`=regbank write (existing), `10`=regbank read (new — no path from
+      `regbank_dout0` to the TX mux exists yet), `11`=NOP (new — no side
+      effects). **Must land together with** the MCU-side fix to
+      `FPGA_SPI_ReadSamples()`'s dummy TX word (`FPGA_STREAM_CMD = 0xA5A5`
+      currently has top bits `10` by accident — would misread every streaming
+      transfer as a register read once `10` means something). See
+      `docs/interfaces/channel-selection-control-plane.md` section 1.
+- [ ] **Wire the sampling-cycle placeholder command slot** — confirmed
+      2026-08-05: the sampling counter's extra state beyond the 32 real
+      per-module channels (`components.v:855`, `sampling_max = 6'd32`, giving
+      33 total states) is an intentional placeholder for an alternate RHD2164
+      command (e.g. chip-ID or temperature-sensor read) instead of a channel
+      conversion — datasheet recommends reserving 3 such slots, reduced to 1
+      here. Not yet wired to a consumer; `rhd2164_sampling_cmd0-3`
+      (`components.v:419-437`, regbank addr 128-131) are the likely
+      MCU-writable home for the command word(s) once this is implemented. See
+      `docs/interfaces/channel-selection-control-plane.md` section 1.
 
 *Already verified correct:* RHD init sequence — chip-ID read, regs 0–21,
 `RHD_CALIBRATE`, then nine dummy reads as the datasheet requires.
@@ -158,9 +207,20 @@ Enough to choose which two channels to record — without it the animal test is 
 with a hardcoded pair. Polished UI is Phase B.
 
 - [x] FPGA endpoint exists — `ch_a`/`ch_b` driven from regbank, writable via `spi0`
+- [x] **Interface spec finalized** — `docs/interfaces/channel-selection-control-plane.md`,
+      covers all 3 hops (FPGA regbank SPI write, BLE 0xFFF1 command, bridge UART
+      relay), all open questions resolved 2026-08-05. Surfaced a scope gap the
+      plan bullets below didn't call out: the pc-app doesn't reach 0xFFF1
+      directly, it must relay through the WB09KE bridge — new bridge firmware,
+      not just MCU + app. Ready for implementation; RTL follow-ups tracked in A.1
+      are non-blocking (`REG_WRITE` alone is sufficient for `SET_CHANNELS`).
 - [ ] **MCU→FPGA register-write API** — `fpga_spi.c` has none; it only reads samples
 - [ ] **BLE command handler on 0xFFF1** — declared, "reserved for future commands",
       no handler
+- [ ] **Bridge UART command relay** (new, found while drafting the interface spec) —
+      bridge RX is currently forward-only to a debug callback; needs a command-frame
+      parser + `aci_gatt_clt_write` relay to 0xFFF1. Blocked on confirming bridge RAM
+      headroom first (`memory/project_bridge_ram.md`).
 - [ ] Minimal channel selection in the pc-app
 
 ## A.3 — Signal injection & validation rig  → toward **A2**
@@ -374,7 +434,18 @@ Design the **seams**; file layout follows.
 - [ ] **1.7% FPGA FIFO underrun rate** (1,924,235 / 111,946,128 on the hour soak) —
       real underruns, never investigated
 - [ ] **SPS overshoot** — measured ~30,700–31,900 vs. the FPGA's 30,000; unresolved
-- [ ] **WB09KE bridge RAM at 100%** (64/64 KB) — blocks all bridge feature work
+- [x] **WB09KE bridge RAM at 100%** — RESOLVED 2026-08-05, was a measurement
+      artifact, not real exhaustion. Linker script (`stm32ble-test/client/STM32CubeIDE/STM32WB09KEVX_FLASH.ld`,
+      referenced via `wb09ke-bridge/Makefile:161`) sets `_Min_Heap_Size=0x0` and
+      places `.stack` at a fixed address anchored to RAM's top, independent of
+      where `.heap` ends. Actual claimed sections (`.data`+`.bss`+`.bss.blueRAM`
+      +`.noinit`/`dyn_alloc_a`+`.stack`) total ~21.5 KB of 64 KB (~33%); the
+      "100%" figure almost certainly came from `(highest address − RAM start)/
+      RAM size`, which hits 100% simply because the stack sits at RAM's very
+      top — even though ~43 KB between `.noinit` and `.stack` is genuinely
+      unclaimed (confirmed no `malloc`/`calloc`/`realloc`/`free` anywhere in the
+      bridge firmware, so the zero-sized heap isn't a problem). Bridge feature
+      work (A.2's command relay) can proceed.
 - [ ] **mblock margin + FPGA FIFO sizing as one joint tuning project.** *Permanently
       valuable, not v1-specific — the fixed ~60 kSPS budget means every future mode
       inherits it.*
