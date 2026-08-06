@@ -397,6 +397,17 @@ typedef enum
  *****************************************************************************/
 /**
  * Enable or disable debug prints.
+ *
+ * Off by default: this UART is the SAME wire as the 2 Mbaud data/command-
+ * response stream (Core/Src/main.c only configures USART1 — no separate
+ * debug UART exists on this board as wired), so debug text interleaves into
+ * the same byte stream the pc-app parses. Flip to (1) to re-enable — also
+ * enables DT_INFO_MSG below (connect/disconnect, discovery, command-relay
+ * success/failure) — to diagnose bridge<->MCU issues. To watch it, point a
+ * terminal (e.g. tio) at the port instead of running the pc-app — the two
+ * can't share the port. Used 2026-08-06 to diagnose a silent command-relay
+ * failure traced to a USART1 RX overrun (see stm32wb0x_it.c) — see PLAN.md
+ * A.2 and docs/interfaces/channel-selection-control-plane.md section 5.6.
  */
 #define CFG_DEBUG_APP_TRACE             (0)
 
@@ -432,9 +443,14 @@ typedef enum
 #endif
 
 /* USER CODE BEGIN Traces */
-/* DT_INFO_MSG is defined in the reference app_ble.h as printf() — silence it
- * here so connection-sequence log lines do not corrupt the data UART stream. */
-#define DT_INFO_MSG(...)
+/* DT_INFO_MSG is defined in the reference app_ble.h as printf(). Routed
+ * through APP_DBG_MSG (rather than kept as its own separate no-op, as
+ * originally) so it's gated by the same CFG_DEBUG_APP_TRACE flag above —
+ * inert by default, and flipping that one flag on surfaces
+ * vega_bridge_app.c's existing DT_INFO_MSG call sites (cmd relay
+ * not-ready/failed/success, discovery, connect/disconnect) for future
+ * bridge<->MCU debugging without needing to re-wire this again. */
+#define DT_INFO_MSG(...)  APP_DBG_MSG(__VA_ARGS__)
 /* USER CODE END Traces */
 
 /******************************************************************************
@@ -459,6 +475,7 @@ typedef enum
   CFG_TASK_CONN_UPDATE_ID,
   CFG_TASK_START_SCAN_ID,
   CFG_TASK_PHY_UPDATE_ID,   /* auto 2M PHY after symmetric DLE */
+  CFG_TASK_UART_CMD_RELAY_ID,   /* relay a parsed UART command frame to 0xFFF1 */
   /* USER CODE END CFG_Task_Id_t */
   CFG_TASK_NBR,  /**< Shall be LAST in the list */
 } CFG_Task_Id_t;

@@ -30,13 +30,17 @@
 
 /* ── Vega service / characteristic UUIDs ────────────────────────────────── */
 
-#define VEGA_SVC_UUID     (0xFFF0)
-#define VEGA_NOTIFY_UUID  (0xFFF2)
+#define VEGA_SVC_UUID      (0xFFF0)
+#define VEGA_NOTIFY_UUID   (0xFFF2)
+#define VEGA_CMD_UUID      (0xFFF1)   /* write-without-response, see A.2 spec */
+#define VEGA_RESPONSE_UUID (0xFFF3)   /* notify, command-response, see spec section 4 */
 
-/* ── Frame header for UART output ────────────────────────────────────────── */
+/* ── Frame headers for UART output (bridge -> pc-app) ────────────────────── */
 
-#define FRAME_MAGIC_0   (0xAAU)
-#define FRAME_MAGIC_1   (0x55U)
+#define FRAME_MAGIC_0      (0xAAU)   /* sample data */
+#define FRAME_MAGIC_1      (0x55U)
+#define RESPONSE_MAGIC_0   (0xEEU)   /* command response, spec section 4.4 */
+#define RESPONSE_MAGIC_1   (0x11U)
 
 /* ── Bridge GATT context ─────────────────────────────────────────────────── */
 
@@ -54,6 +58,15 @@ typedef struct
 
     /* CCCD of 0xFFF2 */
     uint16_t notify_cccd_hdl;
+
+    /* Characteristic 0xFFF1 (command write-without-response) */
+    uint16_t cmd_value_hdl;
+
+    /* Characteristic 0xFFF3 (command-response notify) */
+    uint16_t resp_value_hdl;
+
+    /* CCCD of 0xFFF3 */
+    uint16_t resp_cccd_hdl;
 
     /* Negotiated ATT payload size */
     uint16_t mtu_payload;
@@ -115,6 +128,12 @@ static void parse_chars(aci_att_clt_read_by_type_resp_event_rp0 *p_evt)
         if (uuid == VEGA_NOTIFY_UUID) {
             s_ctx.notify_value_hdl = value_hdl;
             DT_INFO_MSG("Found 0xFFF2 value handle: 0x%04X\r\n", value_hdl);
+        } else if (uuid == VEGA_CMD_UUID) {
+            s_ctx.cmd_value_hdl = value_hdl;
+            DT_INFO_MSG("Found 0xFFF1 value handle: 0x%04X\r\n", value_hdl);
+        } else if (uuid == VEGA_RESPONSE_UUID) {
+            s_ctx.resp_value_hdl = value_hdl;
+            DT_INFO_MSG("Found 0xFFF3 value handle: 0x%04X\r\n", value_hdl);
         }
     }
 }
@@ -139,6 +158,9 @@ static void parse_descs(aci_att_clt_find_info_resp_event_rp0 *p_evt)
             if (cur_value_hdl == s_ctx.notify_value_hdl) {
                 s_ctx.notify_cccd_hdl = handle;
                 DT_INFO_MSG("Found 0xFFF2 CCCD: 0x%04X\r\n", handle);
+            } else if (cur_value_hdl == s_ctx.resp_value_hdl) {
+                s_ctx.resp_cccd_hdl = handle;
+                DT_INFO_MSG("Found 0xFFF3 CCCD: 0x%04X\r\n", handle);
             }
         } else {
             cur_value_hdl = handle;
@@ -154,6 +176,25 @@ static void parse_notification(aci_gatt_clt_notification_event_rp0 *p_evt)
     const uint8_t hdr[4] = {
         FRAME_MAGIC_0,
         FRAME_MAGIC_1,
+        (uint8_t)(len & 0xFFU),
+        (uint8_t)(len >> 8),
+    };
+
+    VEGA_UART_Write(hdr, 4U);
+    VEGA_UART_Write(p_evt->Attribute_Value, len);
+}
+
+/* Relays a 0xFFF3 SET_CHANNELS readback notification to the pc-app — see
+ * docs/interfaces/channel-selection-control-plane.md section 4.4. Same
+ * framing shape as parse_notification()'s data frame, distinct magic. */
+static void parse_response_notification(aci_gatt_clt_notification_event_rp0 *p_evt)
+{
+    if (p_evt->Attribute_Handle != s_ctx.resp_value_hdl) return;
+
+    uint16_t      len = p_evt->Attribute_Value_Length;
+    const uint8_t hdr[4] = {
+        RESPONSE_MAGIC_0,
+        RESPONSE_MAGIC_1,
         (uint8_t)(len & 0xFFU),
         (uint8_t)(len >> 8),
     };
@@ -182,6 +223,7 @@ static BLEEVT_EvtAckStatus_t Bridge_EventHandler(aci_blecore_event *p_evt)
 
     case ACI_GATT_CLT_NOTIFICATION_VSEVT_CODE:
         parse_notification((aci_gatt_clt_notification_event_rp0 *)p_evt->data);
+        parse_response_notification((aci_gatt_clt_notification_event_rp0 *)p_evt->data);
         break;
 
     case ACI_GATT_CLT_PROC_COMPLETE_VSEVT_CODE:
@@ -264,10 +306,74 @@ static void vega_bridge_discover_all(void)
         DT_INFO_MSG("ERROR: CCCD not found — check service UUIDs\r\n");
     }
 
+    /* 5. Enable notifications on the command-response characteristic — see
+     * docs/interfaces/channel-selection-control-plane.md section 4.4. Not
+     * fatal if missing (older headstage firmware pre-dating this feature) —
+     * SET_CHANNELS still works, readback confirmation just won't arrive. */
+    if (s_ctx.resp_cccd_hdl != 0x0000U) {
+        uint16_t enable = 0x0001U;
+        ret = aci_gatt_clt_write(conn,
+                                  BLE_GATT_UNENHANCED_ATT_L2CAP_CID,
+                                  s_ctx.resp_cccd_hdl,
+                                  2,
+                                  (uint8_t *)&enable);
+        if (ret == BLE_STATUS_SUCCESS) {
+            gatt_cmd_resp_wait();
+            DT_INFO_MSG("0xFFF3 notify enabled\r\n");
+        }
+    } else {
+        DT_INFO_MSG("0xFFF3 CCCD not found — readback confirmation unavailable\r\n");
+    }
+
     s_ctx.state = GATT_CLIENT_APP_CONNECTED;
 
     /* Check for a second connection that arrived while we were busy */
     UTIL_SEQ_SetTask(1U << CFG_TASK_DISCOVER_SERVICES_ID, CFG_SEQ_PRIO_0);
+}
+
+/* ── UART command relay task ─────────────────────────────────────────────── */
+
+/* Single pending-command slot, not a queue: if a second frame arrives before
+ * the sequencer task drains the first, it overwrites s_cmd_relay_buf and the
+ * first command is lost (last-write-wins). Acceptable for V1's infrequent,
+ * user-triggered SET_CHANNELS — no torn reads, since the M0+ ISR always runs
+ * to completion before the task it interrupted resumes. Revisit if a command
+ * is added that can't tolerate coalescing/loss under back-to-back writes. */
+static uint8_t s_cmd_relay_buf[VEGA_UART_CMD_MAX_PAYLOAD];
+static uint8_t s_cmd_relay_len;
+
+void VEGA_BRIDGE_OnCommandFrame(const uint8_t *payload, uint8_t len)
+{
+    /* ISR context — copy and defer, never touch the BLE stack here. len is
+     * already bounded by vega_uart.c's own VEGA_UART_CMD_MAX_PAYLOAD check. */
+    memcpy(s_cmd_relay_buf, payload, len);
+    s_cmd_relay_len = len;
+    UTIL_SEQ_SetTask(1U << CFG_TASK_UART_CMD_RELAY_ID, CFG_SEQ_PRIO_0);
+}
+
+/* Transparent relay — no interpretation of the payload beyond framing, see
+ * docs/interfaces/channel-selection-control-plane.md section 3. A frame that
+ * arrives while disconnected or before 0xFFF1 is discovered is dropped;
+ * there's no response channel to report that back to the pc-app on a
+ * write-without-response characteristic. */
+static void vega_bridge_relay_command(void)
+{
+    if (s_ctx.state != GATT_CLIENT_APP_CONNECTED || s_ctx.cmd_value_hdl == 0x0000U) {
+        DT_INFO_MSG("cmd relay: not ready (state=%d, hdl=0x%04X), dropped\r\n",
+                     s_ctx.state, s_ctx.cmd_value_hdl);
+        return;
+    }
+
+    tBleStatus ret = aci_gatt_clt_write_without_resp(s_ctx.conn_handle,
+                                                      BLE_GATT_UNENHANCED_ATT_L2CAP_CID,
+                                                      s_ctx.cmd_value_hdl,
+                                                      s_cmd_relay_len,
+                                                      s_cmd_relay_buf);
+    if (ret != BLE_STATUS_SUCCESS)
+        DT_INFO_MSG("cmd relay: aci_gatt_clt_write_without_resp failed 0x%02X\r\n", ret);
+    else
+        DT_INFO_MSG("cmd relay: wrote %u byte(s) to hdl 0x%04X (cmd=0x%02X)\r\n",
+                     s_cmd_relay_len, s_ctx.cmd_value_hdl, s_cmd_relay_buf[0]);
 }
 
 /* ── Public API ──────────────────────────────────────────────────────────── */
@@ -284,6 +390,8 @@ void GATT_CLIENT_APP_Init(void)
 
     UTIL_SEQ_RegTask(1U << CFG_TASK_DISCOVER_SERVICES_ID, UTIL_SEQ_RFU,
                      vega_bridge_discover_all);
+    UTIL_SEQ_RegTask(1U << CFG_TASK_UART_CMD_RELAY_ID, UTIL_SEQ_RFU,
+                     vega_bridge_relay_command);
 
     DT_INFO_MSG("Vega bridge GATT client ready\r\n");
 }
@@ -295,9 +403,12 @@ void GATT_CLIENT_APP_Notification(GATT_CLIENT_APP_ConnHandle_Notif_evt_t *p_Noti
     case PEER_CONN_HANDLE_EVT:
         s_ctx.conn_handle = p_Notif->ConnHdl;
         s_ctx.state       = GATT_CLIENT_APP_CONNECTED;
+        DT_INFO_MSG("BLE: connected to headstage, handle 0x%04X\r\n", s_ctx.conn_handle);
         break;
 
     case PEER_DISCON_HANDLE_EVT:
+        DT_INFO_MSG("BLE: DISCONNECTED from headstage (was handle 0x%04X, state=%d)\r\n",
+                     s_ctx.conn_handle, s_ctx.state);
         memset(&s_ctx, 0, sizeof(s_ctx));
         s_ctx.conn_handle = 0xFFFFU;
         s_ctx.state       = GATT_CLIENT_APP_DISCONNECTED;
