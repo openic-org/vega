@@ -12,6 +12,23 @@ from packet_parser import parse, ParsedPacket, MAGIC, PACKET_SIZE, SAMPLE_RATE_H
 BAUD_RATE   = 2000000  # must match WB09KE bridge USART1; ST-LINK VCP is baud-sensitive
 READ_TIMEOUT = 1.0     # seconds
 
+# Command-frame framing (pc-app -> bridge), distinct from the 0xAA 0x55
+# data-direction magic so a framing bug can't cross-interpret the two.
+# See docs/interfaces/channel-selection-control-plane.md section 3.
+CMD_MAGIC          = bytes([0xCC, 0x33])
+CMD_SET_CHANNELS   = 0x01
+CMD_STOP_STREAMING = 0x02
+CMD_START_STREAMING = 0x03
+
+# Command-response framing (bridge -> pc-app). See
+# docs/interfaces/channel-selection-control-plane.md sections 4.4 and 5.6.
+# Payload's first byte is always a type/cmd tag matching the CMD_* values
+# above, so a response always echoes which command it's answering:
+#   CMD_SET_CHANNELS   (0x01): [0x01, ch_a, ch_b]   (3 bytes) — readback
+#   CMD_STOP_STREAMING (0x02): [0x02, success]      (2 bytes) — ack
+#   CMD_START_STREAMING(0x03): [0x03, success]      (2 bytes) — ack
+RESPONSE_MAGIC = bytes([0xEE, 0x11])
+
 
 class SerialReader(QThread):
     """
@@ -23,6 +40,9 @@ class SerialReader(QThread):
     batch_received     = pyqtSignal(object)   # ParsedPacket
     connection_changed = pyqtSignal(bool, str)
     error              = pyqtSignal(str)
+    channels_readback  = pyqtSignal(int, int)   # ch_a, ch_b — SET_CHANNELS readback (section 4.4)
+    stop_streaming_ack  = pyqtSignal(bool)       # success — real MCU confirmation (section 5.6)
+    start_streaming_ack = pyqtSignal(bool)       # success — real MCU confirmation (section 5.6)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -43,6 +63,39 @@ class SerialReader(QThread):
 
     def set_port(self, port_name: str):
         self._port_name = port_name
+
+    def send_command(self, payload: bytes) -> bool:
+        """Send a command frame to the bridge: 0xCC 0x33 <len> <payload>.
+        Called from the UI thread while run() reads on this QThread — same
+        cross-thread self._port access pattern stop() already relies on."""
+        if self._port is None or not self._port.is_open:
+            return False
+        frame = CMD_MAGIC + bytes([len(payload)]) + payload
+        try:
+            self._port.write(frame)
+        except (serial.SerialException, OSError):
+            return False
+        return True
+
+    def send_set_channels(self, ch_a: int, ch_b: int) -> bool:
+        """SET_CHANNELS command — see
+        docs/interfaces/channel-selection-control-plane.md section 2.
+        As of section 5, the MCU rejects this unless streaming is already
+        stopped (send_stop_streaming() first) — this method doesn't enforce
+        that itself, callers must sequence it (see MainWindow._apply_channels)."""
+        if not (0 <= ch_a <= 127 and 0 <= ch_b <= 127):
+            raise ValueError("channel index must be 0-127")
+        return self.send_command(bytes([CMD_SET_CHANNELS, ch_a, ch_b]))
+
+    def send_stop_streaming(self) -> bool:
+        """STOP_STREAMING command — see
+        docs/interfaces/channel-selection-control-plane.md section 5.1."""
+        return self.send_command(bytes([CMD_STOP_STREAMING]))
+
+    def send_start_streaming(self) -> bool:
+        """START_STREAMING command — see
+        docs/interfaces/channel-selection-control-plane.md section 5.1."""
+        return self.send_command(bytes([CMD_START_STREAMING]))
 
     def stop(self):
         self._running = False
@@ -76,13 +129,21 @@ class SerialReader(QThread):
 
             buf.extend(chunk)
 
-            # Re-sync: find magic prefix and extract complete packets
+            # Re-sync: find whichever magic (data or command-response) comes
+            # first and extract complete frames of that type.
             while True:
-                idx = buf.find(MAGIC)
-                if idx == -1:
-                    # No magic found — keep last 1 byte (could be partial magic)
+                idx_data = buf.find(MAGIC)
+                idx_resp = buf.find(RESPONSE_MAGIC)
+
+                if idx_data == -1 and idx_resp == -1:
+                    # Neither magic found — keep last 1 byte (could be partial magic)
                     buf = buf[-1:]
                     break
+
+                if idx_resp == -1 or (idx_data != -1 and idx_data <= idx_resp):
+                    idx, is_response = idx_data, False
+                else:
+                    idx, is_response = idx_resp, True
 
                 if idx > 0:
                     # Discard garbage before magic
@@ -100,6 +161,18 @@ class SerialReader(QThread):
 
                 payload = bytes(buf[4:total_frame])
                 buf = buf[total_frame:]
+
+                if is_response:
+                    if len(payload) >= 1:
+                        rtype = payload[0]
+                        if rtype == CMD_SET_CHANNELS and len(payload) >= 3:
+                            self.channels_readback.emit(payload[1], payload[2])
+                        elif rtype == CMD_STOP_STREAMING and len(payload) >= 2:
+                            self.stop_streaming_ack.emit(bool(payload[1]))
+                        elif rtype == CMD_START_STREAMING and len(payload) >= 2:
+                            self.start_streaming_ack.emit(bool(payload[1]))
+                        # else: unknown type or short payload — ignore
+                    continue
 
                 packet = parse(payload)
                 if packet is None:

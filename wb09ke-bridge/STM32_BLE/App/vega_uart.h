@@ -23,4 +23,22 @@ void    VEGA_UART_Write(const uint8_t *data, uint16_t len);
  * Returns 1 if a byte was returned in *byte, 0 if the buffer is empty. */
 uint8_t VEGA_UART_TxBytePop(uint8_t *byte);
 
+/* ── Command-frame RX (pc-app -> bridge) ─────────────────────────────────────
+ * See docs/interfaces/channel-selection-control-plane.md section 3.
+ * Frame: 0xCC 0x33 <len> <payload...>, payload relayed verbatim to 0xFFF1.
+ *
+ * VEGA_UART_RxByte() is called from USART1_IRQHandler for every received
+ * byte, before the existing debug-console path (UartRxCpltCallback). Returns
+ * 1 if the byte was consumed as part of a command frame (caller must NOT
+ * also forward it to the debug console), 0 otherwise (caller should forward
+ * it to the debug console as before).
+ *
+ * On a complete frame, calls VEGA_BRIDGE_OnCommandFrame() (vega_bridge_app.h)
+ * to hand the payload off to sequencer-task context — this function runs in
+ * ISR context and must never call into the BLE stack directly. */
+
+#define VEGA_UART_CMD_MAX_PAYLOAD  16U
+
+uint8_t VEGA_UART_RxByte(uint8_t byte);
+
 #endif /* VEGA_UART_H */

@@ -214,14 +214,383 @@ with a hardcoded pair. Polished UI is Phase B.
       directly, it must relay through the WB09KE bridge — new bridge firmware,
       not just MCU + app. Ready for implementation; RTL follow-ups tracked in A.1
       are non-blocking (`REG_WRITE` alone is sufficient for `SET_CHANNELS`).
-- [ ] **MCU→FPGA register-write API** — `fpga_spi.c` has none; it only reads samples
-- [ ] **BLE command handler on 0xFFF1** — declared, "reserved for future commands",
-      no handler
-- [ ] **Bridge UART command relay** (new, found while drafting the interface spec) —
-      bridge RX is currently forward-only to a debug callback; needs a command-frame
-      parser + `aci_gatt_clt_write` relay to 0xFFF1. Blocked on confirming bridge RAM
-      headroom first (`memory/project_bridge_ram.md`).
-- [ ] Minimal channel selection in the pc-app
+Implemented 2026-08-06, all four pieces below. **Not marking these done** —
+none has run on real hardware yet, and per this plan's own rule (requirements
+≠ specifications), code that compiles is not a verified feature. What's
+actually been checked vs. what still needs Manuel's bench:
+
+**Verified so far (host-only, no hardware involved):**
+- `FPGA_SPI_ChannelToRaw()` — bijectivity over all 128 channels + exact
+  module-block encoding, by compiling the actual extracted source (not a
+  reimplementation) natively and running it against a hand-derived oracle.
+- `FPGA_SPI_SetChannels()` word encoding — confirmed opcode/addr/data bit
+  fields and the even-transfer-count (2) pairing invariant, same method.
+- pc-app → bridge wire framing — `SerialReader.send_set_channels()` driven
+  over a real pty loopback (`socat`), captured actual bytes on the wire:
+  `cc 33 03 01 <ch_a> <ch_b>`, matches spec exactly. Also confirmed
+  disconnected/out-of-range calls write nothing.
+- Bridge RX parser (`VEGA_UART_RxByte()`) — compiled the actual extracted
+  source natively and fed it the *real* bytes captured from the pc-app test
+  above; correctly reconstructs the SET_CHANNELS payload. Also covered:
+  debug-console ASCII passes through untouched when no command frame is
+  present, back-to-back frames each dispatch separately, oversized/zero-length
+  frames are discarded without desyncing the next frame.
+- All host tests + the extraction diffs proving no drift from the real source
+  live in the scratchpad from that session — not committed (throwaway
+  verification, not product code).
+
+**Bench results, 2026-08-06 — RTL opcode decode landed, full chain tested live:**
+
+- [x] Build + flash both firmwares — kuntur-mcu (headless `Debug/makefile`)
+      and wb09ke-bridge (`make`, `STM32_Programmer_CLI` SWD flash, CLI now
+      works for this board — reverses the earlier GUI-only finding, see
+      `memory/feedback_wb09ke_flash.md`). Both zero-error builds.
+- [x] **Full SET_CHANNELS round-trip verified on real hardware, first try:**
+      script → bridge relay → BLE write 0xFFF1 → MCU handler → SPI0
+      `REG_WRITE` → **Manuel's new RTL 4-way opcode decode** → SPI0
+      `REG_READ`/`NOP` → readback conversion → BLE notify 0xFFF3 → bridge
+      relay → received back as the exact requested `(ch_a, ch_b)`. Confirms
+      the RTL's `REG_READ` latency matches the 1-transfer-deep pipeline
+      assumption in `FPGA_SPI_ReadChannels()` (spec section 4.1) — validated
+      against the real bitstream, not just the earlier host-side model.
+      Also confirms `BLE_GATT_SRV_OP_MODIFIED_EVT_ENABLE_FLAG` does fire the
+      0xFFF1 attribute-modified event on this stack build.
+- [x] **Found and fixed a real MCU-hang bug**, same session: repeated
+      back-to-back `SET_CHANNELS` calls hung the Kuntur MCU hard enough to
+      need a physical reset (SWD connect itself failed — `DEV_CONNECT_ERR` —
+      not just the debug UART going quiet). Root cause: `FPGA_SPI_SetChannels()`
+      + `FPGA_SPI_ReadChannels()` (6 blocking SPI0 transfers) ran synchronously
+      *inline inside the BLE GATT event-handler callback*
+      (`STREAM_APP_OnCommandWrite`) — the same "inline work on the hot BLE
+      path" hazard already flagged elsewhere in this plan (B.3). Fixed by
+      deferring the SPI0 work to a new cooperative-scheduler task
+      (`CFG_TASK_SET_CHANNELS_ID` / `SetChannelsTask()`), mirroring the
+      pattern `StreamSendTask` already uses — the event-handler callback now
+      only validates, stashes the request, and schedules the task. Rebuilt
+      clean, reflashed; not yet re-tested against the hang scenario
+      specifically (needs repeated-call testing to confirm the fix holds).
+- [x] **Root cause fully identified and fixed, 2026-08-06.** Two failed
+      intermediate attempts before landing on the fix (both left as comments
+      in `stream_app.c` for the next person who touches this): (1) a
+      standalone `UTIL_SEQ` task got scheduled correctly but mysteriously
+      never ran — root cause not identified, would need hardware tracing;
+      (2) checking a pending-flag at the *top* of `StreamSendTask()` also
+      never fired, because that function's packet-send loop is
+      `while(1) { ...; continue; }`, returning only on flow-off — on a
+      healthy link it never returns to the top again, so the check was
+      correct in principle but placed in code that doesn't run. **Actual
+      fix:** check the flag *inside* the per-packet loop (after
+      `BLE_STACK_Tick()`), so it's evaluated every packet cycle regardless
+      of how long the loop has been spinning. Confirmed via the real pc-app
+      (not scripts): SET_CHANNELS → bridge → BLE → MCU → SPI0 write → RTL →
+      SPI0 readback → notify → bridge relay → pc-app shows "✓ Verified",
+      values matched exactly. Streaming confirmed healthy throughout and
+      after (8KB/1.5s, normal rate, no hang). **Confirmed at the source**,
+      not just inferred from the pc-app UI: debug UART shows
+      `SetChannelsTask running, ch_a=32 ch_b=65` — the exact line that never
+      appeared in either failed attempt — followed by a normal, expected,
+      self-recovering `flow-off #1` on the regular 0xFFF2 stream (already
+      handled by `STREAM_APP_ResumeSending()`, not a new problem).
+- [x] **Repeated-call test done, found a second hang, fixed.** 6-7 rapid
+      Apply clicks hung the MCU again — same silent-everything signature as
+      the original bug, just needing several repetitions instead of one.
+      Root cause: each `SET_CHANNELS` execution added 6 SPI0 transfers + a
+      second BLE notify *on top of* that iteration's normal ~118-transfer
+      streaming work (124 total, 2 notifies) — survivable once, not safe
+      repeated back-to-back. **Manuel's fix idea, implemented:** when a
+      channel-change is pending, skip that iteration's normal packet
+      work entirely rather than adding to it — one skipped ~2 ms frame of
+      streamed samples (acceptable: deliberate channel change, not data
+      loss) in exchange for keeping every iteration's SPI0/BLE workload
+      bounded to roughly its usual size. Combined with a 300 ms debounce
+      (`HAL_GetTick()`-based, wraparound-safe) so actual executions can
+      never land closer together than that regardless of click rate.
+      Rebuilt clean, zero errors/warnings.
+- [x] **Third hang found under the debounced-in-loop build.** Survived 5
+      clean back-to-back executions (each with the full debug-log sequence)
+      but still eventually hung — debug UART and 0xFFF2 stream both went
+      silent, `STM32_Programmer_CLI -c port=SWD ... -hardRst` itself failed
+      with `DEV_CONNECT_ERR` (not just quiet — the debug port was
+      unreachable), and `tio` showed the ST-LINK's own USB VCP cycling
+      disconnect/reconnect with a `SET_CHANNELS` debug print truncated
+      mid-transmission. Working theory (Manuel's, after ruling out a power/
+      brown-out explanation — SPI0 already runs constantly across hour-long
+      tests without issue, so a few extra transfers shouldn't tip a supply
+      margin): a `SET_CHANNELS` execution landing at the same moment as some
+      *other* BLE stack event (not specifically flow-off) may be corrupting
+      or bypassing the debounce/pending-flag guards, since those only
+      throttle *our* timing, not whatever internal state the closed-source
+      BLE stack library is in when `aci_gatt_srv_notify()` gets called.
+- [x] **Redesigned rather than patched further, 2026-08-06 — full details in
+      `docs/interfaces/channel-selection-control-plane.md` section 5.**
+      Rather than keep searching for a safe moment to interleave
+      `SET_CHANNELS`'s SPI0/notify work with live streaming (three attempts,
+      three failure modes), removed the need to interleave at all:
+      `SET_CHANNELS` now requires the stream to already be explicitly
+      stopped. New opcodes `0x02 STOP_STREAMING` / `0x03 START_STREAMING` on
+      0xFFF1. Samples generated while stopped are **discarded, not
+      buffered** — Manuel's call: they're pre-switch data nobody wants once
+      channels change, and buffering them would feed into an already-open,
+      uninvestigated FPGA-FIFO chronic-backlog question (`fifo_full`
+      asserting on a timescale the deepened 4096-pair FIFO shouldn't allow —
+      see `stream_app.c` `STREAM_DIAG_FIFO_FULL_WATCH` section) rather than
+      helping it. `START_STREAMING` flushes the FIFO via the existing
+      empty-FIFO sentinel (`0x8000`) before resuming, guaranteeing the first
+      sample streamed after resuming is genuinely post-switch. MCU-side, the
+      streaming hot loop reverts to its original shape (just one added cheap
+      boolean check for prompt `STOP_STREAMING` pickup); all the SPI0/notify
+      work now lives in a branch that only runs while stopped, reliably
+      revisited every ~2 ms via the same VTIMER fallback flow-off recovery
+      already depends on — the debounce timer from the previous attempt is
+      gone, replaced by natural spacing from explicit multi-command
+      sequencing. pc-app's Apply button orchestrates
+      STOP → SET_CHANNELS → (readback or timeout) → START as one
+      operator-facing click. Rebuilt clean, zero errors, zero new warnings.
+      **Tested 2026-08-06:** single click → verified, clean. Repeated rapid
+      clicks → worked cleanly 3 full cycles (debug log shows complete
+      STOP→SET→flush→START sequences each time), then hung again on/after a
+      4th attempt.
+- [x] **Found a real, numeric bug in the flush itself while investigating
+      the above** — every single flush hit its safety cap
+      (`FPGA_FIFO_MAX_PAIRS`, was 4096) and gave up, `4097` pairs discarded
+      every time, never once finding the true empty-FIFO sentinel. Root
+      cause: the cap was set to the FIFO's raw depth, not accounting for the
+      FPGA continuing to ingest real samples at 30 kSPS *throughout* the
+      flush — draining a saturated 4096-pair FIFO to genuine empty against
+      that continuous refill needs ~5850 pops (measured ~10us/pair pop rate
+      vs. 30k/s fill rate), not 4096. Fixed: cap raised to 16384 (~2.8x
+      margin, still only ~164ms worst case). Rebuilt clean. **Not yet
+      re-tested** — unknown whether this was also the hang's cause, or
+      whether Manuel's "colliding with some other BLE event" theory is a
+      separate, still-open issue underneath it. Next bench pass will tell.
+- [x] **Tested with the raised cap, 2026-08-06: still hit the cap every
+      time (`16385` discarded, every flush) — and found the real bug while
+      reading the log closely.** A new `STOP_STREAMING`+`SET_CHANNELS` cycle's
+      debug prints appeared *interleaved inside* a still-running previous
+      flush's own prints — only possible because `StreamFlushFpgaFifo()`
+      calls `BLE_STACK_Tick()` internally (to avoid one long blocking
+      stretch), and that nested tick can process a brand-new incoming GATT
+      write while the outer flush call hasn't returned yet. The shared
+      pending-state (`s_streaming_stopped`, `s_set_channels_pending`,
+      `s_pending_ch_a/b`) had no protection against a new command
+      overwriting it mid-use by the in-progress one — this is Manuel's
+      "guards get bypassed by the interruption" theory, concretely
+      confirmed. Exact failure mode matched what was observed in the
+      pc-app: a `SET_CHANNELS` arriving mid-flush gets silently orphaned
+      (flag set, but streaming resumes before anything checks it again,
+      and the normal tight loop doesn't poll that flag) — permanent
+      "no response" for that specific click, while the next click (once the
+      MCU wasn't mid-flush) worked normally. **Fixed:** new
+      `s_command_busy` flag, set for the duration of
+      `SetChannelsTask()`/`StreamFlushFpgaFifo()`; `STREAM_APP_OnCommandWrite()`
+      now rejects (logged, not applied) any command that arrives while
+      busy. Makes one full STOP/SET/START cycle atomic with respect to the
+      next — a too-early re-click now fails safely (rejected, pc-app times
+      out) instead of corrupting shared state. Rebuilt clean. **Not yet
+      re-tested.** Known follow-up, not blocking: the pc-app doesn't yet
+      distinguish "rejected because still busy" from any other timeout in
+      its UI — acceptable for now, worth a clearer message later.
+- [x] **Root cause of the flush never terminating, fixed at the source
+      (Manuel's proposal), 2026-08-06.** Raising the safety cap to 16384
+      changed nothing — still hit the cap every time. Manuel's question
+      ("isn't it easier to send STOP/START down to the FPGA?") was the
+      right call: the MCU-side flush was racing a continuous 30 kSPS
+      producer it could never reliably outrun (confirmed independently —
+      not a bad rate estimate, `BLE_STACK_Tick()`'s own documented
+      occasional 10-22 ms stalls, called periodically during the flush,
+      could let backlog grow faster than the flush caught up). **RTL fix**
+      (Manuel, `components.v`): new regbank register addr 36, bit 0
+      `stream_enable`, gates `fifo_wen` directly in `ch_sel`
+      (`fifo_wen <= dout_en_0 & stream_enable`). One real bug caught before
+      flashing: the first version defaulted this to `0` (disabled) on
+      reset, which would have silently killed streaming on every FPGA
+      reset/reprogram until the MCU explicitly enabled it — corrected to
+      default `1`. **MCU side:** `FPGA_SPI_SetStreamEnable()` added to
+      `fpga_spi.c`; the flush moved from `START_STREAMING` to
+      `STOP_STREAMING` (disable ingestion, *then* flush a now-static
+      backlog — ~41ms worst case, not an open-ended race); `START_STREAMING`
+      no longer flushes at all. Full design in
+      `docs/interfaces/channel-selection-control-plane.md` section 5.3.
+- [x] **Second bug found and fixed in the same investigation: command
+      reentrancy.** While reading the bench log closely to understand why
+      the flush never terminated, found something more serious: a new
+      `STOP_STREAMING`+`SET_CHANNELS` cycle's debug prints appeared
+      *interleaved inside* a still-running previous flush's own prints.
+      `StreamFlushFpgaFifo()`'s periodic `BLE_STACK_Tick()` calls (needed to
+      avoid one long blocking stretch) let a new GATT write get processed
+      while the outer flush call hadn't returned yet — nothing protected
+      the shared pending-state against a new command overwriting it mid-use.
+      This exactly explained an earlier symptom: the pc-app intermittently
+      showing "no response" for a `SET_CHANNELS` that had been silently
+      orphaned this way. **Fixed:** `s_command_busy` flag, set for the
+      duration of any SPI0-touching operation; `STREAM_APP_OnCommandWrite()`
+      now rejects any command that arrives while busy, making one full
+      STOP/SET/START cycle atomic. Section 5.5.
+      Both fixes rebuilt clean, zero errors/warnings.
+- [x] **Tested with the FPGA-side gate + reentrancy fix, 2026-08-06: major
+      improvement, confirmed at the source.** Flush counts dropped from
+      always-16385 (always hitting the cap) to 246-292 pairs — the
+      empty-FIFO sentinel is now actually being found, not given up on.
+      ~10 clean full STOP→SET_CHANNELS→START cycles confirmed in the debug
+      log, each complete, ending in a normal self-recovering flow-off.
+      Single-click and moderate-rate use is solid.
+- [x] **Rapid-click stress test still eventually broke it — but this time
+      as a repeating crash/reset loop, not a single hang.** `tio`'s own
+      device connection cycled disconnect/reconnect roughly every
+      1.0-1.7s for ~15+ cycles (consistent ~1.000-1.001s reconnect gap =
+      tio's own poll interval catching the USB device actually
+      disappearing and reappearing — i.e. the MCU genuinely resetting
+      repeatedly, not freezing once). Prints were truncated mid-transmission,
+      consistent with a real reset interrupting output, not a deadlock.
+      **Decision (Manuel): scope as a known limitation for now, not chased
+      further today** — real animal-test usage is occasional channel
+      selection, not rapid button-mashing, and the single/moderate-click
+      case is solid. **Did fix the actual software bug that let a human
+      sustain a high enough rate to trigger it**: `START_STREAMING` is
+      fire-and-forget (no MCU confirmation), so the Apply button was
+      re-enabling the instant the bytes were sent — no cooldown enforced
+      after a cycle actually completed. A human clicking at a normal pace
+      could sustain close to 1 cycle/second, matching the observed crash-loop
+      period almost exactly. Added `APPLY_COOLDOWN_MS = 1000` in
+      `main_window.py` — enforced pause after `START_STREAMING` is sent,
+      before the button re-enables, making that rate physically impossible
+      to sustain regardless of how fast someone clicks. Rebuilt clean.
+      Working theory, unconfirmed: rapidly toggling `stream_enable` on/off
+      many times in quick succession is a different electrical stress
+      pattern than the continuous steady-state SPI0 traffic that's already
+      proven fine across hour-long tests (switching transients at each
+      on/off edge vs. sustained load) — worth a scope check on the supply
+      rail during a rapid-click burst if this becomes worth chasing later.
+      **Re-tested and confirmed 2026-08-06, same session**: after the full
+      ack-driven redesign (section 5.6) plus `COMMAND_GAP_MS` and the bridge
+      ORE fix all landed, Manuel sustained multiple rapid-click bursts —
+      button stayed inactive through each full cycle (Verified mark lands
+      *before* the button re-enables, confirming the ack-driven sequencing
+      is genuinely gating the button, not just racing it), no crash/reset
+      loop, live streaming continued throughout. The rate-limiting mitigation
+      holds under real rapid-click load. Root electrical cause remains
+      un-investigated by deliberate scope decision — not blocking, since the
+      trigger condition (sustained ~1 click/s) is no longer reachable through
+      the UI at all.
+- [ ] Logic-analyzer or scope confirmation of the SPI0 waveform itself —
+      still open, lower priority now that the functional round-trip works.
+- [ ] Confirm bridge discovery finds the 0xFFF1 value handle — bridge debug
+      trace should show `Found 0xFFF1 value handle: 0x....` after connecting.
+- [ ] End-to-end: pc-app "Apply" button → bridge relay → MCU log line. This is
+      the first point where all four pieces are exercised together.
+- [ ] `aci_gatt_clt_write_without_resp` is the correct client-side call for a
+      write-without-response characteristic per the vendor API docs, but
+      hasn't been exercised against this stack build — confirm no unexpected
+      status code on the bridge's debug trace.
+
+**Readback verification (spec section 4, added 2026-08-06)** — closes the
+loop so `SET_CHANNELS` can be confirmed *in the pc-app UI*, without waiting
+for A.1's full `ch_sel` restructure. Only needs the opcode-decode subset of
+A.1 (`REG_READ`/`NOP`), not the ramp→real-data rewrite. New: `0xFFF3` notify
+characteristic (MCU), automatic readback after every successful
+`SET_CHANNELS`, bridge relay with a third magic (`0xEE 0x11`), pc-app
+verified/mismatch/timeout indicator next to Apply. Full design in the spec's
+new section 4. Same "implemented, not hardware-verified" status as above:
+
+- Host-verified: `FPGA_SPI_ReadChannels()`'s 4-transfer sequence and
+  `FPGA_SPI_RawToChannel()` (exact inverse of `ChannelToRaw`, confirmed over
+  all 128 values) against a modeled regbank+pipeline — models the spec's
+  *assumed* RTL behavior, not the real RTL, which doesn't exist yet. pc-app
+  parsing of the new `0xEE 0x11` response frame, interleaved with normal data
+  frames, verified over a real pty loopback the same way as the command path.
+- Still needs the RTL opcode decode (A.1) before it can produce anything but
+  a timeout — that's the expected state until then, not a bug to chase.
+- **Found and fixed a stack buffer overflow in the test harness itself**
+  (not the product code) while building the first version of this
+  verification — `gcc -fstack-protector-all` caught it immediately. Kept as a
+  reminder that the tests need scrutiny too, not just the code under test.
+- **Found a pre-existing, unrelated latent bug while building the pc-app
+  test**: `serial_reader.py`'s monotonicity clamp does
+  `packet.timestamps_us[-1]` unconditionally, which crashes the reader thread
+  on a `num_pairs=0` packet (empty array). Not triggered by any code touched
+  this session — real packets always carry 59 pairs — but a real crash risk
+  if a header-only/malformed packet ever reaches the parser. Not fixed here
+  (out of scope for A.2); tracked as a new bullet under A.6.
+
+**Real MCU-confirmed acks for STOP_STREAMING/START_STREAMING (spec section
+5.6, added 2026-08-06)** — after admitting the previous fix
+(`APPLY_COOLDOWN_MS`) only ever *guessed* the MCU had finished each step via
+a fixed timer, not confirmed it, replaced both fixed settle delays with real
+acks. 0xFFF3 extended with a type-prefix byte (shared with the existing
+`SET_CHANNELS` readback — `0x01`/`0x02`/`0x03` mirror the command opcodes so
+a response self-identifies what it's answering); `success` is backed by an
+actual SPI0 readback of `stream_enable` after the write, not just "the write
+call didn't error." MCU rebuilt clean (zero errors) after this change.
+`main_window.py`'s Apply sequence now waits on `stop_streaming_ack`/
+`start_streaming_ack` signals (2 s timeout fallback, same pattern as the
+existing readback verify timeout) instead of `STOP_STREAMING_SETTLE_MS`/
+`START_STREAMING_SETTLE_MS`; `APPLY_COOLDOWN_MS` kept as-is, now applied
+*after* the start ack/timeout resolves rather than as the only gate. Not yet
+hardware-tested — needs an MCU reflash (bridge unchanged, no reflash needed
+there) and a live Apply-button pass to confirm acks actually arrive and the
+crash-loop mitigation still holds.
+
+**Bridge command-relay silently dying mid-session (found + fixed 2026-08-06,
+bench testing)** — after the ack mechanism above shipped, repeated Apply
+clicks over one session showed clicks 1-2 fully succeed (confirmed via new
+`[pc-app] sent:`/`[bridge] cmd relay: wrote...` logs on both ends) and then
+click 3's commands vanish completely: pc-app sends all 3 bytes locally, but
+*zero* bridge-side log output for any of them — not even the "not ready"
+rejection path, meaning `vega_bridge_relay_command()` was never even
+invoked. Root cause: `stm32wb0x_it.c`'s `USART1_IRQHandler` never checked or
+cleared the USART overrun-error (ORE) flag. Per the STM32 USART reference
+manual, once ORE latches, RXNE stops being set for new data until ORE is
+explicitly cleared — one overrun (plausible at 2 Mbaud if the BLE radio's
+own higher-priority ISR delays servicing a byte past its ~5 µs window, e.g.
+right as 30 kSPS streaming resumes) silently and *permanently* kills command
+reception for the rest of the session, with no log output anywhere in the
+existing code. This required first enabling the bridge's debug trace
+(`CFG_DEBUG_APP_TRACE`, previously off — same UART as the data stream, so
+`DT_INFO_MSG` was unconditionally silenced too) and adding relay
+success/connect/disconnect logging, plus having the pc-app print every send
+attempt to its own terminal (`serial_reader.py`), to even see this — the
+symptom was completely invisible before that. Fix: check+clear
+`LL_USART_IsActiveFlag_ORE`/`LL_USART_ClearFlag_ORE` every ISR entry, with a
+log line so a future overrun is visible instead of silent. Bridge rebuilt
+and reflashed (`STM32_Programmer_CLI` over SWD — no GUI needed).
+
+**Confirmed live, 2026-08-06 (same session)** — root cause verified exactly
+as diagnosed: after reflashing, 6 consecutive Apply cycles succeeded, then
+the bridge logged `USART1: RX overrun (ORE) cleared` mid-`SET_CHANNELS`, and
+recovery was immediate — `START_STREAMING` sent right after relayed and
+applied normally, vs. the pre-fix behavior of killing the rest of the
+session. So the fix converts a fatal, permanent, unrecoverable failure into
+a survivable, self-healing, single-command loss. Residual gap: that single
+command can still be lost with no retry — the pc-app's existing verify-
+timeout fallback catches it safely (streaming still resumes correctly; the
+UI honestly reports the command as unsuccessful rather than falsely
+claiming success — improved wording for this 2026-08-06, see below), so
+nothing gets stuck, but the requested channel change doesn't happen and the
+operator has to notice and re-click.
+
+Two overruns in one session both landed specifically on `SET_CHANNELS`, not
+`STOP_STREAMING` or `START_STREAMING` — suspected reason: the ack-driven
+design (section 5.6) sends the next command the instant an ack arrives, with
+zero deliberate gap; `SET_CHANNELS` is sent immediately upon receiving the
+`STOP_STREAMING` ack, which lands it right as the bridge is still busy
+processing/relaying that same ack's GATT notification event — a natural
+collision window. Mitigation (not a full fix — the ORE fix above is what
+actually prevents fatal failure): `COMMAND_GAP_MS = 15` in `main_window.py`,
+a small deliberate delay between receiving an ack and sending the next
+command, to reduce how often this specific collision happens. Also updated
+the pc-app's timeout-path messaging (`_on_stop_ack_timeout`,
+`_on_verify_timeout`, `_on_start_ack_timeout`) from a vague/stale "no
+response (RTL readback not available yet?)" to an explicit "✗ ... unsuccessful
+— no confirmation received", since a timeout now more often means a real
+dropped command than a missing RTL feature.
+
+**Confirmed live, 2026-08-06 (same session)** — many clicks in a row, only
+one hit the overrun (down from 2-in-~8 before `COMMAND_GAP_MS`), degraded
+exactly as designed (honest "unsuccessful" message, streaming stayed live,
+zero stuck state), and the very next click cleanly verified. Single-click
+and moderate-repeat-click reliability now considered solid. Remaining open
+item under A.2: the rapid-click crash-loop retest (`APPLY_COOLDOWN_MS`
+mitigation from earlier this session), not yet re-attempted.
 
 ## A.3 — Signal injection & validation rig  → toward **A2**
 
@@ -282,6 +651,13 @@ of it.**
 - [ ] Verify the underrun-sentinel path behaves against real (non-ramp) data
 - [ ] Recording metadata sidecar — minimum: sample rate, gain, channel map, filter
       settings, firmware/bitstream versions
+- [ ] **Fix `serial_reader.py` crash on `num_pairs=0`** — found 2026-08-06
+      while testing the A.2 readback feature. The monotonicity clamp does
+      `packet.timestamps_us[-1]` unconditionally in the resync loop; a
+      header-only or malformed packet (empty sample array) raises
+      `IndexError` and kills the reader thread. Never triggered by real
+      firmware (always 59 pairs), but the parser shouldn't crash on a
+      malformed frame it can't control.
 
 ---
 

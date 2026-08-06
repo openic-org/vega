@@ -7,6 +7,7 @@
  * never fires when there is nothing to send.
  */
 
+#include "app_conf.h"  /* must be first — see vega_bridge_app.c's identical comment; needed here for DT_INFO_MSG */
 #include "main.h"
 #include "stm32wb0x_it.h"
 #include "hw_pka.h"
@@ -45,10 +46,29 @@ void USART1_IRQHandler(void)
         }
     }
 
-    /* RX: forward to usart_if callback (used by BLE debug traces) */
+    /* RX: command-frame parser gets first look (magic 0xCC 0x33 — never
+     * appears in ordinary debug-console ASCII input); anything it doesn't
+     * consume falls through to the debug-trace callback as before. */
     if (LL_USART_IsActiveFlag_RXNE(USART1)) {
         uint8_t data = LL_USART_ReceiveData8(USART1);
-        UartRxCpltCallback(&data, 1);
+        if (!VEGA_UART_RxByte(data)) {
+            UartRxCpltCallback(&data, 1);
+        }
+    }
+
+    /* Overrun error (ORE): found 2026-08-06 diagnosing pc-app commands going
+     * completely silent mid-session — every incoming byte after the overrun
+     * is dropped because, per the USART reference manual, RXNE stops being
+     * set for new data until ORE is explicitly cleared via ICR. Nothing here
+     * ever cleared it, so one overrun (plausible at 2 Mbaud if the BLE
+     * radio's own higher-priority ISR delays this one past a single byte
+     * time, ~5 us, e.g. right as 30 kSPS streaming resumes) permanently
+     * killed command reception for the rest of the session with zero log
+     * output anywhere — exactly the observed symptom. Clearing it lets RX
+     * self-heal; the log line confirms whether this is actually the cause. */
+    if (LL_USART_IsActiveFlag_ORE(USART1)) {
+        LL_USART_ClearFlag_ORE(USART1);
+        DT_INFO_MSG("USART1: RX overrun (ORE) cleared\r\n");
     }
 }
 
