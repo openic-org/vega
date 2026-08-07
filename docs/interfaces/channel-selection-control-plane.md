@@ -1,11 +1,16 @@
 # Channel-selection control plane — interface spec
 
-**Status:** Draft, pre-implementation (A.2). Written before code per the plan's
-working principle 5 ("interface specs outrank subsystem specs — every
-expensive bug lived at a boundary"). This is a Phase-A-scoped spec: enough to
-implement and review against, not the full Phase B apparatus (permanent
-requirement IDs, CI traceability) — that formalization is B.2's job, applied
-across all interfaces at once.
+**Status:** **Implemented and hardware-verified 2026-08-06** (A.2 complete).
+Originally written before any code, per the plan's working principle 5
+("interface specs outrank subsystem specs — every expensive bug lived at a
+boundary"). Sections 4 and 5 were added during implementation as the design
+changed under bench evidence; they describe the as-built behaviour. This is a
+Phase-A-scoped spec: enough to implement and review against, not the full
+Phase B apparatus (permanent requirement IDs, CI traceability) — that
+formalization is B.2's job, applied across all interfaces at once.
+
+Bring-up narrative and the bugs found along the way: `log/2026-08-06.md`.
+Remaining accepted limitations: `PLAN.md` A.2.
 
 **Purpose:** let the pc-app select which 2 of 128 RHD2164 channels are
 streamed, without a hardcoded pair. Full path:
@@ -23,10 +28,10 @@ one can change without the others (see "Compatibility" per section).
 
 ## 1. FPGA register protocol (SPI0, MCU ↔ FPGA)
 
-**Where implemented:** MCU side in `fpga_spi.c` (new); FPGA side needs a
-targeted RTL change to `main_controller` (currently only distinguishes
-`opcode==01` from everything else — `components.v:125-232`) plus a new read
-path (below). Regbank RAM unchanged — `components.v:406-437`.
+**Where implemented:** MCU side in `fpga_spi.c`; FPGA side in
+`main_controller` (`components.v`), which decodes all four opcodes explicitly
+and has a `regbank_dout0` → TX mux read path. Regbank RAM unchanged.
+**As-built as of 2026-08-06.**
 
 **Wire format:** 16-bit word, MSB first, SPI mode 0 (matches the existing
 sample-read transfers in `fpga_spi.c`):
@@ -37,25 +42,22 @@ sample-read transfers in `fpga_spi.c`):
 | `[13:8]` | `addr` | 6-bit regbank address offset. Actual RAM address = `{2'b10, addr}` = `addr + 128` (`kuntur_fpga.v:114`). |
 | `[7:0]` | `data` | Register value (write) or don't-care (read/pop/nop) |
 
-**Opcodes** (decided 2026-08-05 — supersedes the old binary
-`opcode==01?write:pop` decode; requires an RTL change to `main_controller`,
-not yet made):
+**Opcodes** (decided 2026-08-05, implemented 2026-08-06 — supersedes the old
+binary `opcode==01?write:pop` decode):
 
 | `opcode` | Name | Action | Status |
 |---|---|---|---|
-| `00` | `FIFO_POP` | Pop next sample pair (existing behavior) | RTL update needed — today this is the implicit "not write" case; needs to become an explicit match instead of a catch-all, see below |
-| `01` | `REG_WRITE` | Write `data` to regbank address `addr` (existing behavior, unchanged) | Existing |
-| `10` | `REG_READ` | Request register readback at `addr`; value appears on the *next* transfer's MISO output (same one-transfer-deep pipeline pattern as `dtx_mux_reg` today) | **New RTL — proposed, not yet designed/confirmed.** No path from `regbank_dout0` to the TX mux exists today. |
-| `11` | `NOP` | No side effect: no FIFO pop, no regbank write/read, TX mux untouched | New — reserved as a safe filler/keepalive transfer |
+| `00` | `FIFO_POP` | Pop next sample pair | Explicit match (was the implicit "not write" catch-all) |
+| `01` | `REG_WRITE` | Write `data` to regbank address `addr` | Unchanged |
+| `10` | `REG_READ` | Request register readback at `addr`; value appears on the *next* transfer's MISO output (one-transfer-deep pipeline, same pattern as `dtx_mux_reg`) | Implemented 2026-08-06; the 1-transfer latency assumed in section 4.1 is confirmed against the real bitstream |
+| `11` | `NOP` | No side effect: no FIFO pop, no regbank write/read, TX mux untouched | Implemented — safe filler/keepalive transfer |
 
-**Breaking-change alert — fix together with the RTL change:**
-`fpga_spi.h`'s `FPGA_STREAM_CMD = 0xA5A5U` (the dummy TX word sent on every
-existing sample-pop transfer) has top bits `10` by accident — it was never
-meant to carry opcode meaning. Once `10` means `REG_READ`, every existing
-streaming transfer would be misread as a register-read request instead of a
-FIFO pop. `FPGA_STREAM_CMD` must change to a value with top bits `00` (e.g.
-`0x2525`) in the same change that lands the new opcode decode — this is not
-optional, the stream breaks otherwise.
+**Breaking change, landed together with the RTL:** `fpga_spi.h`'s dummy TX
+word — sent on every sample-pop transfer — was `0xA5A5U`, whose top bits are
+`10` by accident; it was never meant to carry opcode meaning. Once `10` meant
+`REG_READ`, every streaming transfer would have been misread as a register
+read. `FPGA_STREAM_CMD` is now `0x2525U` (top bits `00`). Both halves shipped
+in the same change, as required.
 
 **Known register addresses** (`components.v:419-437`):
 
@@ -63,6 +65,7 @@ optional, the stream breaks otherwise.
 |---|---|---|---|
 | `4` | 132 | `ch_a` | 8-bit: `[7:6]` selects one of 4 sample sources (`data_a0`/`data_b0`/`data_a1`/`data_b1`), `[5:0]` selects channel index within that source (`components.v:328-337`). Raw FPGA code — see section 1a for the friendly-index mapping. |
 | `5` | 133 | `ch_b` | Same encoding as `ch_a`. |
+| `36` | 164 | `stream_enable` | Bit 0 gates `fifo_wen` inside `ch_sel` (`fifo_wen <= dout_en_0 & stream_enable`), i.e. stops the FPGA ingesting samples at the source. **Reset default `1`** (streaming enabled) — a `0` default would silently kill streaming after every FPGA reset/reprogram until the MCU enabled it. Addresses 6-35 are reserved for a future reduced-rate multi-channel mode, hence the gap. Added 2026-08-06, see section 5.3. |
 | `0-3` | 128-131 | `rhd2164_sampling_cmd0-3` | Computed by `ram` and wired to the `kuntur_fpga.v` top level, but **not consumed by anything downstream today** — dead-end wires. Confirmed 2026-08-05: reserved as runtime RHD2164 command-injection slots — likely home for the command word(s) fed into the sampling cycle's placeholder state (section 1a), primary use case A.3's impedance-check DAC control (`RHD_ZCHECK_DAC/SEL/EN`). Reserving the address space now avoids a protocol version bump later; wiring tracked as an A.1 follow-up in `PLAN.md`. |
 
 ### 1a. Channel encoding — friendly index ↔ raw FPGA code
@@ -110,10 +113,11 @@ be the same class of bug as the historical "32-bit FIFO channel swap" issue.
   transfers) to satisfy this by construction — never expose a single-register
   write as public API.
 - **Rule:** register writes must not be interleaved with an in-progress
-  `FPGA_SPI_ReadSamples()` call. Both run in the same cooperative
-  single-threaded context (BLE sequencer + `StreamSendTask`), so this holds as
-  long as `FPGA_SPI_SetChannels()` is only called from BLE event-handler
-  context, never from an ISR.
+  `FPGA_SPI_ReadSamples()` call. **As built (section 5), this is guaranteed
+  structurally rather than by convention:** `SET_CHANNELS` only executes while
+  streaming is explicitly stopped, so there is no in-progress sample read to
+  interleave with. The 0xFFF1 event handler itself does no SPI0 work — it
+  validates, stashes the request, and defers. Never call these from an ISR.
 - A register write also does not pop the FIFO for that transfer (opcode `01`
   suppresses `fifo_ren`, `components.v:190-200`) — negligible, momentary
   effect on drain rate, not expected to be observable against the existing
@@ -205,7 +209,7 @@ at a fixed address anchored to RAM's top, independent of where the heap
 `.noinit` (the BLE stack's buffer) and `.stack` is genuinely unclaimed (no
 `malloc`/`calloc`/`realloc`/`free` anywhere in the bridge firmware). See
 `PLAN.md` B.5. Plenty of room for this relay's needs: one fixed-size RX parse
-buffer (proposed ≤16 bytes), one stored `uint16_t` handle (the 0xFFF1 value
+buffer (`VEGA_UART_CMD_MAX_PAYLOAD = 16`), one stored `uint16_t` handle (the 0xFFF1 value
 handle, alongside the existing `notify_cccd_hdl` in `s_ctx`).
 
 **No CRC.** B.2 already lists "bridge UART wire format (add CRC)" as a known
@@ -244,21 +248,19 @@ pattern as `dtx_mux_reg`): a `REG_READ`'s requested value appears on the
 hazard note: every SPI0 transfer toggles the phase, regardless of opcode).
 Implemented as `FPGA_SPI_ReadChannels(uint8_t *ch_a_raw, uint8_t *ch_b_raw)`
 in `fpga_spi.c`, called immediately after `FPGA_SPI_SetChannels()` (2
-transfers) from the same BLE event-handler context — 2+4=6 transfers total,
-still even, still uninterleaved with `FPGA_SPI_ReadSamples()`.
+transfers) — 2+4=6 transfers total, still even. As built these run from the
+deferred pending-command branch while streaming is stopped (section 5.4), not
+inline in the GATT event handler, so they are structurally uninterleaved with
+`FPGA_SPI_ReadSamples()`.
 
-**Depends on RTL confirming this exact 1-transfer-deep latency** for
-`REG_READ` — the "New RTL — proposed, not yet designed/confirmed" note in
-section 1 still applies; if the actual pipeline depth differs, this transfer
-count/ordering needs revisiting together with the RTL implementation.
+**Confirmed against the real bitstream 2026-08-06:** the RTL's `REG_READ`
+latency does match this 1-transfer-deep pipeline assumption — the full
+round-trip returned the exact requested `(ch_a, ch_b)` on hardware, not just
+against the earlier host-side model.
 
-**`FPGA_STREAM_CMD` fix — must land with the RTL opcode-decode change**
-(already flagged in section 1, restated here because this addendum is what
-makes it concrete): today's value `0xA5A5` has top bits `10`, which is
-exactly the new `REG_READ` opcode. Once the RTL decodes `10` as `REG_READ`,
-every existing streaming pop transfer would be misread as a register-read
-request. Fix: `FPGA_STREAM_CMD` → `0x2525` (top bits `00`). **Coordinated
-MCU+RTL change — do not flash one side without the other.**
+**`FPGA_STREAM_CMD`** is `0x2525` (top bits `00`), changed from `0xA5A5`
+(top bits `10`, which would collide with `REG_READ`) in the same change that
+landed the RTL opcode decode. See section 1.
 
 ### 4.2 Friendly-index readback (MCU)
 
@@ -317,10 +319,12 @@ dispatches accordingly; emits a new `channels_readback` signal
 `(ch_a, ch_b)`, sends `SET_CHANNELS`, and shows a pending state; on
 `channels_readback`, compares to the recorded request — match → green
 "✓ Verified", mismatch → red "✗ Mismatch (FPGA has A/B)", and a timeout (no
-response within ~2 s — disconnected, bridge not relaying, or RTL not yet
-flashed with the opcode decode) → "no response" indicator. **The timeout case
-is expected and normal until the RTL lands** — it's the honest "not verified
-yet" state, not an error to hide.
+response within ~2 s) → "✗ ... unsuccessful — no confirmation received".
+**Now that the RTL has landed, a timeout usually means a genuinely dropped
+command** — most often a bridge USART overrun (see `PLAN.md` A.2 known
+limitations) — rather than a missing feature. There is no retry: streaming
+still resumes correctly and nothing gets stuck, but the operator must notice
+and re-click. Reporting it honestly rather than hiding it is deliberate.
 
 ---
 
@@ -531,9 +535,8 @@ own `QTimer` (`_stop_ack_timer` / `_start_ack_timer`, `STREAMING_ACK_TIMEOUT_MS
 is sent, then `_apply_channels_send_set()` runs either on `stop_streaming_ack`
 or on timeout (whichever comes first); the same pattern gates
 `_apply_channels_reenable()` after START_STREAMING. A timeout is treated the
-same as section 4.5's — expected on an MCU build that predates this feature,
-not an error to block on. `APPLY_COOLDOWN_MS = 1000` (unchanged, see
-`PLAN.md` A.2's crash-loop entry) is layered on *after* the start ack/timeout
+same as section 4.5's — a dropped command, not an error to block on.
+`APPLY_COOLDOWN_MS = 1000` is layered on *after* the start ack/timeout
 resolves, not instead of it — it's a deliberate extra floor against rapid
 re-clicking, independent of whether the ack mechanism itself is working.
 
@@ -607,16 +610,15 @@ re-clicking, independent of whether the ack mechanism itself is working.
   shared with the existing `SET_CHANNELS` readback, confirmed via an SPI0
   readback of `stream_enable` (not just "the write call returned") —
   section 5.6.
-- Rapid-click MCU crash-loop under bench testing: scoped as a known
-  limitation, not chased to a root cause for now (hypothesized switching
-  transient from rapidly toggling `stream_enable`). The software gap that let
-  it be *reachable* at human clicking speed (Apply re-enabling immediately
-  after a fire-and-forget `START_STREAMING`) is fixed via `APPLY_COOLDOWN_MS`
-  — section 5.6, `PLAN.md` A.2. **Re-tested and confirmed 2026-08-06**:
-  sustained rapid-click bursts no longer reproduce the crash-loop — the
-  button stays inactive through the full ack-driven cycle, no reset loop,
-  streaming stays live throughout. Root electrical cause still
-  un-investigated, but no longer reachable through the UI.
+- **Rapid-click MCU crash-loop — fixed.** Bench testing found that Apply
+  re-enabled the instant a fire-and-forget `START_STREAMING` was sent, letting
+  a human sustain close to one full cycle per second and drive the MCU into a
+  repeating reset loop. Fixed by the ack-driven sequencing (section 5.6), which
+  holds the button inactive until the cycle genuinely completes, plus
+  `APPLY_COOLDOWN_MS`. **Re-tested and confirmed 2026-08-06**: sustained
+  rapid-click bursts no longer reproduce it — the Verified mark lands *before*
+  the button re-enables, confirming the acks gate the button rather than racing
+  it; no reset loop, streaming live throughout.
 - **Bridge USART1 RX overrun (ORE) silently killing command reception for the
   rest of a session** — found live in bench testing right after section 5.6
   shipped: 2 clicks succeed, then every subsequent command vanishes with zero
@@ -637,24 +639,25 @@ re-clicking, independent of whether the ack mechanism itself is working.
   available yet?)," which predates readback actually working and was
   becoming misleading. `PLAN.md` A.2 has full detail.
 
-## Status: spec finalized, ready for implementation
+## Status: implemented, hardware-verified, closed
 
 All open questions resolved, including the 2026-08-06 readback-verification
 addendum (section 4) and the same-day STOP/START_STREAMING addendum
-(section 5). Remaining RTL-side work (opcode decode) is tracked in
-`PLAN.md` A.1 and does not block MCU/BLE/bridge/pc-app implementation of
-`SET_CHANNELS` itself (`REG_WRITE` alone is sufficient for that) — but the
-new readback path (section 4) *does* depend on the RTL landing to produce
-anything other than a timeout, see section 4.5. **As of 2026-08-06, the RTL
-has landed** and the full round-trip (write, RTL opcode decode, readback) is
-confirmed working on real hardware — see `PLAN.md` A.2 for the bench log.
+(section 5). The RTL side landed 2026-08-06 (4-way opcode decode plus the
+`stream_enable` ingestion gate), and the full round-trip — reg write, RTL
+decode, reg read, readback notify — is confirmed working on real hardware
+across all four hops. A.2 is closed; see `PLAN.md` A.2 for the checklist and
+the accepted limitations, and `log/2026-08-06.md` for the bring-up narrative.
 
-## Dependency on A.1 (RTL, not blocking for SET_CHANNELS, blocking for readback)
+### As-built dependencies on A.1 (RTL)
 
-The `REG_READ`/`NOP` opcode decode in `main_controller`, the `FPGA_STREAM_CMD`
-fix, and wiring the sampling-cycle placeholder slot are tracked in `PLAN.md`
-A.1 (your side). MCU/BLE/bridge/pc-app implementation of `SET_CHANNELS`
-itself (mine) can proceed against `REG_WRITE` alone in the meantime. The new
-readback-verification path (section 4) is implemented in parallel but stays
-in the "timeout / not verified yet" state (section 4.5) until the RTL opcode
-decode lands — that's expected, not a bug to chase.
+Landed with A.2: the `REG_READ`/`NOP` opcode decode in `main_controller`, the
+`FPGA_STREAM_CMD` `0xA5A5` → `0x2525` fix, and the `stream_enable` regbank
+register (word 164, bit 0) gating `fifo_wen`.
+
+Still open in A.1, and **not** required by this spec: wiring the
+sampling-cycle placeholder command slot (`rhd2164_sampling_cmd0-3`, regbank
+addr 128-131 — section 1), and the `ch_sel` restructure that makes the
+*streamed sample data itself* reflect the selected channels rather than a
+synthetic ramp. Until that lands, this control plane correctly selects
+channels that the data path still ignores.
