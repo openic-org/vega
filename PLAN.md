@@ -228,23 +228,65 @@ way to put an arbitrary command into the sampling cycle, which is exactly what t
       full-width (`dtx_mux_reg` passes `ram_din[15:0]`); only the read *address*
       is limited.
 
-      **Indirect access through command ports.** `SLOT_ADDR` (8-bit target
-      word), `SLOT_DATA_H` (staged high byte), `SLOT_DATA_L` (writing it commits
-      `{H,L}` to `ram[SLOT_ADDR]`, then auto-increments `SLOT_ADDR`). Three
-      `REG_WRITE` transfers per slot, padded to four with a `NOP` to keep the
-      ChA/ChB pairing invariant even; rewriting the whole table is one address
-      write plus a stream of byte pairs. A `REG_READ` of `SLOT_DATA_L` returns
-      `ram[SLOT_ADDR]` at full width. `SLOT_ADDR` and the staged high byte must
-      be **dedicated registers, not ram words** — a commit writes the target and
-      updates the pointer in the same cycle, which a single-write-port RAM
-      cannot do if the pointer lives in the array.
+      **Uniform indirect access — the `addr` field becomes a port selector, not
+      an address** (revised 2026-08-07, Manuel's proposal; supersedes an earlier
+      scheme that kept a directly-addressed window alongside three magic RAM
+      addresses). There is now exactly **one** way for the MCU to reach RAM, the
+      same for every word:
 
-      Rejected: widening SPI0 to 32 bits (touches `spi_slave`,
-      `main_controller`, `dtx_mux_reg`, the MCU bit-bang and the pairing logic);
-      a fifth opcode (`00/01/10/11` all in use as of A.2). **Changes no wire
-      format and no opcode decode** — new behaviour inside the regbank only,
-      driven by existing `REG_WRITE` transfers, so the A.2 command protocol is
-      untouched.
+      | `addr` field | `REG_WRITE` does |
+      |---|---|
+      | 1 | `addr_reg <= data[7:0]` |
+      | 2 | `staged_h <= data[7:0]` |
+      | 3 | `ram[addr_reg] <= {staged_h, data[7:0]}`, then `addr_reg <= addr_reg + 1` |
+
+      `REG_READ` **ignores its address field entirely** and returns
+      `ram[addr_reg]`. It does **not** auto-increment — repeated reads are
+      idempotent, and a `doctor` self-test can just send the address it wants.
+      `FIFO_POP` and `NOP` are untouched.
+
+      `addr_reg` and `staged_h` are **dedicated registers, not ram words** — a
+      commit writes the target word and updates the pointer on the same edge,
+      which a single-write-port array cannot do if the pointer lives in it, and
+      which would otherwise require a `ram[ram[N]]` two-level lookup plus a
+      second 256-way write decoder. Only two registers are needed: the commit's
+      low byte is consumed in the cycle it arrives, so port 3 stores nothing.
+
+      Ports are numbered **1/2/3, not 0/1/2**, so an all-zeros word (a stuck-at-0
+      MOSI line) decodes as a no-op rather than a valid "load address 0".
+
+      Consequences: all 256 words are equally reachable — `ch_a`, `ch_b` and
+      `stream_enable` stop being privileged and are written like any other word.
+      `regbank_addr0 = {2'b1x, spi0_drx[13:8]}` disappears; the array address is
+      `addr_reg`. `regbank_din0` becomes `{staged_h, spi0_drx[7:0]}`, so writes
+      are full-width everywhere. `RB_CTRL_BASE` survives as a **map convention**
+      (where the control registers happen to live), not as a decode boundary.
+      `rb_addr1` and the RHD command fetch are untouched.
+
+      Cost: a register write is 3 transfers (padded to 4 with a `NOP` for the
+      ChA/ChB pairing invariant) and a read is 2. `SET_CHANNELS` goes from 2
+      transfers to 8 — irrelevant on a paused-stream reconfiguration path.
+      **Note for the MCU helpers:** because the commit auto-increments,
+      write-then-verify must reload the address before reading; the pointer has
+      already moved past the word just written.
+
+      Rejected: a positional/counter protocol (transfer 1 = address, 2 = high,
+      3 = low). Superficially more uniform, but one dropped transfer desyncs the
+      sequence and every subsequent write lands at a wrong address, silently —
+      and dropped transfers are a known failure mode here (the bridge ORE bug,
+      A.2). With a port selector each transfer is self-describing, so a loss
+      costs one write, and `addr_reg` being explicit rather than a hidden counter
+      makes the next sequence self-correcting. Also rejected: widening SPI0 to
+      32 bits (touches `spi_slave`, `main_controller`, `dtx_mux_reg`, the MCU
+      bit-bang and the pairing logic); a fifth opcode (`00/01/10/11` all in use
+      as of A.2); and keeping a directly-addressed window as a fast path, which
+      reaches only 64 words and earns nothing once indirection exists.
+
+      **MCU-side impact (Claude, once the RTL lands):** `FPGA_SPI_SetChannels`,
+      `SetStreamEnable`, `ReadStreamEnable` and `ReadChannels` all rewrite
+      against the new scheme, plus `docs/interfaces/channel-selection-control-plane.md`
+      section 1. Mechanical, but it is a real wire-protocol change — unlike the
+      superseded scheme, this one does not preserve the existing MCU offsets.
 
       **Memory map, rearranged in the same change** (decided 2026-08-07). The
       old layout wasted address space because `rb_addr1 = {1'b0, rhd_dtx_sel,
@@ -258,17 +300,7 @@ way to put an arbitrary command into the sampling cycle, which is exactly what t
       | RHD config table | 0–47 | 34 | 14 |
       | RHD sampling table | 48–95 | 33 | 15 |
       | Free | 96–191 | — | 96 |
-      | Control window (the only directly addressable region, offsets 0–63) | 192–255 | `ch_a` 196, `ch_b` 197, `stream_enable` 228 | — |
-      | └ `SLOT_ADDR` / `SLOT_DATA_H` / `SLOT_DATA_L` | 253/254/255 | offsets 61/62/63 | — |
-
-      The direct window moves from `{2'b10, …}` to `{2'b11, …}`. Because the MCU
-      sends only `addr[5:0]` and the FPGA prepends the prefix, **every existing
-      MCU offset keeps working unchanged** — 4/5/36 still mean
-      `ch_a`/`ch_b`/`stream_enable`, they simply land at 196/197/228. No firmware
-      change, no A.2 protocol change. Moving the window (rather than the ports)
-      is what lets the SLOT ports sit at the literal end of the RAM while staying
-      directly reachable — which they must be, being the bootstrap for reaching
-      everything else.
+      | Control registers | 192–255 | `ch_a` 196, `ch_b` 197, `stream_enable` 228 | — |
 
       **Headroom rationale:** 48 words per table is not a round number for its
       own sake. The RHD2164 datasheet recommends reserving **three** alternate-
