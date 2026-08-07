@@ -216,28 +216,93 @@ Ordered tasks, each with a numeric pass/fail:
 way to put an arbitrary command into the sampling cycle, which is exactly what that
 33rd slot is for. It is the enabler for this ladder, not a side task.
 
-- [ ] **A.1.1g — Widen regbank access so any word is MCU-writable at runtime.**
-      Decided 2026-08-07, prerequisite alongside A.1.4. Two limits, not one:
-      `kuntur_fpga.v:122` hardcodes `regbank_addr0 = {2'b10, spi0_drx[13:8]}`
-      (writes confined to words 128–191, while the sampling slots are 64–96), and
-      `kuntur_fpga.v:124` sets `regbank_din0 = {8'd0, spi0_drx[7:0]}` (every write
-      zeroes the high byte). A sample slot holds a **full 16-bit** RHD command
-      word, so it needs an 8-bit address *and* 16-bit data — 2+8+16 does not fit a
-      16-bit transfer. Reads are already full-width via `dtx_mux_reg`
-      (`ram_din[15:0]`), so only the write path needs widening.
+- [ ] **A.1.1g — Widen regbank access so any word is MCU-readable/writable at
+      runtime.** Decided 2026-08-07, prerequisite alongside A.1.4. Two limits:
+      `kuntur_fpga.v:122` hardcodes `regbank_addr0 = {2'b10, spi0_drx[13:8]}`,
+      and since `addr0` feeds **both** the read and write paths this confines
+      *both* to words 128–191 while the sampling slots sit at 64–96; and
+      `kuntur_fpga.v:124` sets `regbank_din0 = {8'd0, spi0_drx[7:0]}`, so every
+      write is 8-bit. A sampling slot holds a **full 16-bit** RHD command word,
+      needing an 8-bit address *and* 16-bit data — 2+8+16 does not fit a 16-bit
+      transfer, so indirection is forced, not preferred. Read *data* is already
+      full-width (`dtx_mux_reg` passes `ram_din[15:0]`); only the read *address*
+      is limited.
 
-      Chosen approach — **indirect access through command ports** in the
-      already-reachable 128–191 window: `SLOT_ADDR` (8-bit target word),
-      `SLOT_DATA_H`, and `SLOT_DATA_L` (writing L commits `{H,L}` to `SLOT_ADDR`
-      and auto-increments it, so rewriting the whole 33-slot table is one address
-      write plus a stream of byte pairs). Three `REG_WRITE` transfers per slot,
-      padded to four with a `NOP` to keep the ChA/ChB pairing invariant even.
-      Readback reuses `SLOT_ADDR` with `REG_READ`. Rejected: widening SPI0 to
-      32 bits (touches `spi_slave`, `main_controller`, `dtx_mux_reg`, the MCU
-      bit-bang and the pairing logic) and adding a fifth opcode (`00/01/10/11` are
-      all in use as of A.2). **This approach changes no wire format and no opcode
-      decode** — it is new behaviour inside the regbank only, driven by existing
-      `REG_WRITE` transfers, so the A.2 command protocol is untouched.
+      **Indirect access through command ports.** `SLOT_ADDR` (8-bit target
+      word), `SLOT_DATA_H` (staged high byte), `SLOT_DATA_L` (writing it commits
+      `{H,L}` to `ram[SLOT_ADDR]`, then auto-increments `SLOT_ADDR`). Three
+      `REG_WRITE` transfers per slot, padded to four with a `NOP` to keep the
+      ChA/ChB pairing invariant even; rewriting the whole table is one address
+      write plus a stream of byte pairs. A `REG_READ` of `SLOT_DATA_L` returns
+      `ram[SLOT_ADDR]` at full width. `SLOT_ADDR` and the staged high byte must
+      be **dedicated registers, not ram words** — a commit writes the target and
+      updates the pointer in the same cycle, which a single-write-port RAM
+      cannot do if the pointer lives in the array.
+
+      Rejected: widening SPI0 to 32 bits (touches `spi_slave`,
+      `main_controller`, `dtx_mux_reg`, the MCU bit-bang and the pairing logic);
+      a fifth opcode (`00/01/10/11` all in use as of A.2). **Changes no wire
+      format and no opcode decode** — new behaviour inside the regbank only,
+      driven by existing `REG_WRITE` transfers, so the A.2 command protocol is
+      untouched.
+
+      **Memory map, rearranged in the same change** (decided 2026-08-07). The
+      old layout wasted address space because `rb_addr1 = {1'b0, rhd_dtx_sel,
+      cnt0}` built its config/sampling mux out of bit concatenation, forcing each
+      table to a 64-word aligned region regardless of use (config used 34 of
+      0–63, sampling 33 of 64–127). Replaced by base+offset — costs a small
+      adder, timing impact accepted as negligible:
+
+      | Region | Words | Used | Spare |
+      |---|---|---|---|
+      | RHD config table | 0–47 | 34 | 14 |
+      | RHD sampling table | 48–95 | 33 | 15 |
+      | Free | 96–191 | — | 96 |
+      | Control window (the only directly addressable region, offsets 0–63) | 192–255 | `ch_a` 196, `ch_b` 197, `stream_enable` 228 | — |
+      | └ `SLOT_ADDR` / `SLOT_DATA_H` / `SLOT_DATA_L` | 253/254/255 | offsets 61/62/63 | — |
+
+      The direct window moves from `{2'b10, …}` to `{2'b11, …}`. Because the MCU
+      sends only `addr[5:0]` and the FPGA prepends the prefix, **every existing
+      MCU offset keeps working unchanged** — 4/5/36 still mean
+      `ch_a`/`ch_b`/`stream_enable`, they simply land at 196/197/228. No firmware
+      change, no A.2 protocol change. Moving the window (rather than the ports)
+      is what lets the SLOT ports sit at the literal end of the RAM while staying
+      directly reachable — which they must be, being the bootstrap for reaching
+      everything else.
+
+      **Headroom rationale:** 48 words per table is not a round number for its
+      own sake. The RHD2164 datasheet recommends reserving **three** alternate-
+      command slots and this design reduced that to one (+2 to restore); the
+      non-amplifier channels are auxin1–3, VDD (ch 48) and temperature (ch 49),
+      five more if ever sampled in-cycle. 32+3+5 = 40, so 48 leaves real margin.
+      Keeping 96–191 free is a deliberate choice for future needs even at the
+      cost of RAM. Sizes stay **parametric** so the map can be retuned later.
+
+      **Single-source the map.** `cfg_max`/`sampling_max` live in
+      `rhd2164_controller`, the bases in the top-level address computation, and
+      the reset defaults as ~256 hardcoded `ram[8'dN] <=` literals in `ram`.
+      Moving a table means renumbering those literals by hand with no compiler
+      help — precisely the drift working principle 1 exists to prevent. Put the
+      map in `intan.vh` (already the shared-constants home) as
+      `RB_CONFIG_BASE`/`RB_CONFIG_ALLOC`/`RB_SAMPLING_BASE`/`RB_SAMPLING_ALLOC`/
+      `RB_CTRL_BASE` and derive all three consumers from it. Collapse the
+      filler-zero runs into generate loops so the real entries are visible.
+
+      **Latent bug to fix while in there:** `components.v:496` declares
+      `reg [DATA_WIDTH-1:0] ram [0:(2**8)-1]` — hardcoded `2**8` despite
+      `ADDR_WIDTH` being a parameter. Harmless today because both are 8, which is
+      why it will survive until it doesn't. Should be `2**ADDR_WIDTH`.
+
+      **Worth checking before compacting further:** the regbank is initialised
+      word-by-word under an asynchronous reset, which forces flip-flop inference
+      rather than EBR — if so, 256×16 is ~4096 FFs of fabric and unused words are
+      not free. Confirm against the utilization report. If it did infer block
+      RAM, the holes cost nothing and the argument is purely clarity. A follow-on
+      option, deferred: split into three memories sized to purpose (config,
+      sampling, control), which matches how they are actually used — config
+      written once at boot and read sequentially, sampling read every frame,
+      control random-access driving combinational taps. They share one RAM out of
+      convenience, not behaviour.
 
       **Writes are left unrestricted** — no RTL write-protection on any word.
       Both the sampling table and the RHD config table are legitimately
