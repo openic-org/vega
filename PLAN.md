@@ -172,6 +172,82 @@ only. That loses the simultaneous reference comparison, not the test.
       streaming real data?" is answerable from the top file. The bug exists *because*
       test pattern and real path share a module with no visible mux. Doing the
       restructure now avoids touching `ch_sel` twice.
+
+### A.1.1 — Verification ladder, using the RHD2164's own known values
+
+Decided 2026-08-07. "Connect the real data path" is not one step: between the
+RHD2164 MISO pins and `fifo_din` there are several places where a value can be
+real but wrong (MISO sampling timing, DDR A/B demux, the two-command pipeline
+offset, slot→channel alignment). None of these is observable against a synthetic
+ramp, and none needs an electrode or a signal generator to test — **the chip
+supplies its own known values**, which is what separates this from A.3. A.3
+starts where this ends: injected analog signals, characterisation, µV numbers.
+
+Pipeline fact underpinning the whole ladder (RHD2000 series datasheet): each
+command on MOSI returns its 16-bit result on MISO **two commands later**.
+
+Known-value sources (RHD2164 datasheet unless noted):
+
+| Source | Expected | Notes |
+|---|---|---|
+| Reg 59, MISO A/B marker | **53 (0x35) on MISO A, 58 (0x3A) on MISO B** | Purpose-built by Intan to confirm SPI signal integrity and tune MISO sampling timing. Asymmetric, so an A/B swap fails outright |
+| Regs 40–44 | `I N T A N` = 0x49,0x4E,0x54,0x41,0x4E | Five distinct values in sequence; a wrong pipeline offset appears as rotated letters |
+| Reg 63 / 62 / 61 | chip ID **4**, num amps **64**, unipolar **1** | Chip presence + identity, per chip |
+| Channel 48 | VDD/2 via on-chip divider; `VDD = 0.0000748 × result` (≈44,100 @ 3.3 V) | First test of the actual **ADC**. Needs `RHD_VDD_SENSE_ENABLE` (`intan.vh:87`, currently `1'b0`). Aux/temp/supply sensors are on the **A module only** — the B result for a non-amplifier channel is meaningless per datasheet |
+
+Ordered tasks, each with a numeric pass/fail:
+
+- [ ] **A.1.1a — Link integrity & DDR demux.** `READ(59)`; expect 53 on `data_a*`,
+      58 on `data_b*`, both chips. Proves MISO timing, DDR split, and that the four
+      `ch_sel` inputs map to the right chip and half.
+- [ ] **A.1.1b — Pipeline offset.** `READ(40..44)` in consecutive slots; expect
+      `INTAN` arriving two slots later. Pins the offset down numerically.
+- [ ] **A.1.1c — Chip identity.** `READ(63/62/61)` → 4 / 64 / 1, per chip. Also the
+      FPGA-side half of B.6's `doctor`.
+- [ ] **A.1.1d — Slot→channel alignment.** `ch_sel` selects by timing `ch_cnt`
+      against the SPI0 output stream, so the two-command offset must be accounted
+      for in that alignment for `ch_a`/`ch_b` to mean the channel they name.
+- [ ] **A.1.1e — Connect `dout`** to `data0_synced`/`data1_synced`. Only meaningful
+      once (d) holds.
+- [ ] **A.1.1f — ADC path.** Enable VDD sense, convert channel 48 on module A,
+      expect ≈44,100 at 3.3 V. First real analog value end to end.
+
+**A.1.4 (placeholder command slot) comes first** — (a), (b), (c) and (f) all need a
+way to put an arbitrary command into the sampling cycle, which is exactly what that
+33rd slot is for. It is the enabler for this ladder, not a side task.
+
+- [ ] **A.1.1g — Widen regbank access so any word is MCU-writable at runtime.**
+      Decided 2026-08-07, prerequisite alongside A.1.4. Two limits, not one:
+      `kuntur_fpga.v:122` hardcodes `regbank_addr0 = {2'b10, spi0_drx[13:8]}`
+      (writes confined to words 128–191, while the sampling slots are 64–96), and
+      `kuntur_fpga.v:124` sets `regbank_din0 = {8'd0, spi0_drx[7:0]}` (every write
+      zeroes the high byte). A sample slot holds a **full 16-bit** RHD command
+      word, so it needs an 8-bit address *and* 16-bit data — 2+8+16 does not fit a
+      16-bit transfer. Reads are already full-width via `dtx_mux_reg`
+      (`ram_din[15:0]`), so only the write path needs widening.
+
+      Chosen approach — **indirect access through command ports** in the
+      already-reachable 128–191 window: `SLOT_ADDR` (8-bit target word),
+      `SLOT_DATA_H`, and `SLOT_DATA_L` (writing L commits `{H,L}` to `SLOT_ADDR`
+      and auto-increments it, so rewriting the whole 33-slot table is one address
+      write plus a stream of byte pairs). Three `REG_WRITE` transfers per slot,
+      padded to four with a `NOP` to keep the ChA/ChB pairing invariant even.
+      Readback reuses `SLOT_ADDR` with `REG_READ`. Rejected: widening SPI0 to
+      32 bits (touches `spi_slave`, `main_controller`, `dtx_mux_reg`, the MCU
+      bit-bang and the pairing logic) and adding a fifth opcode (`00/01/10/11` are
+      all in use as of A.2). **This approach changes no wire format and no opcode
+      decode** — it is new behaviour inside the regbank only, driven by existing
+      `REG_WRITE` transfers, so the A.2 command protocol is untouched.
+
+      **Writes are left unrestricted** — no RTL write-protection on any word.
+      Both the sampling table and the RHD config table are legitimately
+      rewritable, so there is no clean read-only set to protect, and partial
+      protection would give a false sense of safety. Keeping the regbank dumb and
+      uniform is the deliberate choice. See the related B.5 known-open item on the
+      absence of genuine read-only identity registers.
+
+      Unlocks running this ladder as a `doctor`-style self-test on a built device
+      (B.5 pre-session self-test / B.6 `doctor`), not only in simulation.
 - [ ] **T3.3 Remove debug hijacks from product paths** — `serial_lvds_tx = spi0_csb`
       and `serial_lvds_rx` **declared as an output** (`kuntur_fpga.v:36-37`), which
       must be undone before bidirectional tunnel work · `assign cmd_is_00 = fifo_full`
@@ -183,7 +259,8 @@ only. That loses the simultaneous reference comparison, not the test.
       MCU-side fix landed with it — `FPGA_STREAM_CMD` `0xA5A5` → `0x2525`, so a
       streaming FIFO pop no longer carries the `10` opcode by accident. Verified
       on hardware via the A.2 readback round-trip.
-- [ ] **Wire the sampling-cycle placeholder command slot** — confirmed
+- [ ] **Wire the sampling-cycle placeholder command slot** — **do this first; it
+      is the enabler for the A.1.1 verification ladder above.** Confirmed
       2026-08-05: the sampling counter's extra state beyond the 32 real
       per-module channels (`components.v:855`, `sampling_max = 6'd32`, giving
       33 total states) is an intentional placeholder for an alternate RHD2164
@@ -489,6 +566,18 @@ Design the **seams**; file layout follows.
       plausibly be dropped on the outgoing side even when every upstream hop
       worked. Instrument it if the residual A.2 "unsuccessful" rate turns out
       not to be fully explained by RX overruns.
+- [ ] **FPGA regbank has no read-only registers** — raised 2026-08-07 while
+      deciding A.1.1g. Every regbank word is writable and nothing identifies the
+      device: there is no bitstream version, no fixed marker to validate SPI0 link
+      integrity, no capability bits. The RHD2164 shows how useful this is — its
+      Reg 59 A/B marker, Regs 40–44 `INTAN`, Reg 60 die revision, Reg 62 amp count
+      and Reg 63 chip ID are exactly what the whole A.1.1 verification ladder is
+      built on, and the FPGA offers no equivalent. Wanted: a small read-only block
+      (bitstream version/ID, a fixed SPI0-link marker, capability bits) mirroring
+      that pattern. **Phase B** — feeds B.6's `doctor` ("FPGA bitstream ✓ v1.2.0")
+      and B.6's version/name handshake, and belongs in B.2's FPGA register-map
+      interface spec. Not blocking A.1; A.1.1g deliberately ships with writes
+      unrestricted.
 - [ ] **pc-app can't distinguish a busy-rejection from any other timeout** — the
       MCU rejects (and logs) commands arriving while `s_command_busy` is held, but
       the pc-app only ever sees "no response within 2 s" and reports the same
