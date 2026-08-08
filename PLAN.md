@@ -346,7 +346,9 @@ way to put an arbitrary command into the sampling cycle, which is exactly what t
       against the new scheme, plus `docs/interfaces/channel-selection-control-plane.md`
       sections 1 and 1a. This **is** a wire-protocol change — it does not
       preserve the existing MCU offsets — so it cannot lag the RTL without
-      breaking A.2's round-trip.
+      breaking A.2's round-trip. **A.2 must then be re-tested end to end on the
+      bench** (see the note at the head of A.2): its 2026-08-06 verification was
+      against the old protocol and does not carry over.
 
       **Memory map, rearranged in the same change** (decided 2026-08-07). The
       old layout wasted address space because `rb_addr1 = {1'b0, rhd_dtx_sel,
@@ -485,6 +487,19 @@ remove the need to interleave at all.
       ack-driven sequencing plus rate limiting.
 - [x] **Diagnostic scaffolding reverted** — bridge trace back off by default, pc-app
       debug prints removed. The fixes stay; the noise used to find them doesn't.
+
+> **⚠ A.2 must be re-tested once A.1 lands.** A.1.1g changes the SPI0 wire
+> protocol underneath this feature: register access becomes a tagged
+> 3-transfer sequence, `REG_READ` no longer carries an address, and
+> `ch_a`/`ch_b` move from offsets 4/5 to RAM words 196/197. Every MCU helper
+> A.2 depends on (`FPGA_SPI_SetChannels`, `SetStreamEnable`,
+> `ReadStreamEnable`, `ReadChannels`) is rewritten as a result. The
+> hardware-verified result above was obtained against the *old* protocol, so
+> **"complete" here means complete-as-of-2026-08-06, not still-verified.**
+> The full STOP → SET_CHANNELS → readback → START round-trip needs re-running
+> on the bench after the new bitstream and firmware are flashed together —
+> including the repeat-click reliability pass, since the transfer counts and
+> FSM timing both change.
 
 **Known limitation, accepted** — not blocking Phase A:
 
