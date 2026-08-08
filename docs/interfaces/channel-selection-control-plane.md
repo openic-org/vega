@@ -29,28 +29,60 @@ one can change without the others (see "Compatibility" per section).
 ## 1. FPGA register protocol (SPI0, MCU ↔ FPGA)
 
 **Where implemented:** MCU side in `fpga_spi.c`; FPGA side in
-`main_controller` (`components.v`), which decodes all four opcodes explicitly
-and has a `regbank_dout0` → TX mux read path. Regbank RAM unchanged.
-**As-built as of 2026-08-06.**
+`main_controller` and `ram` (`components.v`).
+**Revised 2026-08-08 (A.1.1g)** — the addressing scheme below supersedes the
+2026-08-06 version, in which `addr` was a direct 6-bit offset into a 64-word
+window (`{2'b10, addr}` = words 128–191). That window could reach neither the
+RHD command tables nor a full 16-bit value, so it was replaced.
 
-**Wire format:** 16-bit word, MSB first, SPI mode 0 (matches the existing
-sample-read transfers in `fpga_spi.c`):
+**Wire format:** 16-bit word, MSB first, SPI mode 0:
 
 | Bits | Field | Meaning |
 |---|---|---|
 | `[15:14]` | `opcode` | See table below |
-| `[13:8]` | `addr` | 6-bit regbank address offset. Actual RAM address = `{2'b10, addr}` = `addr + 128` (`kuntur_fpga.v:114`). |
-| `[7:0]` | `data` | Register value (write) or don't-care (read/pop/nop) |
+| `[13:8]` | `addr` | **Sequence tag** on `REG_WRITE` (1/2/3); ignored on `REG_READ`, `FIFO_POP`, `NOP` |
+| `[7:0]` | `data` | Payload byte |
 
-**Opcodes** (decided 2026-08-05, implemented 2026-08-06 — supersedes the old
-binary `opcode==01?write:pop` decode):
+**Opcodes:**
 
-| `opcode` | Name | Action | Status |
-|---|---|---|---|
-| `00` | `FIFO_POP` | Pop next sample pair | Explicit match (was the implicit "not write" catch-all) |
-| `01` | `REG_WRITE` | Write `data` to regbank address `addr` | Unchanged |
-| `10` | `REG_READ` | Request register readback at `addr`; value appears on the *next* transfer's MISO output (one-transfer-deep pipeline, same pattern as `dtx_mux_reg`) | Implemented 2026-08-06; the 1-transfer latency assumed in section 4.1 is confirmed against the real bitstream |
-| `11` | `NOP` | No side effect: no FIFO pop, no regbank write/read, TX mux untouched | Implemented — safe filler/keepalive transfer |
+| `opcode` | Name | Action |
+|---|---|---|
+| `00` | `FIFO_POP` | Pop next sample pair. **Two transfers** — ChA then ChB |
+| `01` | `REG_WRITE` | One step of a **three-transfer** write sequence, see below |
+| `10` | `REG_READ` | Returns `ram[addr_reg]` on the *next* transfer's MISO (one-transfer-deep pipeline). Does **not** auto-increment |
+| `11` | `NOP` | No side effect |
+
+**Indirect register access.** A full 16-bit write needs an 8-bit address and
+16-bit data; `2 + 8 + 16 = 26` bits does not fit a 16-bit transfer, so
+indirection is forced rather than chosen. A write is three `REG_WRITE`
+transfers, tracked by the `main_controller` FSM, each carrying a redundant
+sequence tag in `addr`:
+
+| Transfer | `addr` tag | Effect |
+|---|---|---|
+| 1 | 1 | `addr_reg <= data` |
+| 2 | 2 | `staged_h <= data` |
+| 3 | 3 | `ram[addr_reg] <= {staged_h, data}` |
+
+A mismatched tag or a non-`REG_WRITE` opcode mid-sequence aborts to `op_nop3`.
+Reading is: write the address (transfer 1), then `REG_READ`, then take the
+value on the following transfer.
+
+`addr_reg` and `staged_h` are dedicated registers, not RAM words — a commit
+writes the target word and updates state on the same edge, which a
+single-write-port array cannot do if the pointer lives in it.
+
+**Why positional with a tag.** SPI0 is already positional — `FIFO_POP` has
+always been two transfers, ChA then ChB — so a sequenced write keeps one idiom
+across the interface. The tag is what makes a sequence self-describing on a
+logic analyzer and turns a transfer lost on the wire into a detected abort
+rather than the FSM silently absorbing the next unrelated transfer as the
+missing one.
+
+**Consequence:** all 256 RAM words are equally reachable, so `ch_a`, `ch_b` and
+`stream_enable` are no longer at privileged offsets — they are ordinary words
+written the ordinary way. `ram`'s `addr0` port and
+`regbank_addr0 = {2'b11, spi0_drx[13:8]}` are vestigial and slated for removal.
 
 **Breaking change, landed together with the RTL:** `fpga_spi.h`'s dummy TX
 word — sent on every sample-pop transfer — was `0xA5A5U`, whose top bits are
@@ -59,13 +91,16 @@ word — sent on every sample-pop transfer — was `0xA5A5U`, whose top bits are
 read. `FPGA_STREAM_CMD` is now `0x2525U` (top bits `00`). Both halves shipped
 in the same change, as required.
 
-**Known register addresses** (`components.v:419-437`):
+**Known register addresses.** These are now RAM word addresses loaded into
+`addr_reg` by transfer 1 of a write sequence, not `addr`-field offsets. The map
+is defined in `intan.vh` (`RB_CONFIG_BASE`/`RB_SAMPLING_BASE`/`RB_CTRL_BASE`);
+`RB_CTRL_BASE` is a layout convention, no longer a decode boundary.
 
-| `addr` (6-bit) | RAM word | Signal | Notes |
-|---|---|---|---|
-| `4` | 132 | `ch_a` | 8-bit: `[7:6]` selects one of 4 sample sources (`data_a0`/`data_b0`/`data_a1`/`data_b1`), `[5:0]` selects channel index within that source (`components.v:328-337`). Raw FPGA code — see section 1a for the friendly-index mapping. |
-| `5` | 133 | `ch_b` | Same encoding as `ch_a`. |
-| `36` | 164 | `stream_enable` | Bit 0 gates `fifo_wen` inside `ch_sel` (`fifo_wen <= dout_en_0 & stream_enable`), i.e. stops the FPGA ingesting samples at the source. **Reset default `1`** (streaming enabled) — a `0` default would silently kill streaming after every FPGA reset/reprogram until the MCU enabled it. Addresses 6-35 are reserved for a future reduced-rate multi-channel mode, hence the gap. Added 2026-08-06, see section 5.3. |
+| RAM word | Signal | Notes |
+|---|---|---|
+| 196 | `ch_a` | 8-bit: `[7:6]` selects one of 4 sample sources (`data_a0`/`data_b0`/`data_a1`/`data_b1`), `[5:0]` selects channel index within that source (`components.v:328-337`). Raw FPGA code — see section 1a for the friendly-index mapping. |
+| 197 | `ch_b` | Same encoding as `ch_a`. |
+| 228 | `stream_enable` | Bit 0 gates `fifo_wen` inside `ch_sel` (`fifo_wen <= dout_en_0 & stream_enable`), i.e. stops the FPGA ingesting samples at the source. **Reset default `1`** (streaming enabled) — a `0` default would silently kill streaming after every FPGA reset/reprogram until the MCU enabled it. Control words 198–227 are reserved for a future reduced-rate multi-channel mode, hence the gap. Added 2026-08-06, see section 5.3. |
 | `0-3` | 128-131 | `rhd2164_sampling_cmd0-3` | Computed by `ram` and wired to the `kuntur_fpga.v` top level, but **not consumed by anything downstream today** — dead-end wires. Confirmed 2026-08-05: reserved as runtime RHD2164 command-injection slots — likely home for the command word(s) fed into the sampling cycle's placeholder state (section 1a), primary use case A.3's impedance-check DAC control (`RHD_ZCHECK_DAC/SEL/EN`). Reserving the address space now avoids a protocol version bump later; wiring tracked as an A.1 follow-up in `PLAN.md`. |
 
 ### 1a. Channel encoding — friendly index ↔ raw FPGA code
@@ -98,30 +133,33 @@ affect the formula above — channel indices only ever use 0–31. Not yet wired
 to a consumer; tracked as an A.1 follow-up in `PLAN.md` (likely consumer:
 `rhd2164_sampling_cmd0-3` below).
 
-**Hazard — ChA/ChB pairing invariant:** `main_controller`'s FSM toggles an
-internal ChA/ChB phase on *every* SPI0 transfer regardless of opcode
-(`components.v:213-231`, `mcu_dtx_sel`/`mcu_dtx_en` set unconditionally in
-states `op0c`/`op1c`). `FPGA_SPI_ReadSamples()` assumes this phase starts at
-"ChA next" and reads in matched pairs; `FPGA_SPI_Init()`'s one priming
-transfer establishes that phase once at boot. **Any odd number of SPI0
-transfers issued outside of `FPGA_SPI_ReadSamples()` shifts the phase and
-silently swaps ch0/ch1 in every subsequent sample read** — this is believed to
-be the same class of bug as the historical "32-bit FIFO channel swap" issue.
+**ChA/ChB pairing invariant — believed eliminated 2026-08-08, pending
+simulation.** Historically `main_controller` toggled the ChA/ChB phase on
+*every* SPI0 transfer regardless of opcode (`mcu_dtx_sel`/`mcu_dtx_en` were
+driven unconditionally), so any odd number of transfers issued outside
+`FPGA_SPI_ReadSamples()` shifted the phase and silently swapped ch0/ch1 in
+every subsequent sample read. This is believed to be the same class of bug as
+the historical "32-bit FIFO channel swap." It forced two rules: register writes
+had to be issued in even-numbered batches, and `FPGA_SPI_Init()` had to prime
+the phase with a single transfer at boot.
 
-- **Rule:** register writes MUST always be issued as an even-numbered batch.
-  `FPGA_SPI_SetChannels(ch_a, ch_b)` writes both registers in one call (2
-  transfers) to satisfy this by construction — never expose a single-register
-  write as public API.
-- **Rule:** register writes must not be interleaved with an in-progress
-  `FPGA_SPI_ReadSamples()` call. **As built (section 5), this is guaranteed
-  structurally rather than by convention:** `SET_CHANNELS` only executes while
-  streaming is explicitly stopped, so there is no in-progress sample read to
-  interleave with. The 0xFFF1 event handler itself does no SPI0 work — it
-  validates, stashes the request, and defers. Never call these from an ISR.
-- A register write also does not pop the FIFO for that transfer (opcode `01`
-  suppresses `fifo_ren`, `components.v:190-200`) — negligible, momentary
-  effect on drain rate, not expected to be observable against the existing
-  ~1.7% chronic underrun rate.
+The A.1.1g FSM rewrite drives the phase **explicitly per state** — write states
+select `2'd2` (SRAM), and only `op_pop0`/`op_pop3` select ChA/ChB. A write or
+read sequence therefore cannot disturb the pairing at all, and the even-batch
+and NOP-padding rules should become unnecessary.
+
+**Do not delete the rules from the MCU side until this is confirmed in
+simulation.** Until then, keep treating the following as live:
+
+- Register writes issued as an even-numbered batch.
+- Register access not interleaved with an in-progress `FPGA_SPI_ReadSamples()`.
+  As built this is guaranteed structurally anyway (section 5): `SET_CHANNELS`
+  only executes while streaming is explicitly stopped, and the 0xFFF1 event
+  handler does no SPI0 work itself — it validates, stashes, and defers.
+- Never call these from an ISR.
+
+A register write also does not pop the FIFO for that transfer — negligible,
+momentary effect on drain rate.
 
 ## 2. BLE 0xFFF1 command protocol (bridge/phone ↔ Kuntur MCU)
 
@@ -232,10 +270,14 @@ RTL work, not the full ramp→real-data restructure.
 
 ### 4.1 FPGA transfer sequence (SPI0, MCU side)
 
-One-transfer-deep pipeline (per section 1's `REG_READ` definition — same
-pattern as `dtx_mux_reg`): a `REG_READ`'s requested value appears on the
-*next* transfer's MISO output, not the same one. To read back both `ch_a`
-(addr 4) and `ch_b` (addr 5) in one call:
+**Superseded by A.1.1g — rewrite pending.** The sequence below is the
+2026-08-06 as-built, valid against the old direct-addressed scheme where
+`REG_READ(addr=N)` named the word directly. Under the new scheme `REG_READ`
+ignores its address field and returns `ram[addr_reg]`, so each readback must be
+preceded by a 3-transfer write sequence that loads the address. `ch_a` and
+`ch_b` are also no longer at offsets 4/5 — they are RAM words 196 and 197.
+
+Old sequence, for reference until `FPGA_SPI_ReadChannels()` is rewritten:
 
 | Transfer | TX word | MISO returns |
 |---|---|---|
@@ -244,14 +286,14 @@ pattern as `dtx_mux_reg`): a `REG_READ`'s requested value appears on the
 | 3 | `NOP` | `ch_b`'s value (result of transfer 2) |
 | 4 | `NOP` | stale/undefined — discard (padding for even count) |
 
-4 transfers — even, satisfies the ChA/ChB pairing invariant (section 1's
-hazard note: every SPI0 transfer toggles the phase, regardless of opcode).
-Implemented as `FPGA_SPI_ReadChannels(uint8_t *ch_a_raw, uint8_t *ch_b_raw)`
-in `fpga_spi.c`, called immediately after `FPGA_SPI_SetChannels()` (2
-transfers) — 2+4=6 transfers total, still even. As built these run from the
-deferred pending-command branch while streaming is stopped (section 5.4), not
-inline in the GATT event handler, so they are structurally uninterleaved with
-`FPGA_SPI_ReadSamples()`.
+The one-transfer-deep pipeline itself is unchanged and still holds: a
+`REG_READ`'s value appears on the *next* transfer's MISO, not the same one.
+Only the addressing changes. The even-transfer-count padding may also become
+unnecessary — see section 1a on the pairing invariant.
+
+As built these run from the deferred pending-command branch while streaming is
+stopped (section 5.4), not inline in the GATT event handler, so they are
+structurally uninterleaved with `FPGA_SPI_ReadSamples()`.
 
 **Confirmed against the real bitstream 2026-08-06:** the RTL's `REG_READ`
 latency does match this 1-transfer-deep pipeline assumption — the full
