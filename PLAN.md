@@ -228,65 +228,86 @@ way to put an arbitrary command into the sampling cycle, which is exactly what t
       full-width (`dtx_mux_reg` passes `ram_din[15:0]`); only the read *address*
       is limited.
 
-      **Uniform indirect access — the `addr` field becomes a port selector, not
-      an address** (revised 2026-08-07, Manuel's proposal; supersedes an earlier
-      scheme that kept a directly-addressed window alongside three magic RAM
-      addresses). There is now exactly **one** way for the MCU to reach RAM, the
-      same for every word:
+      **Uniform indirect access — a 3-transfer sequence with a redundant tag**
+      (as-built, settled 2026-08-08). All MCU access to RAM goes through one
+      mechanism, identical for every one of the 256 words. `FIFO_POP` and `NOP`
+      are untouched.
 
-      | `addr` field | `REG_WRITE` does |
-      |---|---|
-      | 1 | `addr_reg <= data[7:0]` |
-      | 2 | `staged_h <= data[7:0]` |
-      | 3 | `ram[addr_reg] <= {staged_h, data[7:0]}`, then `addr_reg <= addr_reg + 1` |
+      A `REG_WRITE` is a **three-transfer sequence**, tracked by the
+      `main_controller` FSM (`op_write0`..`op_write6`). Each stage additionally
+      requires the `addr` field to carry a matching **sequence tag**:
 
-      `REG_READ` **ignores its address field entirely** and returns
-      `ram[addr_reg]`. It does **not** auto-increment — repeated reads are
-      idempotent, and a `doctor` self-test can just send the address it wants.
-      `FIFO_POP` and `NOP` are untouched.
+      | Transfer | `addr` tag | Effect |
+      |---|---|---|
+      | 1 | 1 | `addr_reg <= data[7:0]` |
+      | 2 | 2 | `staged_h <= data[7:0]` |
+      | 3 | 3 | `ram[addr_reg] <= {staged_h, data[7:0]}` |
+
+      A `REG_READ` ignores its address field and returns `ram[addr_reg]`. It does
+      **not** auto-increment — repeated reads stay idempotent, and a `doctor`
+      self-test can simply send the address it wants. There is no auto-increment
+      on write either: the positional sequence restarts with an address load
+      every time, so there would be nothing to exploit.
 
       `addr_reg` and `staged_h` are **dedicated registers, not ram words** — a
-      commit writes the target word and updates the pointer on the same edge,
-      which a single-write-port array cannot do if the pointer lives in it, and
-      which would otherwise require a `ram[ram[N]]` two-level lookup plus a
-      second 256-way write decoder. Only two registers are needed: the commit's
-      low byte is consumed in the cycle it arrives, so port 3 stores nothing.
+      commit writes the target word and updates state on the same edge, which a
+      single-write-port array cannot do if the pointer lives in it, and which
+      would otherwise need a `ram[ram[N]]` two-level lookup plus a second 256-way
+      write decoder. Only two registers are needed: transfer 3's low byte is
+      consumed in the cycle it arrives, so it stores nothing.
 
-      Ports are numbered **1/2/3, not 0/1/2**, so an all-zeros word (a stuck-at-0
-      MOSI line) decodes as a no-op rather than a valid "load address 0".
+      **Why positional rather than a pure port selector** (this reverses an
+      earlier recorded decision): SPI0 is *already* a positional protocol — POP
+      has always been two transfers, ChA then ChB. Making WRITE positional keeps
+      one idiom across the interface instead of two. **Why the redundant tag
+      anyway:** under bare positional, three consecutive writes look like three
+      identical words on a logic analyzer and can only be interpreted if you know
+      where the sequence started, and a transfer lost on the wire leaves the FSM
+      parked mid-sequence where it silently absorbs the *next* unrelated transfer
+      as the missing one. The tag makes traces self-describing and turns a desync
+      into a detected abort (to `op_nop3`, like the existing `opcode_is_write`
+      re-checks) rather than a silent misinterpretation. Cost is three
+      comparators. Robustness and consistency were judged equally important, and
+      the tag buys both.
 
-      Consequences: all 256 words are equally reachable — `ch_a`, `ch_b` and
+      Rejected: a bare port-selector scheme with no sequencing (inconsistent with
+      POP's existing positional shape); bare positional with no tag (silent
+      desync, opaque traces); widening SPI0 to 32 bits (touches `spi_slave`,
+      `main_controller`, `dtx_mux_reg`, the MCU bit-bang); a fifth opcode
+      (`00/01/10/11` all in use as of A.2); keeping a directly-addressed window
+      as a fast path (reaches only 64 words and earns nothing once indirection
+      exists).
+
+      **Side effect worth more than the feature: the ChA/ChB pairing hazard looks
+      eliminated.** Previously `mcu_dtx_sel`/`mcu_dtx_en` were driven
+      unconditionally on every transfer, so the ChA/ChB phase free-ran and any
+      odd number of non-POP transfers shifted it — the origin of spec section
+      1a's "register writes must always be an even-numbered batch" rule, and the
+      suspected cause of the historical 32-bit FIFO channel-swap bug. In the
+      rewritten FSM the phase is set explicitly per state: writes drive `2'd2`
+      (SRAM), only `op_pop0`/`op_pop3` drive ChA/ChB. A write sequence can no
+      longer disturb the pairing at all, which also makes the "pad to an even
+      transfer count with a NOP" rule obsolete. **Not yet confirmed in
+      simulation** — verify before deleting the rule from the spec.
+
+      Consequences: all 256 words are equally reachable, so `ch_a`, `ch_b` and
       `stream_enable` stop being privileged and are written like any other word.
-      `regbank_addr0 = {2'b1x, spi0_drx[13:8]}` disappears; the array address is
-      `addr_reg`. `regbank_din0` becomes `{staged_h, spi0_drx[7:0]}`, so writes
-      are full-width everywhere. `RB_CTRL_BASE` survives as a **map convention**
-      (where the control registers happen to live), not as a decode boundary.
-      `rb_addr1` and the RHD command fetch are untouched.
+      `regbank_addr0 = {2'b11, spi0_drx[13:8]}` and `ram`'s `addr0` port are now
+      **vestigial** — the array address is `addr_reg` — and should be deleted
+      before they mislead someone into thinking direct addressing survives.
+      `RB_CTRL_BASE` survives as a **map convention** (where the control
+      registers happen to live), not as a decode boundary. `rb_addr1` and the RHD
+      command fetch are untouched.
 
-      Cost: a register write is 3 transfers (padded to 4 with a `NOP` for the
-      ChA/ChB pairing invariant) and a read is 2. `SET_CHANNELS` goes from 2
-      transfers to 8 — irrelevant on a paused-stream reconfiguration path.
-      **Note for the MCU helpers:** because the commit auto-increments,
-      write-then-verify must reload the address before reading; the pointer has
-      already moved past the word just written.
-
-      Rejected: a positional/counter protocol (transfer 1 = address, 2 = high,
-      3 = low). Superficially more uniform, but one dropped transfer desyncs the
-      sequence and every subsequent write lands at a wrong address, silently —
-      and dropped transfers are a known failure mode here (the bridge ORE bug,
-      A.2). With a port selector each transfer is self-describing, so a loss
-      costs one write, and `addr_reg` being explicit rather than a hidden counter
-      makes the next sequence self-correcting. Also rejected: widening SPI0 to
-      32 bits (touches `spi_slave`, `main_controller`, `dtx_mux_reg`, the MCU
-      bit-bang and the pairing logic); a fifth opcode (`00/01/10/11` all in use
-      as of A.2); and keeping a directly-addressed window as a fast path, which
-      reaches only 64 words and earns nothing once indirection exists.
+      Cost: a register write is 3 transfers, a read 2. `SET_CHANNELS` goes from 2
+      transfers to 6 — irrelevant on a paused-stream reconfiguration path.
 
       **MCU-side impact (Claude, once the RTL lands):** `FPGA_SPI_SetChannels`,
       `SetStreamEnable`, `ReadStreamEnable` and `ReadChannels` all rewrite
       against the new scheme, plus `docs/interfaces/channel-selection-control-plane.md`
-      section 1. Mechanical, but it is a real wire-protocol change — unlike the
-      superseded scheme, this one does not preserve the existing MCU offsets.
+      sections 1 and 1a. This **is** a wire-protocol change — it does not
+      preserve the existing MCU offsets — so it cannot lag the RTL without
+      breaking A.2's round-trip.
 
       **Memory map, rearranged in the same change** (decided 2026-08-07). The
       old layout wasted address space because `rb_addr1 = {1'b0, rhd_dtx_sel,
