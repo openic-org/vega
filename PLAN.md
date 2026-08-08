@@ -230,8 +230,7 @@ way to put an arbitrary command into the sampling cycle, which is exactly what t
 
       **Uniform indirect access — a 3-transfer sequence with a redundant tag**
       (as-built, settled 2026-08-08). All MCU access to RAM goes through one
-      mechanism, identical for every one of the 256 words. `FIFO_POP` and `NOP`
-      are untouched.
+      mechanism, identical for every one of the 256 words.
 
       A `REG_WRITE` is a **three-transfer sequence**, tracked by the
       `main_controller` FSM (`op_write0`..`op_write6`). Each stage additionally
@@ -248,6 +247,32 @@ way to put an arbitrary command into the sampling cycle, which is exactly what t
       self-test can simply send the address it wants. There is no auto-increment
       on write either: the positional sequence restarts with an address load
       every time, so there would be nothing to exploit.
+
+      **Transfer lengths — multi-transfer structure only where something forces
+      it** (settled 2026-08-08, after finding that `NOP` and `REG_READ` were both
+      built as mandatory 2-transfer pairs):
+
+      | Command | Transfers | Why that length |
+      |---|---|---|
+      | `REG_WRITE` | 3 | Inherent — address, high byte, commit. Tag-checked at each stage |
+      | `FIFO_POP` | 2 | Inherent — ChA then ChB. Second transfer must also be `POP`, so a broken pair fails loudly rather than half-consuming a FIFO entry |
+      | `REG_READ` | 1 | Nothing to sequence; the value lands on whatever transfer follows |
+      | `NOP` | 1 | Nothing to sequence |
+
+      The bug this fixed: a 2-transfer `NOP` **swallowed the following transfer**
+      — it was consumed by the sequence's wait state and never decoded. That made
+      `NOP` unusable for its three natural jobs (padding, carrier to clock out a
+      pending `REG_READ` value, and resync when the MCU is unsure of FSM state);
+      sending NOPs to recover would have chewed through the commands after them.
+      `REG_READ` as a mandatory pair had no equivalent justification — unlike
+      `POP`, where the pair is real — and it forced a wasted `READ` as a carrier.
+
+      Resulting invariant: **every transfer either starts a new command or is an
+      identified part of a sequence, and no transfer is ever silently consumed.**
+      All abort paths (three tag mismatches plus the `POP` pair check) land on
+      `op_nop0`, one clock back to `op_decode0`, so an abort costs exactly the
+      offending transfer. Combined with the tag checks this makes the protocol
+      self-synchronising: send a `NOP` and you are at a known state, always.
 
       `addr_reg` and `staged_h` are **dedicated registers, not ram words** — a
       commit writes the target word and updates state on the same edge, which a
@@ -289,6 +314,20 @@ way to put an arbitrary command into the sampling cycle, which is exactly what t
       longer disturb the pairing at all, which also makes the "pad to an even
       transfer count with a NOP" rule obsolete. **Not yet confirmed in
       simulation** — verify before deleting the rule from the spec.
+
+      **Two assertions the T2 testbench should carry**, both of which are
+      unverifiable by reading the source:
+
+      1. **The pairing claim — the valuable one.** Interleave a `REG_WRITE`
+         sequence and a `REG_READ` between `FIFO_POP` pairs and assert ch0/ch1
+         come back unswapped. Confirming this retires three workarounds on the
+         MCU side at once: the even-batch rule, `FPGA_SPI_Init()`'s priming
+         transfer, and the NOP padding. It is also the closest thing to a direct
+         test for the historical 32-bit FIFO channel-swap bug.
+      2. **Read-path settling.** `addr_reg` is written in the port-register
+         always block while `dout0 <= ram[addr_reg]` reads it in another; confirm
+         the value presented on MISO is the one for the address just loaded, not
+         the previous one.
 
       Consequences: all 256 words are equally reachable, so `ch_a`, `ch_b` and
       `stream_enable` stop being privileged and are written like any other word.
@@ -570,6 +609,17 @@ Begins after A3. Ordering within Phase B is dependency-driven, not fixed.
 └── tools/             analysis, validators
 ```
 
+- [ ] **RTL testbench coverage.** Recorded 2026-08-08 as a deliberate deferral,
+      not an oversight: the Phase A testbenches (`kuntur_tb.v`) check basic
+      functional behaviour only — they are bring-up aids, driven and read as
+      waveforms, with no self-checking assertions and no coverage goal. That is
+      the right trade while bench time is the constraint and the RTL is still
+      moving. Phase B needs the other thing: self-checking testbenches with
+      pass/fail output, coverage of the SPI0 command FSM's abort and desync
+      paths (which is where A.1.1g's tag checks live and where a regression
+      would be silent), an RHD2164 model that implements the two-command
+      pipeline and the ROM registers rather than four canned values, and these
+      wired into the CI checks below so a red run blocks a merge.
 - [ ] **Enforcement, ratcheted from commit one.** Prefer **elimination over
       detection**: generate as-built doc sections from source; single-source domain
       logic. Five checks, each justified by a bug that already cost time —

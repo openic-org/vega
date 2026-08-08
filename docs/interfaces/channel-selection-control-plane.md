@@ -47,10 +47,24 @@ RHD command tables nor a full 16-bit value, so it was replaced.
 
 | `opcode` | Name | Action |
 |---|---|---|
-| `00` | `FIFO_POP` | Pop next sample pair. **Two transfers** — ChA then ChB |
-| `01` | `REG_WRITE` | One step of a **three-transfer** write sequence, see below |
-| `10` | `REG_READ` | Returns `ram[addr_reg]` on the *next* transfer's MISO (one-transfer-deep pipeline). Does **not** auto-increment |
-| `11` | `NOP` | No side effect |
+| `00` | `FIFO_POP` | Pop next sample pair. **2 transfers** — ChA then ChB. The second must also be `FIFO_POP`, so a broken pair aborts rather than half-consuming a FIFO entry |
+| `01` | `REG_WRITE` | One step of a **3-transfer** tagged write sequence, see below |
+| `10` | `REG_READ` | **1 transfer.** Returns `ram[addr_reg]` on the *next* transfer's MISO (one-transfer-deep pipeline). Does **not** auto-increment |
+| `11` | `NOP` | **1 transfer.** No side effect |
+
+Multi-transfer structure exists only where something forces it: `REG_WRITE`
+needs three because address + 16-bit data does not fit one word, and `FIFO_POP`
+needs two because ChA/ChB is a real pair. `REG_READ` and `NOP` are single
+transfers.
+
+**Invariant:** every transfer either starts a new command or is an identified
+part of a sequence — **no transfer is ever silently consumed.** All abort paths
+(a mismatched write tag, or a `FIFO_POP` whose partner is not a `POP`) land on
+`op_nop0`, one clock back to the decoder, so an abort costs exactly the
+offending transfer. This makes `NOP` usable as the **resync primitive**: send
+one and the FSM is at a known state, always. An earlier revision had `NOP` and
+`REG_READ` as mandatory 2-transfer pairs, which meant a lone `NOP` swallowed the
+transfer after it — fixed 2026-08-08.
 
 **Indirect register access.** A full 16-bit write needs an 8-bit address and
 16-bit data; `2 + 8 + 16 = 26` bits does not fit a 16-bit transfer, so
