@@ -242,11 +242,20 @@ way to put an arbitrary command into the sampling cycle, which is exactly what t
       | 2 | 2 | `staged_h <= data[7:0]` |
       | 3 | 3 | `ram[addr_reg] <= {staged_h, data[7:0]}` |
 
-      A `REG_READ` ignores its address field and returns `ram[addr_reg]`. It does
-      **not** auto-increment — repeated reads stay idempotent, and a `doctor`
-      self-test can simply send the address it wants. There is no auto-increment
-      on write either: the positional sequence restarts with an address load
-      every time, so there would be nothing to exploit.
+      A `REG_READ` is **self-addressing**: it carries tag 1 and its own 8-bit
+      address, loads `addr_reg` exactly as `REG_WRITE` transfer 1 does, and the
+      value appears on the following transfer. So **tag 1 uniformly means "load
+      address"** across both commands — one idiom, not two. Corrected 2026-08-10:
+      as originally built the read ignored its address field and returned
+      `ram[addr_reg]` from whatever the last *write* had left there, so a word
+      could only be read by first writing it — the address register was never
+      enabled on a read path (`regbank_port_en` was asserted only on the write
+      branch of `op_decode1`). Found by Manuel, fixed same session.
+
+      Reads do **not** auto-increment — repeated reads stay idempotent, and a
+      `doctor` self-test simply sends the address it wants. There is no
+      auto-increment on write either: the positional sequence restarts with an
+      address load every time, so there would be nothing to exploit.
 
       **Transfer lengths — multi-transfer structure only where something forces
       it** (settled 2026-08-08, after finding that `NOP` and `REG_READ` were both
@@ -256,7 +265,7 @@ way to put an arbitrary command into the sampling cycle, which is exactly what t
       |---|---|---|
       | `REG_WRITE` | 3 | Inherent — address, high byte, commit. Tag-checked at each stage |
       | `FIFO_POP` | 2 | Inherent — ChA then ChB. Second transfer must also be `POP`, so a broken pair fails loudly rather than half-consuming a FIFO entry |
-      | `REG_READ` | 1 | Nothing to sequence; the value lands on whatever transfer follows |
+      | `REG_READ` | 1 | Nothing to sequence — it carries tag 1 and its own address, and the value lands on whatever transfer follows |
       | `NOP` | 1 | Nothing to sequence |
 
       The bug this fixed: a 2-transfer `NOP` **swallowed the following transfer**
@@ -315,19 +324,58 @@ way to put an arbitrary command into the sampling cycle, which is exactly what t
       transfer count with a NOP" rule obsolete. **Not yet confirmed in
       simulation** — verify before deleting the rule from the spec.
 
-      **Two assertions the T2 testbench should carry**, both of which are
-      unverifiable by reading the source:
+### A.1.1g-tb — T2 testbench work remaining
 
-      1. **The pairing claim — the valuable one.** Interleave a `REG_WRITE`
-         sequence and a `REG_READ` between `FIFO_POP` pairs and assert ch0/ch1
-         come back unswapped. Confirming this retires three workarounds on the
-         MCU side at once: the even-batch rule, `FPGA_SPI_Init()`'s priming
-         transfer, and the NOP padding. It is also the closest thing to a direct
-         test for the historical 32-bit FIFO channel-swap bug.
-      2. **Read-path settling.** `addr_reg` is written in the port-register
-         always block while `dout0 <= ram[addr_reg]` reads it in another; confirm
-         the value presented on MISO is the one for the address just loaded, not
-         the previous one.
+Status 2026-08-10: `kuntur_tb.v` has been ported to the new protocol and runs
+clean in QuestaSim — POP, the 3-transfer tagged write, self-addressing read and
+NOP all behave on the waveform. What it does **not** yet do is cover the cases
+that would catch a regression. Ordered by value:
+
+- [ ] **Exercise the 16-bit write path.** Both write sequences currently stage
+      `8'd0` as the high byte, so the commit `{staged_h, data[7:0]}` is
+      indistinguishable from the old 8-bit write. **This test would still pass
+      with review-bug #2 present** (the `regbank_port_sel` width truncation that
+      left `staged_h` permanently unwritten). Widening writes to 16 bits *is* the
+      feature and nothing currently proves it works. Best case: write a full RHD
+      command word into a sampling-table slot (48–95), where 16-bit words are the
+      actual motivation, and read it back.
+- [ ] **The pairing claim** — unverifiable by reading source, and the current
+      stimulus cannot expose it because it is grouped by opcode (six POPs, *then*
+      writes, *then* reads). The hazard only appears with register traffic
+      **between** POP pairs. Needs `POP,POP → WRITE×3 → POP,POP → READ,NOP →
+      POP,POP`, where three writes is deliberately odd — exactly the case the
+      even-batch rule existed to prevent. Two preconditions for it to mean
+      anything: the FIFO must be non-empty (the current POPs fire ~12 µs after
+      reset), and ChA/ChB must be distinguishable — the model's canned `0xe7xx`
+      vs `0x81xx` makes a swap eyeball-obvious even without a formal assertion.
+      Confirming it retires three MCU-side workarounds at once: the even-batch
+      rule, `FPGA_SPI_Init()`'s priming transfer, and the NOP padding, and it is
+      the closest thing to a direct test for the historical 32-bit FIFO
+      channel-swap bug.
+- [ ] **Read-path settling** — was the hygiene check; became load-bearing once
+      the read started loading its own address (2026-08-10), since `addr_reg` is
+      now written one to two clocks before use rather than transfers earlier.
+      `addr_reg` is written in the port-register always block while
+      `dout0 <= ram[addr_reg]` reads it in another; confirm MISO carries the
+      value for the address just loaded, not the previous one. The `op_read0` →
+      `op_read1` split exists precisely for this.
+- [ ] **Abort paths — currently untested.** The tag comparators are the new
+      safety mechanism and nothing exercises them. Minimum: a bad tag at each of
+      the three write stages (e.g. `WRITE t1 → WRITE t3`, which must abort to
+      `op_nop0` and leave the target word untouched), and a `POP` not followed by
+      a `POP`.
+- [ ] **Collapse the stimulus into a `spi_xfer(word)` task.** The
+      `#12000/#300/#600` triple now appears 15×; the interleaved pairing sequence
+      above is a three-line edit with a task and a rewrite without one.
+- [ ] **Housekeeping:** delete the dead old-protocol parameters `data_mosi_a` /
+      `data_mosi_b`; restore the field structure in `data_mosi_write_b3`
+      (`{2'd2,6'd4}` documents the encoding, flat `8'h84` hides it).
+- [ ] **Optional — tags on `FIFO_POP`.** POP still ignores its address field.
+      The trace-readability argument that justified the write tags (and was
+      accepted for `READ`) applies equally; tags 1/2 on the two POP transfers
+      would make a logic-analyzer capture fully self-describing.
+
+
 
       Consequences: all 256 words are equally reachable, so `ch_a`, `ch_b` and
       `stream_enable` stop being privileged and are written like any other word.
@@ -412,6 +460,15 @@ way to put an arbitrary command into the sampling cycle, which is exactly what t
       must be undone before bidirectional tunnel work · `assign cmd_is_00 = fifo_full`
       · `mode` hardwired `2'b00` with `mode1_*`/`mode2_*`/`mode3_*` declared and
       unwired · delete `old.v`.
+- [ ] **Guard the sim-only PLL bypass with `` `ifdef SIM ``** — raised 2026-08-10.
+      Simulating requires commenting out the `pll0` instance and enabling
+      `assign clk = clkin` (`kuntur_fpga.v:101`), which is done by hand and left
+      in the working tree. It is one `git add -A` from becoming the bitstream,
+      and a build with it would silently run the whole design at `clkin`. Same
+      hijack class as T3.3, but with a clean elimination available rather than a
+      rule to remember: put both arms behind `` `ifdef SIM ``, pass
+      `+define+SIM` in the QuestaSim invocation only, and the file becomes
+      committable as-is with no manual edit before or after a sim run.
 - [x] **SPI0 opcode decode, 4-way** — landed 2026-08-06 with A.2.
       `main_controller` now decodes all four: `00` FIFO pop, `01` regbank write,
       `10` regbank read (new read path to the TX mux), `11` NOP. The paired
@@ -490,7 +547,8 @@ remove the need to interleave at all.
 
 > **⚠ A.2 must be re-tested once A.1 lands.** A.1.1g changes the SPI0 wire
 > protocol underneath this feature: register access becomes a tagged
-> 3-transfer sequence, `REG_READ` no longer carries an address, and
+> 3-transfer sequence, `REG_READ` becomes a single self-addressing transfer
+> carrying tag 1 whose value lands on the *following* transfer, and
 > `ch_a`/`ch_b` move from offsets 4/5 to RAM words 196/197. Every MCU helper
 > A.2 depends on (`FPGA_SPI_SetChannels`, `SetStreamEnable`,
 > `ReadStreamEnable`, `ReadChannels`) is rewritten as a result. The
