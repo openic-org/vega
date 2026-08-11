@@ -19,6 +19,12 @@ CMD_MAGIC          = bytes([0xCC, 0x33])
 CMD_SET_CHANNELS   = 0x01
 CMD_STOP_STREAMING = 0x02
 CMD_START_STREAMING = 0x03
+# Register console — docs/interfaces/fpga-diagnostic-access.md section 2.
+# The diagnostic path behind the A.1.1 verification ladder: raw access to any
+# of the 256 FPGA regbank words, reaching what SET_CHANNELS deliberately
+# cannot (sampling slot 32, RHD command injection, arbitrary readback).
+CMD_REG_WRITE16    = 0x04
+CMD_REG_READ16     = 0x05
 
 # Command-response framing (bridge -> pc-app). See
 # docs/interfaces/channel-selection-control-plane.md sections 4.4 and 5.6.
@@ -27,6 +33,8 @@ CMD_START_STREAMING = 0x03
 #   CMD_SET_CHANNELS   (0x01): [0x01, ch_a, ch_b]   (3 bytes) — readback
 #   CMD_STOP_STREAMING (0x02): [0x02, success]      (2 bytes) — ack
 #   CMD_START_STREAMING(0x03): [0x03, success]      (2 bytes) — ack
+#   CMD_REG_WRITE16    (0x04): [0x04, addr, lo, hi] (4 bytes) — value READ BACK
+#   CMD_REG_READ16     (0x05): [0x05, addr, lo, hi] (4 bytes)
 RESPONSE_MAGIC = bytes([0xEE, 0x11])
 
 
@@ -43,6 +51,9 @@ class SerialReader(QThread):
     channels_readback  = pyqtSignal(int, int)   # ch_a, ch_b — SET_CHANNELS readback (section 4.4)
     stop_streaming_ack  = pyqtSignal(bool)       # success — real MCU confirmation (section 5.6)
     start_streaming_ack = pyqtSignal(bool)       # success — real MCU confirmation (section 5.6)
+    # type (CMD_REG_WRITE16 / CMD_REG_READ16), addr, value — register console.
+    # For a write, value is what the FPGA regbank read back, not what was sent.
+    reg_access_response = pyqtSignal(int, int, int)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -91,6 +102,20 @@ class SerialReader(QThread):
         """STOP_STREAMING command — see
         docs/interfaces/channel-selection-control-plane.md section 5.1."""
         return self.send_command(bytes([CMD_STOP_STREAMING]))
+
+    def send_reg_write16(self, addr: int, value: int) -> bool:
+        """Write one FPGA regbank word — docs/interfaces/fpga-diagnostic-access.md §2.
+
+        The MCU reads the word back and returns what it actually holds, so the
+        reg_access_response for this call is a verification, not an echo.
+        Rejected by the MCU unless streaming is stopped.
+        """
+        return self.send_command(
+            bytes([CMD_REG_WRITE16, addr & 0xFF, value & 0xFF, (value >> 8) & 0xFF]))
+
+    def send_reg_read16(self, addr: int) -> bool:
+        """Read one FPGA regbank word. Rejected by the MCU unless streaming is stopped."""
+        return self.send_command(bytes([CMD_REG_READ16, addr & 0xFF]))
 
     def send_start_streaming(self) -> bool:
         """START_STREAMING command — see
@@ -171,6 +196,9 @@ class SerialReader(QThread):
                             self.stop_streaming_ack.emit(bool(payload[1]))
                         elif rtype == CMD_START_STREAMING and len(payload) >= 2:
                             self.start_streaming_ack.emit(bool(payload[1]))
+                        elif rtype in (CMD_REG_WRITE16, CMD_REG_READ16) and len(payload) >= 4:
+                            self.reg_access_response.emit(
+                                rtype, payload[1], payload[2] | (payload[3] << 8))
                         # else: unknown type or short payload — ignore
                     continue
 

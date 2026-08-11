@@ -144,10 +144,12 @@ is defined in `intan.vh` (`RB_CONFIG_BASE`/`RB_SAMPLING_BASE`/`RB_CTRL_BASE`);
 
 | RAM word | Signal | Notes |
 |---|---|---|
-| 196 | `ch_a` | 8-bit: `[7:6]` selects one of 4 sample sources (`data_a0`/`data_b0`/`data_a1`/`data_b1`), `[5:0]` selects channel index within that source (`components.v:328-337`). Raw FPGA code — see section 1a for the friendly-index mapping. |
+| 196 | `ch_a` | 8-bit: `[7:6]` selects one of 4 sample sources (`data_a0`/`data_b0`/`data_a1`/`data_b1`), `[5:0]` selects channel index within that source (`components.v:328-337`). Raw FPGA code — see section 1a for the friendly-index mapping. **`[5:0]`'s meaning is pinned down by A.1.1e** — see `fpga-diagnostic-access.md` §1.2: it is the *sampling-slot* index whose answer is observed, which equals the channel index once the two-counter offset lands. Until then the caller must add the RHD's 2-command response delay by hand. |
 | 197 | `ch_b` | Same encoding as `ch_a`. |
+| 229 | `data_source_sel` | **Specified, not yet implemented** — `fpga-diagnostic-access.md` §1.1. Bits `[1:0]`: `0` = real RHD data (**reset default**), `1` = ramp test pattern. The A.1/A.1.1e structural fix; until it exists the FPGA always streams the ramp. |
 | 228 | `stream_enable` | Bit 0 gates `fifo_wen` inside `ch_sel` (`fifo_wen <= dout_en_0 & stream_enable`), i.e. stops the FPGA ingesting samples at the source. **Reset default `1`** (streaming enabled) — a `0` default would silently kill streaming after every FPGA reset/reprogram until the MCU enabled it. Control words 198–227 are reserved for a future reduced-rate multi-channel mode, hence the gap. Added 2026-08-06, see section 5.3. |
-| 192–195 | `rhd2164_sampling_cmd0-3` | Computed by `ram` (`components.v:486-489`, `RB_CTRL_BASE + 0..3`) and wired to the `kuntur_fpga.v` top level, but **not consumed by anything downstream today** — dead-end wires. Confirmed 2026-08-05: reserved as runtime RHD2164 command-injection slots — likely home for the command word(s) fed into the sampling cycle's placeholder state (section 1a), primary use case A.3's impedance-check DAC control (`RHD_ZCHECK_DAC/SEL/EN`). Reserving the address space now avoids a protocol version bump later; wiring tracked as A.1.4 in `PLAN.md`. **Address corrected 2026-08-11** — this row previously read `128-131`, which predates the A.1.1g memory-map rearrangement and was never true of the current RTL. |
+| 192–195 | `rhd2164_sampling_cmd0-3` | **Slated for deletion** — `fpga-diagnostic-access.md` §1.4. A.1.1g made the sampling table itself the command-injection path, so these dead-end wires have no remaining purpose and the words return to the free pool. The rest of this row is the pre-A.1.1g rationale, retained until the RTL change lands. |
+| ~~192–195~~ | ~~`rhd2164_sampling_cmd0-3`~~ | Computed by `ram` (`components.v:486-489`, `RB_CTRL_BASE + 0..3`) and wired to the `kuntur_fpga.v` top level, but **not consumed by anything downstream today** — dead-end wires. Confirmed 2026-08-05: reserved as runtime RHD2164 command-injection slots — likely home for the command word(s) fed into the sampling cycle's placeholder state (section 1a), primary use case A.3's impedance-check DAC control (`RHD_ZCHECK_DAC/SEL/EN`). Reserving the address space now avoids a protocol version bump later; wiring tracked as A.1.4 in `PLAN.md`. **Address corrected 2026-08-11** — this row previously read `128-131`, which predates the A.1.1g memory-map rearrangement and was never true of the current RTL. |
 
 Sampling-table words **48–95** and config-table words **0–47** are equally
 reachable by the same mechanism. Writing a full 16-bit RHD command word into a
@@ -252,6 +254,14 @@ but flagging the provenance since it was asked about directly.
 | `0x01` | `SET_CHANNELS` | `ch_a` (1 byte, friendly index 0-127), `ch_b` (1 byte, friendly index 0-127) | Validates range, then calls `FPGA_SPI_SetChannels(channel_to_raw(ch_a), channel_to_raw(ch_b))` — see section 1a for `channel_to_raw()` |
 
 Total frame for `SET_CHANNELS` = 3 bytes: `[0x01, ch_a, ch_b]`.
+
+`0x02`/`0x03` are added in section 5.1. **`0x04 REG_WRITE16` and
+`0x05 REG_READ16`** — the generic register console used by the A.1.1
+verification ladder — are specified in `fpga-diagnostic-access.md` §2, which
+also explains why `SET_CHANNELS` cannot serve that purpose (§2.1: it cannot
+name sampling slot 32, cannot inject commands, and cannot read arbitrary
+words). They reuse this section's frame shape, this section's validation
+discipline, and section 5's stopped-stream precondition unchanged.
 
 **No protocol version byte.** B.2 already flags this as a gap across *all*
 interfaces ("protocol version field, absent today, without which the format
@@ -637,6 +647,11 @@ resync path:
 | `0x01` | `SET_CHANNELS` readback | `[ch_a, ch_b]` (friendly indices) | 3 bytes |
 | `0x02` | `STOP_STREAMING` ack | `[success]` (0 or 1) | 2 bytes |
 | `0x03` | `START_STREAMING` ack | `[success]` (0 or 1) | 2 bytes |
+| `0x04` | `REG_WRITE16` ack | `[addr, val_lo, val_hi]` — value **read back**, not sent | 4 bytes |
+| `0x05` | `REG_READ16` response | `[addr, val_lo, val_hi]` | 4 bytes |
+
+`0x04`/`0x05` are specified in `fpga-diagnostic-access.md` §2 and grow
+`STREAM_RESPONSE_PAYLOAD_SIZE` from 3 to 4.
 
 `type` values are deliberately the same as the 0xFFF1 command opcodes
 (section 2, section 5.1) — a response always self-identifies which command
