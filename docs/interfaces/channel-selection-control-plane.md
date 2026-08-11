@@ -1,6 +1,14 @@
 # Channel-selection control plane — interface spec
 
-**Status:** **Implemented and hardware-verified 2026-08-06** (A.2 complete).
+**Status: REOPENED 2026-08-11.** The FPGA side (section 1) is done and
+simulation-verified; the **MCU helpers are being rewritten** against the
+A.1.1g SPI0 protocol, and the 2026-08-06 hardware verification does not carry
+across that change. See "Status" at the end of this document for the per-hop
+state and what must be re-run on the bench. Sections 1, 1a and 4.1 were revised
+2026-08-11 and describe the *intended* protocol; sections 2–3 and 4.2–5 are
+unchanged as-built.
+
+**Previous status:** implemented and hardware-verified 2026-08-06 (A.2 complete).
 Originally written before any code, per the plan's working principle 5
 ("interface specs outrank subsystem specs — every expensive bug lived at a
 boundary"). Sections 4 and 5 were added during implementation as the design
@@ -30,18 +38,32 @@ one can change without the others (see "Compatibility" per section).
 
 **Where implemented:** MCU side in `fpga_spi.c`; FPGA side in
 `main_controller` and `ram` (`components.v`).
-**Revised 2026-08-08 (A.1.1g)** — the addressing scheme below supersedes the
-2026-08-06 version, in which `addr` was a direct 6-bit offset into a 64-word
-window (`{2'b10, addr}` = words 128–191). That window could reach neither the
-RHD command tables nor a full 16-bit value, so it was replaced.
+**Revised 2026-08-08 (A.1.1g), corrected 2026-08-10, verified in simulation
+2026-08-11.** The addressing scheme below supersedes the 2026-08-06 version, in
+which `addr` was a direct 6-bit offset into a 64-word window
+(`{2'b10, addr}` = words 128–191). That window could reach neither the RHD
+command tables nor a full 16-bit value, so it was replaced.
+
+**Verification status:** every claim in this section is exercised by
+`kuntur_tb.sv` (QuestaSim, 27/27 checks passing 2026-08-11) — the 16-bit write
+path including the staged high byte, the self-addressing read, read settling
+across back-to-back and post-write reads, all three write-tag abort paths, the
+`FIFO_POP` pair check, and that a `NOP` never swallows the following transfer.
+This is *simulation*; the MCU-side implementation and the on-hardware
+round-trip are still pending.
 
 **Wire format:** 16-bit word, MSB first, SPI mode 0:
 
 | Bits | Field | Meaning |
 |---|---|---|
 | `[15:14]` | `opcode` | See table below |
-| `[13:8]` | `addr` | **Sequence tag** on `REG_WRITE` (1/2/3); ignored on `REG_READ`, `FIFO_POP`, `NOP` |
-| `[7:0]` | `data` | Payload byte |
+| `[13:8]` | `tag` | **Sequence tag.** `1/2/3` on `REG_WRITE`; **`1` on `REG_READ`**; ignored on `FIFO_POP` and `NOP` |
+| `[7:0]` | `data` | Payload byte — **on tag 1 this byte is the RAM address** |
+
+**Tag 1 uniformly means "load `addr_reg` from the data byte"**, on both
+`REG_WRITE` and `REG_READ`. One idiom, not two. (Field renamed from `addr` to
+`tag` 2026-08-11: it never carried an address, and calling it `addr` while the
+*address* travelled in `data` was actively misleading.)
 
 **Opcodes:**
 
@@ -49,7 +71,7 @@ RHD command tables nor a full 16-bit value, so it was replaced.
 |---|---|---|
 | `00` | `FIFO_POP` | Pop next sample pair. **2 transfers** — ChA then ChB. The second must also be `FIFO_POP`, so a broken pair aborts rather than half-consuming a FIFO entry |
 | `01` | `REG_WRITE` | One step of a **3-transfer** tagged write sequence, see below |
-| `10` | `REG_READ` | **1 transfer.** Returns `ram[addr_reg]` on the *next* transfer's MISO (one-transfer-deep pipeline). Does **not** auto-increment |
+| `10` | `REG_READ` | **1 transfer, self-addressing.** Carries tag 1 and its own 8-bit address in `data`; loads `addr_reg` exactly as `REG_WRITE` transfer 1 does. The value appears on the *next* transfer's MISO (one-transfer-deep pipeline). Does **not** auto-increment |
 | `11` | `NOP` | **1 transfer.** No side effect |
 
 Multi-transfer structure exists only where something forces it: `REG_WRITE`
@@ -72,15 +94,25 @@ indirection is forced rather than chosen. A write is three `REG_WRITE`
 transfers, tracked by the `main_controller` FSM, each carrying a redundant
 sequence tag in `addr`:
 
-| Transfer | `addr` tag | Effect |
+| Transfer | `tag` | Effect |
 |---|---|---|
 | 1 | 1 | `addr_reg <= data` |
 | 2 | 2 | `staged_h <= data` |
 | 3 | 3 | `ram[addr_reg] <= {staged_h, data}` |
 
-A mismatched tag or a non-`REG_WRITE` opcode mid-sequence aborts to `op_nop3`.
-Reading is: write the address (transfer 1), then `REG_READ`, then take the
-value on the following transfer.
+A mismatched tag or a non-`REG_WRITE` opcode mid-sequence aborts to `op_nop0`,
+then one clock back to the decoder.
+
+**Reading is a single transfer.** `REG_READ` carries tag 1 and its own address,
+loading `addr_reg` itself; the value lands on the following transfer. It does
+**not** need a preceding write sequence.
+
+> **Corrected 2026-08-10.** As first built, `REG_READ` ignored its address field
+> and returned `ram[addr_reg]` from whatever the last *write* had left there —
+> `regbank_port_en` was asserted only on the write branch of `op_decode1`, so
+> the address register was never loaded on a read path. A word could therefore
+> only be read by first writing it. Found by Manuel, fixed the same session.
+> Any description of `REG_READ` requiring a preceding address write is stale.
 
 `addr_reg` and `staged_h` are dedicated registers, not RAM words — a commit
 writes the target word and updates state on the same edge, which a
@@ -115,7 +147,12 @@ is defined in `intan.vh` (`RB_CONFIG_BASE`/`RB_SAMPLING_BASE`/`RB_CTRL_BASE`);
 | 196 | `ch_a` | 8-bit: `[7:6]` selects one of 4 sample sources (`data_a0`/`data_b0`/`data_a1`/`data_b1`), `[5:0]` selects channel index within that source (`components.v:328-337`). Raw FPGA code — see section 1a for the friendly-index mapping. |
 | 197 | `ch_b` | Same encoding as `ch_a`. |
 | 228 | `stream_enable` | Bit 0 gates `fifo_wen` inside `ch_sel` (`fifo_wen <= dout_en_0 & stream_enable`), i.e. stops the FPGA ingesting samples at the source. **Reset default `1`** (streaming enabled) — a `0` default would silently kill streaming after every FPGA reset/reprogram until the MCU enabled it. Control words 198–227 are reserved for a future reduced-rate multi-channel mode, hence the gap. Added 2026-08-06, see section 5.3. |
-| `0-3` | 128-131 | `rhd2164_sampling_cmd0-3` | Computed by `ram` and wired to the `kuntur_fpga.v` top level, but **not consumed by anything downstream today** — dead-end wires. Confirmed 2026-08-05: reserved as runtime RHD2164 command-injection slots — likely home for the command word(s) fed into the sampling cycle's placeholder state (section 1a), primary use case A.3's impedance-check DAC control (`RHD_ZCHECK_DAC/SEL/EN`). Reserving the address space now avoids a protocol version bump later; wiring tracked as an A.1 follow-up in `PLAN.md`. |
+| 192–195 | `rhd2164_sampling_cmd0-3` | Computed by `ram` (`components.v:486-489`, `RB_CTRL_BASE + 0..3`) and wired to the `kuntur_fpga.v` top level, but **not consumed by anything downstream today** — dead-end wires. Confirmed 2026-08-05: reserved as runtime RHD2164 command-injection slots — likely home for the command word(s) fed into the sampling cycle's placeholder state (section 1a), primary use case A.3's impedance-check DAC control (`RHD_ZCHECK_DAC/SEL/EN`). Reserving the address space now avoids a protocol version bump later; wiring tracked as A.1.4 in `PLAN.md`. **Address corrected 2026-08-11** — this row previously read `128-131`, which predates the A.1.1g memory-map rearrangement and was never true of the current RTL. |
+
+Sampling-table words **48–95** and config-table words **0–47** are equally
+reachable by the same mechanism. Writing a full 16-bit RHD command word into a
+sampling slot is the motivating use case for the 16-bit write path, and is what
+the A.1.1g-tb testbench exercises (T2).
 
 ### 1a. Channel encoding — friendly index ↔ raw FPGA code
 
@@ -147,30 +184,45 @@ affect the formula above — channel indices only ever use 0–31. Not yet wired
 to a consumer; tracked as an A.1 follow-up in `PLAN.md` (likely consumer:
 `rhd2164_sampling_cmd0-3` below).
 
-**ChA/ChB pairing invariant — believed eliminated 2026-08-08, pending
-simulation.** Historically `main_controller` toggled the ChA/ChB phase on
+**ChA/ChB pairing invariant — ELIMINATED. Confirmed in simulation
+2026-08-11.** Historically `main_controller` toggled the ChA/ChB phase on
 *every* SPI0 transfer regardless of opcode (`mcu_dtx_sel`/`mcu_dtx_en` were
 driven unconditionally), so any odd number of transfers issued outside
 `FPGA_SPI_ReadSamples()` shifted the phase and silently swapped ch0/ch1 in
-every subsequent sample read. This is believed to be the same class of bug as
-the historical "32-bit FIFO channel swap." It forced two rules: register writes
-had to be issued in even-numbered batches, and `FPGA_SPI_Init()` had to prime
-the phase with a single transfer at boot.
+every subsequent sample read — the same class of bug as the historical "32-bit
+FIFO channel swap." It forced two rules: register writes had to be issued in
+even-numbered batches, and `FPGA_SPI_Init()` had to prime the phase with a
+single transfer at boot.
 
 The A.1.1g FSM rewrite drives the phase **explicitly per state** — write states
 select `2'd2` (SRAM), and only `op_pop0`/`op_pop3` select ChA/ChB. A write or
-read sequence therefore cannot disturb the pairing at all, and the even-batch
-and NOP-padding rules should become unnecessary.
+read sequence therefore cannot disturb the pairing at all.
 
-**Do not delete the rules from the MCU side until this is confirmed in
-simulation.** Until then, keep treating the following as live:
+**Evidence** (`kuntur_tb.sv` T5, QuestaSim, 27/27 checks passing): four POP
+pairs separated by a 3-transfer write (deliberately odd), a `REG_READ`+`NOP`,
+and a lone `NOP`. ChA read `0001, 0002, 0003, 0004` with ChB exactly +1000 on
+every pair. The counters *advance*, so the FIFO was genuinely non-empty and
+each pair consumed a fresh entry — this is not the underrun sentinel passing by
+default. A phase slip would have flipped the delta to −1000 (65 536 − 1000).
 
-- Register writes issued as an even-numbered batch.
-- Register access not interleaved with an in-progress `FPGA_SPI_ReadSamples()`.
-  As built this is guaranteed structurally anyway (section 5): `SET_CHANNELS`
-  only executes while streaming is explicitly stopped, and the 0xFFF1 event
-  handler does no SPI0 work itself — it validates, stashes, and defers.
+**Rules RETIRED — remove from the MCU side:**
+
+- ~~Register writes issued as an even-numbered batch.~~ No longer needed.
+- ~~`FPGA_SPI_Init()`'s priming transfer at boot.~~ No longer needed.
+- ~~NOP padding to reach an even transfer count.~~ No longer needed.
+
+**Rules that REMAIN live** (unrelated to the pairing phase):
+
+- Register access must not interleave with an in-progress
+  `FPGA_SPI_ReadSamples()`. Guaranteed structurally as built (section 5):
+  `SET_CHANNELS` only executes while streaming is explicitly stopped, and the
+  0xFFF1 event handler does no SPI0 work itself — it validates, stashes, defers.
 - Never call these from an ISR.
+- A `FIFO_POP` pair must not be split by another command. The RTL now aborts
+  such a sequence rather than desyncing, but the abort **costs one FIFO entry**:
+  T7 showed the lone POP fire `fifo_ren`, deliver ChA, then abort — ChA jumped
+  `0004 → 0006`, with entry `0005`'s ChB never clocked out. Loud, bounded, and
+  recoverable, but still a lost sample pair.
 
 A register write also does not pop the FIFO for that transfer — negligible,
 momentary effect on drain rate.
@@ -284,26 +336,46 @@ RTL work, not the full ramp→real-data restructure.
 
 ### 4.1 FPGA transfer sequence (SPI0, MCU side)
 
-**Superseded by A.1.1g — rewrite pending.** The sequence below is the
-2026-08-06 as-built, valid against the old direct-addressed scheme where
-`REG_READ(addr=N)` named the word directly. Under the new scheme `REG_READ`
-ignores its address field and returns `ram[addr_reg]`, so each readback must be
-preceded by a 3-transfer write sequence that loads the address. `ch_a` and
-`ch_b` are also no longer at offsets 4/5 — they are RAM words 196 and 197.
+**Rewritten 2026-08-11 for A.1.1g.** Supersedes the 2026-08-06 sequence, which
+addressed `ch_a`/`ch_b` as offsets 4/5 in a direct-addressed 64-word window.
+They are now ordinary RAM words **196** and **197**, reached the same way as
+every other word.
 
-Old sequence, for reference until `FPGA_SPI_ReadChannels()` is rewritten:
+Since `REG_READ` is self-addressing (section 1), a readback needs **no**
+preceding write sequence. Reading both channels:
 
 | Transfer | TX word | MISO returns |
 |---|---|---|
-| 1 | `REG_READ(addr=4)` | stale/undefined — discard |
-| 2 | `REG_READ(addr=5)` | `ch_a`'s value (result of transfer 1) |
-| 3 | `NOP` | `ch_b`'s value (result of transfer 2) |
-| 4 | `NOP` | stale/undefined — discard (padding for even count) |
+| 1 | `REG_READ(tag=1, data=196)` | stale — discard |
+| 2 | `REG_READ(tag=1, data=197)` | `ch_a` (result of transfer 1) |
+| 3 | `NOP` | `ch_b` (result of transfer 2) |
 
-The one-transfer-deep pipeline itself is unchanged and still holds: a
-`REG_READ`'s value appears on the *next* transfer's MISO, not the same one.
-Only the addressing changes. The even-transfer-count padding may also become
-unnecessary — see section 1a on the pairing invariant.
+Three transfers, down from four. The one-transfer-deep pipeline is unchanged: a
+`REG_READ`'s value appears on the *next* transfer's MISO, never the same one.
+Reads do not auto-increment, so back-to-back reads of different words are
+independent and idempotent — verified in `kuntur_tb.sv` T3, including a read
+issued immediately after a write to a *different* address, which is the case
+that would expose a stale `addr_reg`.
+
+**Odd transfer counts are now safe.** The 4th padding `NOP` in the old sequence
+existed only to keep the batch even for the ChA/ChB phase; that hazard is gone
+(section 1a), so the sequence is 3 transfers and no padding is required.
+
+Writing a channel is the standard 3-transfer tagged sequence:
+
+| Transfer | TX word | Effect |
+|---|---|---|
+| 1 | `REG_WRITE(tag=1, data=196)` | `addr_reg <= 196` |
+| 2 | `REG_WRITE(tag=2, data=0x00)` | `staged_h <= 0x00` |
+| 3 | `REG_WRITE(tag=3, data=raw)` | `ram[196] <= {0x00, raw}` |
+
+`ch_a`/`ch_b` are 8-bit values in a 16-bit word, so transfer 2 always stages
+`0x00`. It cannot be skipped — omitting it aborts the sequence at the tag check
+and leaves the target word untouched (verified, T6 case 6a).
+
+`SET_CHANNELS` is therefore 6 transfers (2 words × 3), up from 2. Irrelevant:
+it runs only on the paused-stream reconfiguration path (section 5.2), never
+during streaming.
 
 As built these run from the deferred pending-command branch while streaming is
 stopped (section 5.4), not inline in the GATT event handler, so they are
@@ -449,7 +521,7 @@ the net drain rate assumption didn't hold up against real conditions
 periodically during the flush, could let backlog grow faster than the flush
 could catch up). Manuel's fix: gate ingestion itself, in `ch_sel`
 (`components.v`) — `fifo_wen <= dout_en_0 & stream_enable`. New regbank
-register, addr `36` (RAM word 164), bit 0: `1` = ingesting (reset default —
+register, `RB_CTRL_BASE + 36` (RAM word 228), bit 0: `1` = ingesting (reset default —
 confirmed, an earlier draft of this same change had it backwards, defaulting
 to *disabled* on reset, which would have silently gated the stream on every
 FPGA reset/reprogram until the MCU explicitly enabled it), `0` = fifo0 gets
@@ -648,8 +720,9 @@ re-clicking, independent of whether the ack mechanism itself is working.
 - FIFO flush via the existing empty-FIFO sentinel (`0x8000`), not a fixed
   pop count or a new detection mechanism — section 5.3.
 - **Gate FPGA sample ingestion at the source (Manuel's proposal), not just
-  MCU-side consumption** — new regbank register addr `36` (RAM word 164),
-  bit 0 = `stream_enable`, gates `fifo_wen` directly in `ch_sel`. Moves the
+  MCU-side consumption** — new regbank register `RB_CTRL_BASE + 36`
+  (RAM word 228), bit 0 = `stream_enable`, gates `fifo_wen` directly in
+  `ch_sel`. Moves the
   flush to `STOP_STREAMING` (draining a static backlog) instead of
   `START_STREAMING` (which was racing a continuous 30 kSPS producer and, in
   bench testing, never actually won — always hit its safety cap regardless
@@ -695,25 +768,43 @@ re-clicking, independent of whether the ack mechanism itself is working.
   available yet?)," which predates readback actually working and was
   becoming misleading. `PLAN.md` A.2 has full detail.
 
-## Status: implemented, hardware-verified, closed
+## Status: REOPENED 2026-08-11 — MCU side rewriting against A.1.1g
 
-All open questions resolved, including the 2026-08-06 readback-verification
-addendum (section 4) and the same-day STOP/START_STREAMING addendum
-(section 5). The RTL side landed 2026-08-06 (4-way opcode decode plus the
-`stream_enable` ingestion gate), and the full round-trip — reg write, RTL
-decode, reg read, readback notify — is confirmed working on real hardware
-across all four hops. A.2 is closed; see `PLAN.md` A.2 for the checklist and
-the accepted limitations, and `log/2026-08-06.md` for the bring-up narrative.
+A.2 was closed 2026-08-06, hardware-verified across all four hops. **A.1.1g
+then changed the SPI0 wire protocol underneath it**, so that verification no
+longer carries: "closed" means closed-as-of-2026-08-06, not still-verified.
+
+Current state by hop:
+
+| Hop | State |
+|---|---|
+| FPGA RTL (section 1) | **Done and simulation-verified** — `kuntur_tb.sv`, 27/27 checks, 2026-08-11 |
+| MCU helpers (sections 1a, 4.1, 4.2) | **Being rewritten** — this is the blocking item |
+| BLE 0xFFF1 / 0xFFF3 (sections 2, 4.3) | Unchanged — no wire-format change above SPI0 |
+| Bridge relay (sections 3, 4.4) | Unchanged |
+| pc-app (section 4.5) | Unchanged |
+
+The protocol change is confined to SPI0. Nothing above the MCU sees it, which
+is why only `fpga_spi.c` and the three sections above are in scope.
+
+**Re-verification required before A.2 can be called closed again:** flash the
+new bitstream and firmware **together**, then re-run the full STOP →
+SET_CHANNELS → readback → START round-trip on the bench, including the
+repeat-click reliability pass — transfer counts and FSM timing both changed.
+Per `PLAN.md`, fold this into the same bench session that starts the A.1.1
+ladder rather than spending a separate one on it.
 
 ### As-built dependencies on A.1 (RTL)
 
 Landed with A.2: the `REG_READ`/`NOP` opcode decode in `main_controller`, the
 `FPGA_STREAM_CMD` `0xA5A5` → `0x2525` fix, and the `stream_enable` regbank
-register (word 164, bit 0) gating `fifo_wen`.
+register gating `fifo_wen` — now RAM word **228** (`RB_CTRL_BASE + 36`), not
+word 164 as this section previously stated; the A.1.1g memory-map
+rearrangement moved it, and section 1's table is the authority.
 
 Still open in A.1, and **not** required by this spec: wiring the
 sampling-cycle placeholder command slot (`rhd2164_sampling_cmd0-3`, regbank
-addr 128-131 — section 1), and the `ch_sel` restructure that makes the
-*streamed sample data itself* reflect the selected channels rather than a
-synthetic ramp. Until that lands, this control plane correctly selects
+words 192–195 — section 1, tracked as A.1.4), and the `ch_sel` restructure that
+makes the *streamed sample data itself* reflect the selected channels rather
+than a synthetic ramp. Until that lands, this control plane correctly selects
 channels that the data path still ignores.

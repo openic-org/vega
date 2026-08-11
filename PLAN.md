@@ -207,17 +207,60 @@ Ordered tasks, each with a numeric pass/fail:
 - [ ] **A.1.1d — Slot→channel alignment.** `ch_sel` selects by timing `ch_cnt`
       against the SPI0 output stream, so the two-command offset must be accounted
       for in that alignment for `ch_a`/`ch_b` to mean the channel they name.
-- [ ] **A.1.1e — Connect `dout`** to `data0_synced`/`data1_synced`. Only meaningful
-      once (d) holds.
+- [ ] **A.1.1e — Connect `dout`** to `data0_synced`/`data1_synced`, **and do the
+      A.1 structural fix in the same change.** ← **THE GATE FOR THIS LADDER**
+      (promoted 2026-08-11, see below). Only meaningful once (d) holds.
 - [ ] **A.1.1f — ADC path.** Enable VDD sense, convert channel 48 on module A,
       expect ≈44,100 at 3.3 V. First real analog value end to end.
 
-**A.1.4 (placeholder command slot) comes first** — (a), (b), (c) and (f) all need a
-way to put an arbitrary command into the sampling cycle, which is exactly what that
-33rd slot is for. It is the enabler for this ladder, not a side task.
+**Ordering, revised 2026-08-11 — A.1.1e is the gate, not A.1.4.**
+
+The original note here read *"A.1.4 comes first — (a), (b), (c) and (f) all need
+a way to put an arbitrary command into the sampling cycle."* They do, and
+**that way already exists**: A.1.1g made every RAM word writable at full 16-bit
+width, and the 33rd sampling slot already fetches `ram[80]` and transmits it
+every frame (see A.1.4 below for the trace). Command injection is a
+`reg_write16(80, cmd)` from the MCU — no RTL work at all.
+
+The binding constraint moved. **You can inject any command; you cannot see the
+answer**, because `ch_sel` still discards `data0_synced`/`data1_synced` and
+emits the ramp (`components.v:423-425`). So A.1.1e gates (a), (b), (c) and (f),
+not A.1.4.
+
+Reading the placeholder's result needs no new RTL either: the RHD returns a
+command's value two commands later, so slot 32's answer lands at slot
+`(32+2) mod 33 = 1`, i.e. `ch_a = {2'b00, 6'd1}`. The `ch_a` reset default
+already carries the comment *"Remember there is a delay of 2 SPI cycles"*, so
+this was anticipated.
+
+**Do A.1.1e together with the A.1 structural fix** (test-pattern generator
+extracted into its own module, muxed at the top level behind a named signal).
+Three reasons converge:
+
+- The plan already argues the restructure "avoids touching `ch_sel` twice."
+- A.1.1e **kills the testbench's `ChB - ChA == 1000` pairing invariant**, which
+  only holds because `ch_sel` emits the ramp. A selectable test-pattern mode
+  keeps that assertion alive; without it, A.1.1g-tb's T5 silently stops meaning
+  anything and has to be rewritten against real data.
+- The same mux is what lets `doctor` (B.6) and the B.5 pre-session self-test run
+  a known pattern through the real path on a built device.
+
+**Watch during (d):** 33 slots with a fixed 2-slot response delay means slots 31
+and 32 have their answers land at slots 0 and 1 of the *next* frame — across the
+`ch_is_0_redge` boundary that latches `data0_synced`. The placeholder slot sits
+on the awkward side of that boundary, so it is the case most likely to expose an
+off-by-one-frame in the alignment.
 
 - [ ] **A.1.1g — Widen regbank access so any word is MCU-readable/writable at
-      runtime.** Decided 2026-08-07, prerequisite alongside A.1.4. Two limits:
+      runtime.** *Status 2026-08-11: **RTL landed and now verified in
+      simulation** (see A.1.1g-tb, 27/27 checks). The only remaining piece is
+      the **MCU-side rewrite**, listed under "MCU-side impact" below — it is the
+      blocking item, since the new bitstream cannot be flashed without it
+      without breaking A.2's round-trip.*
+      Decided 2026-08-07, originally framed as a prerequisite alongside A.1.4 —
+      in the event it **subsumed** A.1.4's purpose entirely (uniform 16-bit
+      access made the sampling table itself the command-injection mechanism).
+      Two limits:
       `kuntur_fpga.v:122` hardcodes `regbank_addr0 = {2'b10, spi0_drx[13:8]}`,
       and since `addr0` feeds **both** the read and write paths this confines
       *both* to words 128–191 while the sampling slots sit at 64–96; and
@@ -321,17 +364,52 @@ way to put an arbitrary command into the sampling cycle, which is exactly what t
       rewritten FSM the phase is set explicitly per state: writes drive `2'd2`
       (SRAM), only `op_pop0`/`op_pop3` drive ChA/ChB. A write sequence can no
       longer disturb the pairing at all, which also makes the "pad to an even
-      transfer count with a NOP" rule obsolete. **Not yet confirmed in
-      simulation** — verify before deleting the rule from the spec.
+      transfer count with a NOP" rule obsolete. **CONFIRMED in simulation
+      2026-08-11** (see A.1.1g-tb): pairing held across a 3-transfer write, a
+      read+NOP and a lone NOP, with ChA/ChB advancing 1→4 and the delta exactly
+      1000 every time. The rule can now be deleted from the spec.
 
-### A.1.1g-tb — T2 testbench work remaining
+### A.1.1g-tb — T2 testbench work  ✅ **COMPLETE 2026-08-11**
 
-Status 2026-08-10: `kuntur_tb.v` has been ported to the new protocol and runs
-clean in QuestaSim — POP, the 3-transfer tagged write, self-addressing read and
-NOP all behave on the waveform. What it does **not** yet do is cover the cases
-that would catch a regression. Ordered by value:
+Status 2026-08-11: `kuntur_tb.sv` (renamed from `.v`; SystemVerilog, `qrun.f`
+updated) is now **self-checking** — 27 immediate assertions across T1–T7 with a
+pass/fail summary and `$finish`, no waveform reading required. Full run passes,
+2.25 ms sim, against a 4 ms timeout guard.
 
-- [ ] **Exercise the 16-bit write path.** Both write sequences currently stage
+Structural changes: an `spi_xfer(word)` task that handshakes on `mcu_done`
+instead of fixed delays (so there is no settle delay to re-tune when SPI timing
+changes — note `wait()` not `@(negedge)`, since `mcu_done` falls *inside* the
+start pulse and an edge-triggered wait blocks forever); `reg_write16` /
+`reg_read16` / `fifo_pop_pair` wrappers; and command-encoding functions
+replacing the hardcoded `data_mosi_*` parameters.
+
+**Two results worth more than the pass line:**
+
+- **The pairing claim is confirmed, non-vacuously.** ChA ran `0001,0002,0003,
+  0004` with ChB exactly +1000 each pair — the counters *advance*, so the FIFO
+  was genuinely non-empty and each pair consumed a fresh entry rather than
+  passing on the underrun sentinel. Retires the even-batch rule,
+  `FPGA_SPI_Init()`'s priming transfer, and the NOP padding.
+- **A broken POP pair fails loudly, as designed.** ChA jumped `0004 → 0006`: the
+  lone POP fired `fifo_ren` at `op_decode1`, popped entry `0005`, delivered its
+  ChA, then aborted when the partner was not a POP — so entry 5's ChB was never
+  clocked out. One entry lost, no phase slip afterwards. This is the closest
+  thing yet to a direct test for the historical 32-bit FIFO channel-swap bug.
+
+*Simulator note:* this design does not simulate under iverilog — time stops
+advancing at t=60 ns, right as `rhd_start` first pulses. Questa runs it
+correctly, so it is an iverilog artifact, not an RTL fault. Leading suspect is
+`rhd2164_controller` (`components.v:879`), whose hand-written sensitivity list
+`always@(current_state or rhd_done or cnt0_is_max)` drives `rhd_dtx_sel` →
+`max` → `cnt0_is_max`, back into its own list. It should settle since
+`rhd_dtx_sel` is a pure function of `current_state`, but `always@(*)` would
+remove the question. Consequence for now: **testbench work cannot be
+self-verified outside Questa** — Claude proposes, Manuel runs. This is not
+accepted as permanent: see the B.1 item *"Make the RTL simulate under an
+open-source simulator"*, which treats it as a contributability and CI blocker
+in the same class as B.6's licensed-toolchain problem, not a convenience.
+
+- [x] **Exercise the 16-bit write path.** Both write sequences currently stage
       `8'd0` as the high byte, so the commit `{staged_h, data[7:0]}` is
       indistinguishable from the old 8-bit write. **This test would still pass
       with review-bug #2 present** (the `regbank_port_sel` width truncation that
@@ -339,37 +417,57 @@ that would catch a regression. Ordered by value:
       feature and nothing currently proves it works. Best case: write a full RHD
       command word into a sampling-table slot (48–95), where 16-bit words are the
       actual motivation, and read it back.
-- [ ] **The pairing claim** — unverifiable by reading source, and the current
+      *Done:* T2 writes `0x95A5` to word 48 and `0x3C5A` to 49 — both non-zero
+      high bytes, so a `staged_h` never written reads `0x00A5` and one stuck at
+      `0x95` reads `0x955A`. Both pass; a third read re-checks 48 after writing
+      49 to catch a commit to the wrong address.
+- [x] **The pairing claim** — unverifiable by reading source, and the current
       stimulus cannot expose it because it is grouped by opcode (six POPs, *then*
       writes, *then* reads). The hazard only appears with register traffic
       **between** POP pairs. Needs `POP,POP → WRITE×3 → POP,POP → READ,NOP →
       POP,POP`, where three writes is deliberately odd — exactly the case the
       even-batch rule existed to prevent. Two preconditions for it to mean
       anything: the FIFO must be non-empty (the current POPs fire ~12 µs after
-      reset), and ChA/ChB must be distinguishable — the model's canned `0xe7xx`
-      vs `0x81xx` makes a swap eyeball-obvious even without a formal assertion.
+      reset), and ChA/ChB must be distinguishable.
+      *Correction, found while writing the test:* the RHD model's canned
+      `0xe7xx`/`0x81xx` **never reach the FIFO** — `ch_sel` computes
+      `data0_synced`/`data1_synced` and then discards them, assigning
+      `dout = {cnt0, cnt0+1000}` (the A.1 ramp, `components.v:423-425`). That is
+      better for this test, not worse: the pair invariant becomes the numeric
+      `ChB - ChA == 1000`, with a phase slip flipping it to −1000 (=64536), and
+      `0x8000/0x8000` accepted separately as the underrun sentinel. **This test
+      must be revisited when A.1.1e connects the real data path** — the ramp
+      invariant it asserts on will no longer hold.
       Confirming it retires three MCU-side workarounds at once: the even-batch
       rule, `FPGA_SPI_Init()`'s priming transfer, and the NOP padding, and it is
       the closest thing to a direct test for the historical 32-bit FIFO
       channel-swap bug.
-- [ ] **Read-path settling** — was the hygiene check; became load-bearing once
+- [x] **Read-path settling** — was the hygiene check; became load-bearing once
       the read started loading its own address (2026-08-10), since `addr_reg` is
       now written one to two clocks before use rather than transfers earlier.
       `addr_reg` is written in the port-register always block while
       `dout0 <= ram[addr_reg]` reads it in another; confirm MISO carries the
       value for the address just loaded, not the previous one. The `op_read0` →
       `op_read1` split exists precisely for this.
-- [ ] **Abort paths — currently untested.** The tag comparators are the new
+      *Done:* T3 reads 48→49→48 back to back, then reads 49 immediately after a
+      write to 50 — the case where `addr_reg` was last left pointing elsewhere,
+      which is the 2026-08-10 regression class.
+- [x] **Abort paths — currently untested.** The tag comparators are the new
       safety mechanism and nothing exercises them. Minimum: a bad tag at each of
       the three write stages (e.g. `WRITE t1 → WRITE t3`, which must abort to
       `op_nop0` and leave the target word untouched), and a `POP` not followed by
       a `POP`.
-- [ ] **Collapse the stimulus into a `spi_xfer(word)` task.** The
+      *Done:* T6 covers all three write-tag mismatches against a known `0xCAFE`
+      target plus a write that must still work afterwards; T7 covers the broken
+      POP pair and confirms a `NOP` does not swallow the following transfer.
+- [x] **Collapse the stimulus into a `spi_xfer(word)` task.** The
       `#12000/#300/#600` triple now appears 15×; the interleaved pairing sequence
       above is a three-line edit with a task and a rewrite without one.
-- [ ] **Housekeeping:** delete the dead old-protocol parameters `data_mosi_a` /
+- [x] **Housekeeping:** delete the dead old-protocol parameters `data_mosi_a` /
       `data_mosi_b`; restore the field structure in `data_mosi_write_b3`
       (`{2'd2,6'd4}` documents the encoding, flat `8'h84` hides it).
+      *Done:* all `data_mosi_*` parameters replaced by `cmd_wr_addr/high/low`,
+      `cmd_read`, `cmd_wr_tag` encoding functions, so no literal hides a field.
 - [ ] **Optional — tags on `FIFO_POP`.** POP still ignores its address field.
       The trace-readability argument that justified the write tags (and was
       accepted for `READ`) applies equally; tags 1/2 on the two POP transfers
@@ -460,32 +558,86 @@ that would catch a regression. Ordered by value:
       must be undone before bidirectional tunnel work · `assign cmd_is_00 = fifo_full`
       · `mode` hardwired `2'b00` with `mode1_*`/`mode2_*`/`mode3_*` declared and
       unwired · delete `old.v`.
-- [ ] **Guard the sim-only PLL bypass with `` `ifdef SIM ``** — raised 2026-08-10.
-      Simulating requires commenting out the `pll0` instance and enabling
-      `assign clk = clkin` (`kuntur_fpga.v:101`), which is done by hand and left
-      in the working tree. It is one `git add -A` from becoming the bitstream,
-      and a build with it would silently run the whole design at `clkin`. Same
-      hijack class as T3.3, but with a clean elimination available rather than a
-      rule to remember: put both arms behind `` `ifdef SIM ``, pass
-      `+define+SIM` in the QuestaSim invocation only, and the file becomes
-      committable as-is with no manual edit before or after a sim run.
+- [x] **Guard the sim-only PLL bypass with `` `ifdef SIM ``** — raised 2026-08-10,
+      **done 2026-08-11** (Manuel). Simulating used to require commenting out the
+      `pll0` instance and enabling `assign clk = clkin` (`kuntur_fpga.v:101`) by
+      hand, left in the working tree — one `git add -A` from becoming the
+      bitstream, and a build with it would silently run the whole design at
+      `clkin`. Both arms are now behind `` `ifdef SIM `` (bypass) / `` `else ``
+      (`pll0`), with `+define+SIM` on `qrun.f`'s `lib1` makelib line only. The
+      file is committable as-is, with no manual edit before or after a sim run —
+      elimination rather than a rule to remember. Same hijack class as T3.3,
+      which remains open.
+
+      *Loose end, not blocking:* `qrun.f` also compiles `kuntur_fpga.v` a second
+      time into `dutLib` **without** `+define+SIM`, so that copy carries the real
+      `pll0`. Harmless today — `kuntur_tb.sv` `` `include ``s the design, so the
+      whole thing lands in `lib1` and the run log confirms `lib1.kuntur_fpga` is
+      what elaborates. But it leaves a duplicate module definition whose two
+      copies now differ in their clock source, and if resolution ever picked
+      `dutLib` the sim would instantiate a Lattice PLL primitive instead of the
+      bypass. Either drop the `dutLib` makelib line or give it the same define.
 - [x] **SPI0 opcode decode, 4-way** — landed 2026-08-06 with A.2.
       `main_controller` now decodes all four: `00` FIFO pop, `01` regbank write,
       `10` regbank read (new read path to the TX mux), `11` NOP. The paired
       MCU-side fix landed with it — `FPGA_STREAM_CMD` `0xA5A5` → `0x2525`, so a
       streaming FIFO pop no longer carries the `10` opcode by accident. Verified
       on hardware via the A.2 readback round-trip.
-- [ ] **Wire the sampling-cycle placeholder command slot** — **do this first; it
-      is the enabler for the A.1.1 verification ladder above.** Confirmed
-      2026-08-05: the sampling counter's extra state beyond the 32 real
-      per-module channels (`components.v:855`, `sampling_max = 6'd32`, giving
-      33 total states) is an intentional placeholder for an alternate RHD2164
-      command (e.g. chip-ID or temperature-sensor read) instead of a channel
-      conversion — datasheet recommends reserving 3 such slots, reduced to 1
-      here. Not yet wired to a consumer; `rhd2164_sampling_cmd0-3`
-      (`components.v:419-437`, regbank addr 128-131) are the likely
-      MCU-writable home for the command word(s) once this is implemented. See
-      `docs/interfaces/channel-selection-control-plane.md` section 1.
+- [ ] **A.1.4 — Sampling-cycle placeholder command slot.** **Rewritten
+      2026-08-11: mostly already done, and demoted from "enabler, do this
+      first" to a small cleanup that gates nothing.** Fold the remnant into
+      A.1.1e.
+
+      The sampling counter's extra state beyond the 32 real per-module channels
+      (33 states; `RB_SAMPLING_MAX = 6'd32` in `intan.vh` — the plan previously
+      cited `components.v:855, sampling_max = 6'd32`, which predates the
+      single-sourced map) is an intentional placeholder for an alternate
+      RHD2164 command instead of a channel conversion. The datasheet recommends
+      reserving 3 such slots; this design reduces that to 1.
+
+      **It is already wired.** Verified by reading the RTL 2026-08-11:
+
+      ```
+      cnt0 = 32  →  rb_addr1 = RB_SAMPLING_BASE + 32 = ram[80]
+                 →  regbank_dout1  →  rhd_dtx  →  spi1 MOSI
+      ```
+
+      `rb_addr1 = (rhd_dtx_sel) ? (RB_SAMPLING_BASE + cnt0) : (RB_CONFIG_BASE +
+      cnt0)` already spans the full 0–32 range, and `ram[80]` is initialised to
+      `RHD_READ(6'd63)` — a chip-ID read — labelled *"RHD2164 Sampling: cmd0"*
+      (`components.v:600`). The slot fetches and transmits that command **every
+      frame, today**. There is no consumer to wire.
+
+      **A.1.1g deleted the reason for `rhd2164_sampling_cmd0-3`.** Those
+      registers exist because the sampling table used to be unreachable and
+      writes were 8-bit, so a full 16-bit RHD command needed a dedicated side
+      channel. Now `ram[80]` is directly writable at full width. The four
+      registers are **dead-end wires** — assigned from `ram`
+      (`components.v:486-489`, words 192–195), routed to the top level,
+      connected to nothing; `kuntur_fpga.v:76` declares only `cmd0-2`, so
+      `cmd3` is not even connected at instantiation.
+
+      What actually remains:
+
+      - [ ] Confirm slot 32 → `ram[80]` → MOSI in simulation. The testbench
+            already runs the sampling cycle; this is an assertion, not new
+            stimulus.
+      - [ ] **Delete `rhd2164_sampling_cmd0-3`** — module ports, top-level
+            wires, and the `ram` assigns. Frees words 192–195. Do it before
+            someone wires something to them believing they are the intended
+            path.
+      - [ ] MCU helper `FPGA_SPI_SetSamplingCmd(uint16_t cmd)` →
+            `reg_write16(80, cmd)`. One line on top of the A.1.1g rewrite.
+
+      Address-space consequence: words 192–195 return to the free pool, and the
+      *sampling table itself* is the runtime command-injection mechanism. The
+      A.3 impedance-check DAC use case (`RHD_ZCHECK_DAC/SEL/EN`) is served the
+      same way — write the command word into the placeholder slot — so no
+      reserved address block is needed for it either.
+
+      See `docs/interfaces/channel-selection-control-plane.md` section 1; that
+      spec's register table still lists `rhd2164_sampling_cmd0-3` as reserved
+      and must be updated when the wires are deleted.
 
 *Already verified correct:* RHD init sequence — chip-ID read, regs 0–21,
 `RHD_CALIBRATE`, then nine dummy reads as the datasheet requires.
@@ -512,7 +664,8 @@ remove the need to interleave at all.
       new bridge firmware, not just MCU + app.
 - [x] **RTL** *(Manuel)* — `ch_a`/`ch_b` regbank endpoint · 4-way SPI0 opcode decode
       (`00` FIFO pop, `01` reg write, `10` reg read, `11` NOP) · `stream_enable` gate
-      (regbank word 164, bit 0) ANDed directly into `fifo_wen` in `ch_sel`, reset
+      (regbank word **228** — was word 164 before the A.1.1g memory-map
+      rearrangement, bit 0) ANDed directly into `fifo_wen` in `ch_sel`, reset
       default `1`.
 - [x] **MCU** — 0xFFF1 handler for `SET_CHANNELS`/`STOP_STREAMING`/`START_STREAMING`,
       all SPI0 work deferred off the BLE event-handler callback ·
@@ -521,6 +674,12 @@ remove the need to interleave at all.
       rather than "the write call didn't error" · `s_command_busy` reentrancy guard
       making one STOP/SET/START cycle atomic with respect to the next · streaming
       dummy TX word `0xA5A5` → `0x2525`, so a FIFO pop can't decode as a reg read.
+      **Rewritten 2026-08-11 for A.1.1g** (`fpga_spi.c`/`.h`, spec §1/§1a/§4.1):
+      tagged 3-transfer writes to RAM words 196/197/228, self-addressing reads,
+      `FPGA_SPI_Init()`'s priming transfer and all NOP padding deleted.
+      Host-syntax-checked only — no ARM toolchain available to Claude, so the
+      firmware build itself is unverified and the whole rewrite is untested on
+      hardware.
 - [x] **Bridge** — UART command relay (`0xCC 0x33`) and response relay (`0xEE 0x11`) ·
       USART1 overrun-error flag now checked and cleared every ISR entry, with a log
       line. An uncleared ORE latched RXNE off permanently, silently killing command
@@ -558,6 +717,44 @@ remove the need to interleave at all.
 > on the bench after the new bitstream and firmware are flashed together —
 > including the repeat-click reliability pass, since the transfer counts and
 > FSM timing both change.
+>
+> **Sequencing, settled 2026-08-11.** "Update A.2, then continue A.1" is a false
+> split: the A.2 helper rewrite **is** the A.1.1g MCU-side work — one change,
+> not two. What actually gates what:
+> - The moment a bitstream containing A.1.1g is flashed **for any reason**, the
+>   MCU speaks the old protocol and A.2 is broken. So the firmware cannot lag
+>   the bitstream by even one bench session.
+> - The A.1.1 ladder needs a readout path for its numeric pass/fail. Rungs
+>   (a)–(c) are *technically* observable on a logic analyzer at the RHD MISO
+>   pins with no MCU involvement, but (d)–(f) and any repeatable check need the
+>   FIFO→MCU→pc-app path — i.e. the rewritten helpers.
+>
+> Therefore: **do the MCU rewrite before any A.1.1 bench work**, and fold the
+> A.2 re-test into the same bench session that starts the ladder rather than
+> spending a separate one on it. Desk work that needs no bench and can run in
+> parallel beforehand: the MCU helpers + spec §1/§1a/§4.1 (Claude, **done
+> 2026-08-11**) and **A.1.1e + the A.1 structural fix** (Manuel) — the latter
+> having replaced A.1.4 as the ladder's gate, see A.1.1's ordering note.
+>
+> **Latent failure found while doing the rewrite, 2026-08-11 — worth recording
+> because it would have been misdiagnosed.** `FPGA_SPI_ReadSamples()` used to
+> issue `2n` transfers and rely on a one-off priming transfer in
+> `FPGA_SPI_Init()`, which left the running transfer count permanently odd —
+> i.e. **every call ended with a `FIFO_POP` pair half-open**, dangling into
+> whatever command came next. Harmless while nothing checked. Under the A.1.1g
+> FSM, a POP whose partner is not a POP aborts *and consumes the offending
+> transfer*, so `STOP_STREAMING`'s tag-1 write would have been silently eaten;
+> tags 2 and 3 would then each abort on their own tag check, and **streaming
+> would never stop** — presenting as the pc-app's existing "no confirmation
+> received" timeout, indistinguishable from the known USART-overrun limitation.
+> Fixed by making `ReadSamples()` self-contained: `2n+1` transfers with a
+> trailing `NOP` carrier, no priming, no dangling pair. Costs ~5 µs per BLE
+> packet (1 transfer in 119 at 59 pairs). `StreamFlushFpgaFifo()` was batched
+> at 32 pairs per call to keep the amortised cost at ~2.03 transfers/pair
+> rather than 3. **This changes the 30 kSPS hot path, whose NOP margins are
+> empirically tuned — validate on the bench** (`FPGA_SPI_DebugDumpPairs(32,
+> 1000)` over UART gives DUP/SKP/OFF directly; any `OFF` means the pairing
+> offset is wrong).
 
 **Known limitation, accepted** — not blocking Phase A:
 
@@ -693,6 +890,43 @@ Begins after A3. Ordering within Phase B is dependency-driven, not fixed.
       would be silent), an RHD2164 model that implements the two-command
       pipeline and the ROM registers rather than four canned values, and these
       wired into the CI checks below so a red run blocks a merge.
+- [ ] **Make the RTL simulate under an open-source simulator.** Raised
+      2026-08-11 and **not optional** — every item in the bullet above depends
+      on it. Today the design simulates only in QuestaSim: under iverilog
+      (`-g2012`, compiles clean) time stops advancing at t=60 ns, right as
+      `rhd_start` first pulses, and a bare probe with no testbench logic at all
+      reproduces it. Three consequences, in increasing order of cost:
+      1. **CI cannot run the testbenches.** "Wired into the CI checks below so
+         a red run blocks a merge" is unimplementable on a licensed,
+         GUI-oriented simulator. The self-checking testbench built in A.1.1g-tb
+         is exactly the artifact CI should be running, and cannot.
+      2. **Contributors cannot run them either.** This is the *same* barrier as
+         the licensed Lattice tooling in B.6 — a contributor who cannot
+         simulate cannot safely change RTL, so RTL contribution is closed to
+         everyone without a Questa seat. B.6 calls the toolchain blocker "the
+         worst OOBE blocker"; this is its twin and belongs in the same fix.
+      3. **Claude cannot self-verify RTL work.** Testbench changes must be
+         proposed blind and run by Manuel, which spends the scarce resource
+         (bench/human time) on something a machine should catch.
+
+      Approach, cheapest first: **root-cause the iverilog stall** — leading
+      suspect is `rhd2164_controller` (`components.v:879`), whose hand-written
+      sensitivity list `always@(current_state or rhd_done or cnt0_is_max)`
+      drives `rhd_dtx_sel` → `max` → `cnt0_is_max`, feeding back into its own
+      list. It *should* settle, since `rhd_dtx_sel` is a pure function of
+      `current_state`, but `always@(*)` removes the question and is the right
+      fix regardless of whether it is the culprit. Audit every hand-written
+      sensitivity list in `components.v` / `spi_controllers.v` the same way.
+      If that does not do it, evaluate **Verilator** (`--timing` handles the
+      `#` delays in the testbenches; async-reset-in-sensitivity-list style is
+      supported) as the CI simulator, keeping Questa as the waveform-debug
+      tool rather than the gate. Either way the outcome required is: **a
+      `make sim` that any contributor can run with no licensed software, and
+      that CI runs on every push.**
+
+      Note this is genuinely a *design* constraint, not just tooling: an RTL
+      style that only one simulator accepts is a portability defect in the
+      same class as relying on undefined behaviour. Fixing it improves the RTL.
 - [ ] **Enforcement, ratcheted from commit one.** Prefer **elimination over
       detection**: generate as-built doc sections from source; single-source domain
       logic. Five checks, each justified by a bug that already cost time —
