@@ -195,23 +195,274 @@ Known-value sources (RHD2164 datasheet unless noted):
 | Reg 63 / 62 / 61 | chip ID **4**, num amps **64**, unipolar **1** | Chip presence + identity, per chip |
 | Channel 48 | VDD/2 via on-chip divider; `VDD = 0.0000748 × result` (≈44,100 @ 3.3 V) | First test of the actual **ADC**. Needs `RHD_VDD_SENSE_ENABLE` (`intan.vh:87`, currently `1'b0`). Aux/temp/supply sensors are on the **A module only** — the B result for a non-amplifier channel is meaningless per datasheet |
 
-Ordered tasks, each with a numeric pass/fail:
+Ordered tasks, each with a numeric pass/fail.
 
-- [ ] **A.1.1a — Link integrity & DDR demux.** `READ(59)`; expect 53 on `data_a*`,
+> **Design settled 2026-08-11 — `docs/interfaces/fpga-diagnostic-access.md`.**
+> Rungs (a)–(d) are specified there end to end: the RTL contract Manuel
+> implements (§1), the generic **register console** that drives them (§2–§4),
+> each rung as a register script with its expected values, RAM word addresses
+> and a per-failure diagnosis table (§5), and the testbench work (§6). Decisions
+> taken, all in that document's closing section: the rungs are driven by a
+> console over the existing 0xFFF1/0xFFF3 control plane rather than an MCU
+> build flag, so future rungs are scripts rather than reflashes; the `+2`
+> pipeline offset moves into the RTL (see the superseded note above);
+> `data_source_sel`'s reset default is **real data**, test pattern opt-in only.
+>
+> Two things that spec surfaced and this plan did not have:
+> - **The testbench's RHD model cannot support any rung.** `rhd2164_model`
+>   (`kuntur_tb.sv:403-488`) cycles two canned 4-word arrays; it does not decode
+>   MOSI, has no register file, and has no response pipeline. A behavioural
+>   `rhd2164_bfm` is a prerequisite for simulating (a)–(d) at all — §6.2.
+> - **Rung (d)'s frame-boundary case is not bench-testable.** A whole-frame skew
+>   between slot 32 and slot 0 is invisible to a static known value. It needs a
+>   model whose responses vary per frame, i.e. simulation — §5.4, §6.3.
+>
+> Two open issues it raised: `` `RHD_2164_UNIBIAMP `` (`intan.vh:188`) is `8'd0`
+> while the datasheet and this plan both say register 61 reads `1` — unused
+> today, but about to become load-bearing; and `0x8000` is simultaneously the
+> empty-FIFO sentinel and a legal full-negative-rail ADC sample once A.1.1e
+> lands, so underrun statistics start counting saturated inputs.
+
+> **BENCH RESULTS 2026-08-11 — first real neural-path data this project has
+> ever streamed.** A.1.1e is confirmed working on hardware.
+>
+> - **A.1.1a — PASSED on chip1** (rung `L`, offset-independent: `READ(59)` in
+>   all 33 slots, so no offset assumption can affect it). Sources 2/3 returned
+>   `0x0035` / `0x003A` exactly — Intan's MISO A/B markers. That single result
+>   establishes MISO sample timing, the DDR A/B split **and its polarity**,
+>   `ch_sel`'s source mux, 33-slot command injection, the whole console path,
+>   and that regbank word 229 really is selecting real RHD data.
+>   **Rung (a) is subsumed by rung `L` and need not be run** — `L` tests the
+>   same four sources with the same markers and, unlike (a), cannot be
+>   confounded by a wrong slot offset.
+> - **Slot offset = 3, confirmed** — see the note above. Rung `O` is likewise
+>   redundant; the measurement fell out of the channel selector.
+> - **Chip ID = 4 confirmed** (channel 66's constant). Part of rung (c).
+> - **⚠ CHIP 0 IS NOT RESPONDING — half the array is dead.** Sources 0/1
+>   (`spi1_miso0`, pin G3/LVDS3P) read a stable `0xFFFF` on both DDR halves —
+>   all 64 collected frames identical, no spread. Confirmed independently via
+>   the channel selector: friendly channels 0–63 are flat at ≈ −1 (`0xFFFF` as
+>   `int16`), 64–127 carry signal. Both chips are populated.
+>
+>   **Isolated to the MISO path.** Both chips share `csb`/`sck`/`mosi` from one
+>   `spi_master_rhd2164x2`, and chip1 answers correctly, so commands, clock and
+>   chip-select are all proven good. The RTL and the constraints treat the two
+>   pins identically — both `IO_TYPE=LVDS DIFFRESISTOR=100` in
+>   `source/impl_1/impl_1.pdc` — so nothing in the design distinguishes them.
+>   **Leading suspect: the physical LVDS3 pair.** An LVDS input compares P
+>   against N; if LVDS3's N side is open or mis-biased while LVDS0's is fine,
+>   the comparator sits at one rail permanently, which is exactly the stable
+>   all-ones observed. To check: meter LVDS3P/N against LVDS0P/N at the FPGA,
+>   and inspect chip0's MISO pin and its series/termination parts.
+>
+>   **Not a v1 blocker** — 64 channels remain and v1 needs 2 — but it is half
+>   the array and must be resolved before any 128-channel claim. Tracked here
+>   rather than in A.3 because it is an instrument defect, not a
+>   characterisation task.
+>
+> **Rungs (b), (c) and (d) then also PASSED, all on chip1** (2026-08-11):
+>
+> - **(b) pipeline offset — exact.** Slots 28–32 returned `I N T A N`
+>   (`0x0049 0x004E 0x0054 0x0041 0x004E`) in slot order across three
+>   configurations, including a repeat re-read of slot 28. Five distinct values
+>   means a wrong offset would have shown as a rotation; there was none.
+> - **(c) chip identity — exact.** Reg 63 = `0x0004` (RHD2164 ID), reg 62 =
+>   `0x0040` (64 amplifiers), reg 61 = `0x0001` (unipolar — the value corrected
+>   in `intan.vh` this session; the old `8'd0` would have been wrong).
+>   **Chip 0's identity remains unknown** — it cannot be read until its MISO
+>   path works, so we cannot presently confirm chip0 is even an RHD2164.
+> - **(d) slot alignment — passed at the frame wrap.** Markers across slots 31,
+>   32, 0, 1 read `I N T A`, each at its own `ch_cnt`. Reported as **"slot
+>   alignment confirmed; frame-boundary phase not yet verified"** — a
+>   whole-frame skew is invisible to a static value and needs T12 in
+>   simulation (Phase B).
+> - **(O) offset sweep — clean.** `0x0035` appeared at `ch_a = 2` and nowhere
+>   else; all seven other probes read `0x0004`. Independent confirmation of
+>   `SLOT_OFFSET = 3`.
+>
+> Rungs (b), (c) and (d) all ran against `PRIMARY_SRC = 2` (chip1) only.
+> Rung (a) is the sole rung still probing all four sources, and it **aborted in
+> its restore phase** (`word 63: no response after 3 retries`) after correctly
+> reporting the chip0 failure — see the debug-print hazard below.
+>
+> **⚠ Operational hazard found and fixed: per-command debug prints.** Every
+> 0xFFF1 command was emitting ~3 blocking `APP_DBG_MSG` lines. At 115200 that
+> is ~15 ms of blocking UART per command, and USART1 is on **APB1, which the
+> BLE radio gates** — the same hazard that forced FPGA SPI onto bit-banged
+> APB0. Harmless at one line per operator click; a rung issues ~90 commands
+> back to back. Symptom: a steady trickle of pc-app command timeouts (mostly
+> recovered by retry) and one rung aborting mid-restore, which leaves the FPGA
+> half-reconfigured. Fixed by gating the high-rate prints behind
+> `STREAM_REG_CONSOLE_VERBOSE` (default 0) in `stream_app.c`; readback
+> mismatches and malformed frames still print unconditionally. **Needs a
+> firmware reflash to take effect** — built clean 2026-08-11.
+>
+> Remaining on the bench: re-run rung (a)'s restore after the reflash, and the
+> A.2 re-test.
+
+- [x] **A.1.1a — Link integrity & DDR demux.** `READ(59)`; expect 53 on `data_a*`,
       58 on `data_b*`, both chips. Proves MISO timing, DDR split, and that the four
       `ch_sel` inputs map to the right chip and half.
-- [ ] **A.1.1b — Pipeline offset.** `READ(40..44)` in consecutive slots; expect
+- [x] **A.1.1b — Pipeline offset.** `READ(40..44)` in consecutive slots; expect
       `INTAN` arriving two slots later. Pins the offset down numerically.
-- [ ] **A.1.1c — Chip identity.** `READ(63/62/61)` → 4 / 64 / 1, per chip. Also the
+- [x] **A.1.1c — Chip identity.** `READ(63/62/61)` → 4 / 64 / 1, per chip. Also the
       FPGA-side half of B.6's `doctor`.
-- [ ] **A.1.1d — Slot→channel alignment.** `ch_sel` selects by timing `ch_cnt`
+- [x] **A.1.1d — Slot→channel alignment.** `ch_sel` selects by timing `ch_cnt`
       against the SPI0 output stream, so the two-command offset must be accounted
       for in that alignment for `ch_a`/`ch_b` to mean the channel they name.
-- [ ] **A.1.1e — Connect `dout`** to `data0_synced`/`data1_synced`, **and do the
-      A.1 structural fix in the same change.** ← **THE GATE FOR THIS LADDER**
+- [x] **A.1.1e — Connect `dout`** to `data0_synced`/`data1_synced`, **and do the
+      A.1 structural fix in the same change.** ✅ **DONE AND CONFIRMED ON HARDWARE
+      2026-08-11** — rungs (a)-(d) all pass on chip1, which is only possible with
+      real RHD data reaching the FIFO. ← was **THE GATE FOR THIS LADDER**
       (promoted 2026-08-11, see below). Only meaningful once (d) holds.
+      *Specified 2026-08-11, `fpga-diagnostic-access.md` §1.1:* test-pattern
+      generation moves out of `ch_sel` into its own module and is muxed at the
+      **top level**, selected by new regbank word **229** bits `[1:0]`
+      (`0` = real RHD data = **reset default**, `1` = ramp). A runtime word, not
+      a `` `define ``, because B.5's pre-session self-test and B.6's `doctor`
+      must push a known pattern through the real path on an assembled device
+      that will not be re-synthesised. Lands together with §1.2's two-counter
+      offset, §1.3's `CONVERT(k)`-at-slot-`k` sampling-table defaults, and
+      §1.4's deletions (`rhd2164_sampling_cmd0-3`, `regbank_addr0`,
+      `ch_is_16`/`dout_en_16`) — one pass over `ch_sel`, not four.
 - [ ] **A.1.1f — ADC path.** Enable VDD sense, convert channel 48 on module A,
       expect ≈44,100 at 3.3 V. First real analog value end to end.
+
+**Status 2026-08-11 — the driver for (a)–(d) is built; the RTL it drives is
+not.** Everything below the RTL line now exists and is tested as far as it can
+be without hardware:
+
+- [x] **Interface spec** — `docs/interfaces/fpga-diagnostic-access.md`, written
+      before any code per working principle 5. Also updated
+      `channel-selection-control-plane.md` (register table gains word 229,
+      `ch_a[5:0]`'s meaning pinned, commands `0x04`/`0x05`, response types
+      `0x04`/`0x05`, `rhd2164_sampling_cmd0-3` marked for deletion).
+- [x] **MCU register console** — `FPGA_SPI_RegWrite16`/`RegRead16`/
+      `SetSamplingSlot`/`SetDataSource`/`ReadDataSource` (`fpga_spi.c`/`.h`);
+      0xFFF1 commands `0x04 REG_WRITE16` / `0x05 REG_READ16` with the same
+      validate-stash-defer shape, stopped-stream precondition and
+      `s_command_busy` guard as the existing three; `STREAM_NotifyRegAccess()`
+      on 0xFFF3, `STREAM_RESPONSE_PAYLOAD_SIZE` 3 → 4. A write's ack carries
+      the **readback**, so a scripted 33-word table rewrite is verified per
+      word for free. Also collapsed `ReadStreamEnable` onto the shared
+      `reg_read16` helper. **Builds clean for ARM, zero new warnings**
+      (2026-08-11) — the only `fpga_spi.c` warnings are the pre-existing
+      `%u`/`%lu` ones in `FPGA_SPI_DebugDumpPairs`, which this change did not
+      touch.
+- [x] **pc-app rung runner** — `pc-app/diagnostics.py`: rungs (a)–(d) as
+      **data** (setup writes, observations with expected values, restore,
+      per-rung diagnosis table) plus a generic ack-gated runner with
+      `COMMAND_GAP_MS` pacing, retry-on-timeout, first-2-pair discard, and mode
+      -not-single-sample measurement. Adding rung (f) is a table entry, not a
+      code change — which is the "flags only" requirement, met more strongly
+      than asked. Gated behind a collapsed **Diagnostics** panel in
+      `main_window.py`.
+- [x] **MCU console verified on the host** — `mcu-tests/`, added 2026-08-11.
+      Compiles the **real** `Core/Src/fpga_spi.c` against stub HAL headers and a
+      **pin-level model of the A.1.1g FPGA FSM**, so the bit-bang layer (bit
+      order, 16-bit framing, NSS) is exercised too rather than trusted. 52
+      checks: exact wire sequences for `RegWrite16`/`RegRead16`, the 16-bit
+      staged-high-byte path with distinct non-zero high bytes, write→read round
+      trip over all 256 words, `SetSamplingSlot` range rejection issuing **zero**
+      transfers, all control words, `ReadSamples` pair integrity, friendly↔raw
+      bijectivity, and — the load-bearing one — that **every public function
+      leaves the FSM at its decode state**, which is exactly the 2026-08-11
+      latent failure (a half-open POP pair eating `STOP_STREAMING`'s tag-1
+      write, so streaming would never stop).
+      **Mutation-tested**, because a suite that cannot fail is worthless:
+      dropping the tag-2 transfer → 23 failures; dropping `RegRead16`'s NOP
+      carrier → 1 failure; removing the slot range check → 4 failures. The
+      middle one is instructive — `READ`+`READ` still returns correct *values*
+      and is caught only by the wire-sequence assertion, which is why the suite
+      asserts sequences and not just return values.
+      **The firmware also builds clean for ARM** (2026-08-11): zero warnings
+      from any of the changed code; the only `fpga_spi.c` warnings are the
+      pre-existing `%u`/`%lu` ones in `FPGA_SPI_DebugDumpPairs`.
+- [x] **Runner verified offline** — `pc-app/test_diagnostics.py`, against a
+      fake reader implementing the spec's contract. All four rungs pass; a
+      regbank value that disagrees with what was written aborts naming the
+      word; two dropped commands retry and still complete; a broken B-side DDR
+      demux fails rung (a) with `0x35/0x35`, matching its diagnosis table.
+      Also pins the pc-app→bridge wire format for `0x04`/`0x05` against the
+      spec's byte layout — including the little-endian value split, where a
+      big-endian slip is silent because `0x95A5` arriving as `0xA595` still
+      writes *something* — and asserts the slot→`ch_a` map stays injective and
+      in range whatever `SLOT_OFFSET`/`FRAME_SLOTS` become.
+- [x] **RTL — data-source mux + word 229** *(Manuel, 2026-08-11)*.
+      `ch_sel.dout` now carries `{ch0, ch1}` latched from
+      `data0_synced`/`data1_synced` — **A.1.1e's core connection, done**. The
+      ramp moved to `kuntur_fpga.v`, muxed on `data_source_sel` (regbank word
+      229, reset default `0` = real data), clocked by a new `dout_en_0` output
+      from `ch_sel` so its timing is identical to the old in-`ch_sel` version.
+- [x] **RTL — slot/response offset: no change needed** *(settled 2026-08-11)*.
+      The `+3` is a mapping question, not a capacity one: with the original
+      33-slot counter, `ch_a = v` observes slot `(v-3) mod 33`, a **bijection
+      over all 33 slots**, so the ladder runs against today's counter. The
+      offset lives in `pc-app/diagnostics.py` as `SLOT_OFFSET`/`FRAME_SLOTS`,
+      applied centrally in `ch_code()`. A 36-slot variant was tried and
+      reverted — it broke `ch_is_0_redge` (`cnt0` never returned to 0, so
+      `fifo_wen` fired once at boot and never again) and would have cost ~8.3%
+      of the sample rate even once fixed, while still leaving `ch_a = slot+3`.
+      Making `ch_a` name the slot directly is deferred to Phase B as a clarity
+      fix, where T11/T12 can verify it.
+- [x] **RTL — sampling table needs no change** *(confirmed by Manuel,
+      2026-08-11)*. Spec §1.3 previously demanded `CONVERT(k)` at slot `k`, on
+      the reading that slots 2–31's thirty consecutive `CONVERT(63)` meant
+      thirty conversions of channel 63. **Wrong — `C=63` means "cycle through
+      successive amplifier channels"** (`intan.vh:24`, and the datasheet).
+      Slot 0's `CONVERT(0)` and slot 1's `CONVERT(1)` anchor the chip's channel
+      counter and the thirty `CONVERT(63)` walk it 2→31, so **slot `k` already
+      converts channel `k`** — self-correcting too, since the anchor is
+      re-asserted every frame. Requirement withdrawn; the table is deliberate
+      and stays. Recorded prominently in the spec because thirty identical
+      commands read like a copy-paste bug and will invite a "fix" that breaks
+      it — the same trap as `stream_enable`'s reset default.
+- [x] **RTL — nothing further needed for Phase A.** The §1.4 deletions moved to
+      Phase B (see B.1), 2026-08-11: they are housekeeping, and re-synthesising
+      before a bench session to remove dead wires trades a known-good bitstream
+      for an unverified one with no test coverage behind it (Phase A has no
+      simulation). Do them in Phase B alongside the testbench that can catch a
+      slip.
+- [ ] **Bench run** — fold into the same session as the A.2 re-test, per the
+      sequencing note under A.2. **Phase A is bench-only** (decided
+      2026-08-11); see B.1 for the simulation half.
+
+**Response-delay offset is 3, not 2 — found 2026-08-11 while writing the RTL
+change list, unconfirmed on hardware.** The RHD's own pipeline is 2 commands,
+but `data_rx_*` are held registers loaded at the SPI master's `csbend1`
+(`spi_controllers.v:1002-1007`, `sr_s2p` at `385-393`), and `rhd_done` is
+asserted six clocks later in `idle` — so `rhd2164_controller` increments after
+the load, and `ch_sel`'s `ch_is_a_redge` (first two clocks of the next slot)
+sees the word loaded during the *previous* slot. One extra slot on top of the
+RHD's two. This contradicts `components.v:627`'s *"Remember there is a delay of
+2 SPI cycles"*. Never observable before now, because `dout` has always been the
+ramp.
+
+**The `ch_a`/`ch_b` reset defaults do not settle it** — checked 2026-08-11,
+both readings are self-consistent, so they are not evidence either way:
+
+| offset | `ch_a = {2'd2,6'd3}` | `ch_b = {2'd2,6'd2}` |
+|---|---|---|
+| 2 | slot 1 → channel 1 | slot 0 → channel 0 |
+| 3 | slot 0 → channel 0 | slot 32 → `READ(63)` → constant 4 |
+
+**CONFIRMED ON HARDWARE 2026-08-11 — the offset is 3.** Friendly channel 66
+(source 2, index 2) reads a constant **4**: that is slot `(2-3) mod 33 = 32`,
+the alternate-command placeholder holding `RHD_READ(63)`, whose answer is the
+RHD2164 chip ID. Under an offset of 2 the same channel would have shown slot
+0's live signal. Neighbouring channel 65 shows signal, as predicted. Measured
+with the ordinary channel selector — no rung needed.
+
+That single reading also confirms two other things for free: **the placeholder
+slot 32 really is fetched and transmitted every frame** (A.1.4's claim, never
+previously demonstrated on hardware), and **rung (c)'s chip-ID check, reg 63 =
+4**.
+
+`components.v:627`'s *"Remember there is a delay of 2 SPI cycles"* is therefore
+wrong and should be corrected to 3 when the §1.4 housekeeping happens in Phase
+B. The offset remains a single named constant (`SLOT_OFFSET` in
+`pc-app/diagnostics.py`), so a future RTL change to the counter or the latch
+timing is a one-line host edit.
 
 **Ordering, revised 2026-08-11 — A.1.1e is the gate, not A.1.4.**
 
@@ -232,6 +483,20 @@ command's value two commands later, so slot 32's answer lands at slot
 `(32+2) mod 33 = 1`, i.e. `ch_a = {2'b00, 6'd1}`. The `ch_a` reset default
 already carries the comment *"Remember there is a delay of 2 SPI cycles"*, so
 this was anticipated.
+
+> **Superseded 2026-08-11 — the offset moves into the RTL.** Making every
+> caller of `ch_a` carry a mental `+2 mod 33` is the kind of correction-by-comment
+> that working principle 1 exists to prevent. Manuel's fix: split
+> `rhd2164_controller`'s `cnt0` into two counters incrementing in lockstep, with
+> different start values — `cnt_cmd` (drives `rb_addr1`) starts at **2**,
+> `ch_cnt` (drives `ch_sel`'s comparators) starts at **0**. Then
+> `MISO(t) = ram[48 + ch_cnt(t)]` identically, so **`ch_a[5:0] = k` observes
+> sampling slot `k`** for every `k` in 0–32, with no correction anywhere and no
+> modulo adder in the comparator path. The placeholder slot's answer is read at
+> `ch_a[5:0] = 32`, not `1`, and `components.v:623`'s "Remember there is a delay
+> of 2 SPI cycles" comment is deleted along with the `{2'd2, 6'd3}` default it
+> justified. Full derivation, first-frame artefact and frame-boundary caveat:
+> `docs/interfaces/fpga-diagnostic-access.md` §1.2.
 
 **Do A.1.1e together with the A.1 structural fix** (test-pattern generator
 extracted into its own module, muxed at the top level behind a named signal).
@@ -677,9 +942,10 @@ remove the need to interleave at all.
       **Rewritten 2026-08-11 for A.1.1g** (`fpga_spi.c`/`.h`, spec §1/§1a/§4.1):
       tagged 3-transfer writes to RAM words 196/197/228, self-addressing reads,
       `FPGA_SPI_Init()`'s priming transfer and all NOP padding deleted.
-      Host-syntax-checked only — no ARM toolchain available to Claude, so the
-      firmware build itself is unverified and the whole rewrite is untested on
-      hardware.
+      **Builds clean** (2026-08-11, `Debug/make all` with the STM32CubeIDE
+      toolchain — see CLAUDE.md; the earlier "no ARM toolchain available"
+      caveat was wrong, the compiler was simply not on `PATH`). Still untested
+      on hardware.
 - [x] **Bridge** — UART command relay (`0xCC 0x33`) and response relay (`0xEE 0x11`) ·
       USART1 overrun-error flag now checked and cleared every ISR entry, with a log
       line. An uncleared ORE latched RXNE off permanently, silently killing command
@@ -890,9 +1156,27 @@ Begins after A3. Ordering within Phase B is dependency-driven, not fixed.
       would be silent), an RHD2164 model that implements the two-command
       pipeline and the ROM registers rather than four canned values, and these
       wired into the CI checks below so a red run blocks a merge.
+- [ ] **A.1.1 verification ladder — the simulation half.** Moved here from
+      Phase A, 2026-08-11 (Manuel's call: Phase A is bench-only). Specified in
+      `docs/interfaces/fpga-diagnostic-access.md` §6:
+      - a behavioural **`rhd2164_bfm`** replacing `rhd2164_model`, which cycles
+        two canned 4-word arrays and therefore cannot support *any* rung — it
+        does not decode MOSI, has no register file, and has no response
+        pipeline (§6.2);
+      - assertions **T8–T14** (§6.3), of which **T12 is the one that carries
+        weight**: the frame-boundary phase check for rung (d2), which no bench
+        test can perform because a static known value that is one frame stale
+        is the same value. Until T12 runs, rung (d)'s frame-boundary case is
+        untested, not passed;
+      - **T13** — that `data_source_sel` (word 229) actually selects, and that
+        its reset default really is real-data;
+      - the two-line fix to existing **T5**, whose `ChB - ChA == 1000`
+        invariant holds only in test-pattern mode and which therefore starts
+        failing the moment an A.1.1e bitstream exists. Expected, not a
+        regression.
 - [ ] **Make the RTL simulate under an open-source simulator.** Raised
-      2026-08-11 and **not optional** — every item in the bullet above depends
-      on it. Today the design simulates only in QuestaSim: under iverilog
+      2026-08-11 and **not optional** — every item in the two bullets above
+      depends on it. Today the design simulates only in QuestaSim: under iverilog
       (`-g2012`, compiles clean) time stops advancing at t=60 ns, right as
       `rhd_start` first pulses, and a bare probe with no testbench logic at all
       reproduces it. Three consequences, in increasing order of cost:

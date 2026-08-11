@@ -29,6 +29,25 @@ cd android-app
 ```
 Requirements: Android device API ≥ 31, USB debugging enabled. Target/compile SDK = 34.
 
+### Firmware (both STM32 targets)
+
+The ARM toolchain ships inside STM32CubeIDE and is **not** on `PATH` by default —
+it lives deep enough that a shallow `find` misses it:
+
+```bash
+export PATH=/opt/st/stm32cubeide_2.1.1/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.14.3.rel1.linux64_1.0.100.202602081740/tools/bin:$PATH
+
+# Kuntur MCU (headstage) — writes Debug/kuntur-mcu.elf / .hex
+cd /data/projects/kuntur/kuntur144/mcu/kuntur-mcu/Debug && make all -j8
+
+# WB09KE bridge — writes build/Vega_Bridge.bin / .elf / .hex
+cd wb09ke-bridge && make -j8      # TOOLCHAIN_PATH is already set in its Makefile
+```
+
+Both build clean from the CLI; STM32CubeIDE is not required to compile, only to
+debug. Flashing is separate — see the memory note on WB09KE NUCLEO flashing
+(GUI + physical RESET presses; the CLI fails "Unable to get core ID").
+
 ### PC app
 ```bash
 cd pc-app

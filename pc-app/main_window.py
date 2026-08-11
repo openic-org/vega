@@ -17,6 +17,7 @@ from PyQt6.QtGui import QFont
 from serial_reader import SerialReader
 from graph_widget  import GraphWidget
 from csv_recorder  import CsvRecorder
+from diagnostics   import RUNGS, RungRunner
 
 RECORDINGS_DIR = Path(__file__).parent / "recordings"
 BENCH_DIR      = Path(__file__).parent / "bench"
@@ -130,6 +131,7 @@ class MainWindow(QMainWindow):
         root.addLayout(self._build_controls())
         root.addLayout(self._build_channel_controls())
         root.addWidget(self._build_debug_panel())
+        root.addWidget(self._build_diagnostics_panel())
         self._graph = GraphWidget(DELIVERED_SPS)
         root.addWidget(self._graph, stretch=1)
 
@@ -195,6 +197,99 @@ class MainWindow(QMainWindow):
 
         row.addStretch(1)
         return row
+
+    def _build_diagnostics_panel(self) -> QGroupBox:
+        """A.1.1 verification ladder — docs/interfaces/fpga-diagnostic-access.md §4.2.
+
+        Checkable and unchecked by default. The register console underneath has
+        no write protection (matching the RTL), so it can corrupt the RHD
+        config table and leave the sampling cycle issuing nonsense until the
+        FPGA is reset. Gating it behind a deliberate click is the mitigation;
+        an FPGA reset is the documented recovery.
+        """
+        box = QGroupBox("Diagnostics — A.1.1 verification ladder")
+        box.setCheckable(True)
+        box.setChecked(False)
+        box.toggled.connect(self._on_diagnostics_toggled)
+
+        row = QHBoxLayout(box)
+        row.addWidget(QLabel("Rung:"))
+
+        self._combo_rung = QComboBox()
+        # Insertion order, not sorted() — RUNGS is declared in running order
+        # (link, then offset, then a-d), and that dependency is real: (a)-(d)
+        # are not interpretable until L and O have passed.
+        for key, rung in RUNGS.items():
+            self._combo_rung.addItem(rung.title, key)
+        row.addWidget(self._combo_rung)
+
+        self._btn_run_rung = QPushButton("Run")
+        self._btn_run_rung.clicked.connect(self._run_rung)
+        row.addWidget(self._btn_run_rung)
+
+        self._lbl_rung = QLabel("idle")
+        self._lbl_rung.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse)
+        row.addWidget(self._lbl_rung, stretch=1)
+
+        self._rung_runner = RungRunner(self._reader, self)
+        self._rung_runner.progress.connect(self._on_rung_progress)
+        self._rung_runner.finished.connect(self._on_rung_finished)
+        self._rung_runner.failed.connect(self._on_rung_failed)
+
+        box.setEnabled(True)
+        self._diag_box = box
+        return box
+
+    def _on_diagnostics_toggled(self, on: bool) -> None:
+        if not on:
+            self._rung_runner.abort("diagnostics panel closed")
+            self._lbl_rung.setText("idle")
+
+    def _run_rung(self) -> None:
+        key = self._combo_rung.currentData()
+        rung = RUNGS[key]
+        if not self._rung_runner.run(key):
+            self._lbl_rung.setText("busy — a rung is already running")
+            return
+        self._btn_run_rung.setEnabled(False)
+        self._btn_apply_channels.setEnabled(False)
+        print(f"\n=== {rung.title} ===\n{rung.note}\n")
+
+    def _on_rung_progress(self, line: str) -> None:
+        self._lbl_rung.setText(line.strip())
+        print(line)
+
+    def _on_rung_finished(self, key: str, results: list, all_passed: bool) -> None:
+        self._btn_run_rung.setEnabled(True)
+        self._btn_apply_channels.setEnabled(True)
+        verdicts = [r for r in results if not getattr(r, "info", False)]
+        if not verdicts:
+            summary = f"rung {key}: {len(results)} measurements recorded — read the console"
+        else:
+            n_ok = sum(1 for r in verdicts if r.ok)
+            summary = f"rung {key}: {n_ok}/{len(verdicts)} observations passed"
+        if all_passed:
+            self._lbl_rung.setText(f"✓ {summary}")
+            self._lbl_rung.setStyleSheet("color: #2e7d32;")
+        else:
+            self._lbl_rung.setText(f"✗ {summary} — see console")
+            self._lbl_rung.setStyleSheet("color: #c62828;")
+            hints = RUNGS[key].diagnosis
+            if hints:
+                print("\nDiagnosis — match the observed values against:")
+                for symptom, meaning in hints.items():
+                    print(f"  {symptom:<28} {meaning}")
+        print(f"\n{summary}\n")
+
+    def _on_rung_failed(self, key: str, reason: str) -> None:
+        self._btn_run_rung.setEnabled(True)
+        self._btn_apply_channels.setEnabled(True)
+        self._lbl_rung.setText(f"✗ rung {key} aborted: {reason}")
+        self._lbl_rung.setStyleSheet("color: #c62828;")
+        print(f"\nrung {key} ABORTED: {reason}")
+        print("The rung's restore step may not have run. An FPGA reset "
+              "restores every default unconditionally.\n")
 
     def _build_debug_panel(self) -> QGroupBox:
         box = QGroupBox("Debug Info")
