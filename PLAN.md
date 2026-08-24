@@ -1154,66 +1154,43 @@ Begins after A3. Ordering within Phase B is dependency-driven, not fixed.
       pass/fail output, coverage of the SPI0 command FSM's abort and desync
       paths (which is where A.1.1g's tag checks live and where a regression
       would be silent), an RHD2164 model that implements the two-command
-      pipeline and the ROM registers rather than four canned values, and these
-      wired into the CI checks below so a red run blocks a merge.
-- [ ] **FPGA timing constraints — the design is currently unconstrained.**
-      Raised 2026-08-11 (Manuel's question), scheduled for next session.
-      `source/impl_1/impl_1.pdc` contains **no `create_clock` at all**; its one
-      SDC line, `set_clock_uncertainty -setup -hold 0.125 [get_clocks clk]`,
-      references a clock that is never created, so it is dangling and does
-      nothing. Every path in the design — including the RHD2164 MISO capture —
-      closed by whatever the router happened to do. This is the most likely
-      root of the margin-sensitive behaviour recorded throughout the SKP
-      investigation, and of the commented-out ten-`BUF` delay chain on
-      `spi1_sck` in `kuntur_fpga.v`.
-
-      **Scope, in order:**
-      1. `create_clock` on `clkin` (32 MHz from MCU MCO3/PB14), and confirm
-         Radiant's derived PLL output clock (~44.55 MHz) is named and used.
-         Repair the dangling `set_clock_uncertainty` to match.
-      2. **`spi1_sck` as a generated clock** — `create_generated_clock
-         -divide_by 2`. Note this is an *assertion* about the FSM: `sck` is
-         decoded combinationally from `current_state`, not driven by a toggle
-         flop, so the tool cannot derive the relationship. It holds during the
-         shift states, which is when it matters.
-      3. **`set_input_delay` on `spi1_miso0`/`spi1_miso1` relative to
-         `sck_out`**, min and max, and **on both edges** (`-clock_fall
-         -add_delay`) — the RHD2164 is DDR and launches MISO A and MISO B on
-         opposite `sck` edges, so a rising-edge-only constraint leaves half the
-         data unconstrained. Values = `T_sck_pcb + T_co_RHD + T_miso_pcb`, from
-         the RHD2164 SPI-timing table plus a board/cable extraction (the link
-         runs over uHDMI).
-      4. Delete the stale `ldc_set_port` lines for `lvdsp` and `lvdsp2`, which
-         are not ports of `kuntur_fpga.v`.
-
-      **Expect this to REPORT A VIOLATION, and treat that as the deliverable.**
-      The capture flop is clocked by `clk`, not by `sck`: `sr_s2p` shifts on
-      `posedge clk` gated by `rx_a_en`/`rx_b_en`, and the FSM samples MISO on
-      the *very next* clk edge after `sck` changes. So the entire round trip —
-      `T_sck_out + T_pcb_out + T_co_RHD + T_pcb_in + T_route_in + T_setup` —
-      must fit inside **one clk period, 22.45 ns**. Plausible figures (~5 ns
-      LVDS output, ~9 ns RHD `t_co`, ~1.5 ns each way of cable, ~3 ns input
-      route+setup) land near 20 ns before clock uncertainty. Too tight to be
-      reliable, and consistent with the symptoms already recorded.
-
-      **Constraints will not fix it — they identify which structural fix is
-      needed**, and that part is RTL, not SDC:
-      - slow `sck` to two clk cycles per phase (costs sample rate; cheapest and
-        most robust);
-      - pipeline `rx_a_en`/`rx_b_en` so the capture edge moves one clk later
-        (keeps `sck` fast);
-      - `DELAYA` static input delay on the MISO pins to centre the sample point
-        (fine tuning only, not a full cycle);
-      - a PLL phase-shifted output clocking the receive side (the proper
-        source-synchronous answer; most work).
-
-      Device is **LIFCL-17-8UWG72C** (CrossLink-NX, speed grade 8), so
-      `DELAYA`, `IDDRX1F` and phase-shifted PLL outputs are all available.
-
-      **Sequencing:** do this *with* the other Phase B RTL work, not before the
-      remaining bench items. Real constraints change placement and routing,
-      which invalidates the bitstream the whole A.1.1 ladder was verified
-      against — the same argument that moved the §1.4 deletions here.
+      pipeline and the ROM registers rather than four canned values, a check
+      that the pipelined `csb` (`docs/interfaces/fpga-timing-constraints.md`
+      §6/§7 — landed 2026-08-24, only checked by STA so far, not simulation)
+      asserts/deasserts on the same state-relative timing as before the
+      pipelining, and these wired into the CI checks below so a red run
+      blocks a merge.
+- [x] **FPGA timing constraints + structural fix.** Raised 2026-08-11
+      (Manuel's question). Spec: `docs/interfaces/fpga-timing-constraints.md`.
+      **Status 2026-08-24: constraints landed, real violation found and
+      root-caused (RHD2164 MISO capture path), fixed by pipelining
+      `rx_a_en`/`rx_b_en` and (once that tightened `spi1_csb` to
+      near-zero margin) `csb` too. All four SPI1 signals now carry >1.5 ns
+      of setup margin; setup and hold both clean, 0 endpoints, 0.000 ns
+      negative slack, all corners (spec §5.5). Manuel's simulation pass
+      confirmed A.1.1's `SLOT_OFFSET = 3` slot-to-channel mapping held
+      through the `rx_a_en`/`rx_b_en` pipelining.**
+      **Deliberate sequencing deviation:** the plan's original note said do
+      the RTL fix *with* Phase B work, not before the remaining Phase A
+      bench items, since it changes the bitstream the A.1.1 ladder was
+      verified against. Manuel's call 2026-08-24: doing both together
+      anyway ("we need to change the bitstream anyway"), rather than
+      leaving a known-marginal RTL path in place through the rest of
+      Phase A. Open (spec §7): a simulation check on the `csb` pipelining
+      specifically (the `rx_a_en`/`rx_b_en` one already got that check,
+      now folded into the RTL testbench coverage item above); re-running
+      the A.1.1 bench ladder against the new bitstream. The board/cable
+      delay placeholders (1.5 ns) are staying as-is — no equipment to
+      measure at that resolution, and not load-bearing now that all four
+      SPI1 signals carry >1.5 ns of margin (spec §5.5).
+- [ ] **FPGA timing constraints — remaining pins.** Spec:
+      `docs/interfaces/fpga-timing-constraints.md` §7. Only SPI1
+      (MISO/MOSI/CSB, the RHD2164 link) is constrained. Still entirely
+      unconstrained: `spi0` (the MCU-facing SPI link — separate exercise
+      from SPI1's RHD2164 timing), async reset (`rstb`) recovery/removal
+      timing (2747 endpoints), and `serial_lvds_tx`/`cmd_is_00` (uHDMI
+      tunnel / debug, not yet built out). The design is not "fully
+      constrained" until these are addressed too.
 
 - [ ] **A.1.1 verification ladder — the simulation half.** Moved here from
       Phase A, 2026-08-11 (Manuel's call: Phase A is bench-only). Specified in
