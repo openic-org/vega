@@ -260,6 +260,18 @@ Ordered tasks, each with a numeric pass/fail.
 >   rather than in A.3 because it is an instrument defect, not a
 >   characterisation task.
 >
+>   **RESOLVED 2026-08-24 — root cause was unconstrained FPGA placement, not
+>   the LVDS3 pair.** Full investigation, hypotheses tested and ruled out
+>   (PCB trace skew, multi-drop reflections, timing margin, clock speed,
+>   `CALIBRATE`/config content), and the fix (pinning `spi1_rhd2164x2` and
+>   `controller0` to fixed placement regions in `impl_1.pdc`):
+>   `docs/interfaces/fpga-rhd2164-chip0-placement.md`. Verified by restoring
+>   the entire original design with placement pinned — both chips now
+>   confirmed responding with real channel data (channels 42 and 88) in the
+>   pc-app, not just digital toggling. Open items (kuntur_fpga.v cleanup,
+>   from-scratch synthesis re-verification) are in that spec's §5, not
+>   repeated here.
+>
 > **Rungs (b), (c) and (d) then also PASSED, all on chip1** (2026-08-11):
 >
 > - **(b) pipeline offset — exact.** Slots 28–32 returned `I N T A N`
@@ -798,16 +810,22 @@ in the same class as B.6's licensed-toolchain problem, not a convenience.
       `ADDR_WIDTH` being a parameter. Harmless today because both are 8, which is
       why it will survive until it doesn't. Should be `2**ADDR_WIDTH`.
 
-      **Worth checking before compacting further:** the regbank is initialised
-      word-by-word under an asynchronous reset, which forces flip-flop inference
-      rather than EBR — if so, 256×16 is ~4096 FFs of fabric and unused words are
-      not free. Confirm against the utilization report. If it did infer block
-      RAM, the holes cost nothing and the argument is purely clarity. A follow-on
-      option, deferred: split into three memories sized to purpose (config,
-      sampling, control), which matches how they are actually used — config
-      written once at boot and read sequentially, sampling read every frame,
-      control random-access driving combinational taps. They share one RAM out of
-      convenience, not behaviour.
+      **Confirmed 2026-08-24 (Manuel, floorplan observation during the chip0
+      placement-pinning investigation — see the FPGA timing constraints
+      spec's §7/open items for that investigation's own status): the regbank
+      is using a lot of FPGA area.** Consistent with the hypothesis above —
+      word-by-word initialisation under an asynchronous reset forces
+      flip-flop inference rather than EBR, so 256×16 is ~4096 FFs of fabric,
+      not free block RAM. Not yet re-confirmed against a utilization report
+      number, just visually obvious in the floorplan. **Action, deferred:**
+      reduce regbank area — the standing option is splitting into three
+      memories sized to purpose (config, sampling, control), matching how
+      they are actually used — config written once at boot and read
+      sequentially, sampling read every frame, control random-access driving
+      combinational taps. They share one RAM today out of convenience, not
+      behaviour. Do this after the chip0 investigation concludes, not
+      during — it's exactly the kind of RTL change that would confound the
+      current placement-pinning experiment.
 
       **Writes are left unrestricted** — no RTL write-protection on any word.
       Both the sampling table and the RHD config table are legitimately
@@ -1165,11 +1183,26 @@ Begins after A3. Ordering within Phase B is dependency-driven, not fixed.
       **Status 2026-08-24: constraints landed, real violation found and
       root-caused (RHD2164 MISO capture path), fixed by pipelining
       `rx_a_en`/`rx_b_en` and (once that tightened `spi1_csb` to
-      near-zero margin) `csb` too. All four SPI1 signals now carry >1.5 ns
-      of setup margin; setup and hold both clean, 0 endpoints, 0.000 ns
-      negative slack, all corners (spec §5.5). Manuel's simulation pass
-      confirmed A.1.1's `SLOT_OFFSET = 3` slot-to-channel mapping held
+      near-zero margin) `csb` too. Setup and hold both clean, 0 endpoints,
+      0.000 ns negative slack, all corners, both before (spec §5.5) and
+      after (spec §9) the chip0-placement fix landed. Manuel's simulation
+      pass confirmed A.1.1's `SLOT_OFFSET = 3` slot-to-channel mapping held
       through the `rx_a_en`/`rx_b_en` pipelining.**
+      **Update 2026-08-24, after the placement fix (spec §9.2): CSB's
+      margin against the 1.5 ns board/cable *estimate* narrowed** — it
+      moved from +1.563 ns to +1.462 ns (0°C) when the constraint set was
+      re-run on the placement-pinned, fully-restored design. Still
+      passing, still a small change (~0.1 ns), plausibly routing noise
+      from the two newly-pinned regions. Two things worth being precise
+      about here (Manuel, 2026-08-24): the 1.5 ns itself is an *estimate*,
+      never a measurement (spec §3), so this isn't "CSB fell below a known
+      real number" — the assumed number just got less headroom under it.
+      And the `rx_a_en`/`rx_b_en`/`csb` pipelining fix bought structural
+      margin against PCB delay by moving SPI1's outputs off combinational
+      logic onto a direct register-to-pad path — that margin holds
+      regardless of what the real board delay turns out to be. The other
+      three signals (MISO×2, MOSI) all *improved* with pinning (spec
+      §9.2).
       **Deliberate sequencing deviation:** the plan's original note said do
       the RTL fix *with* Phase B work, not before the remaining Phase A
       bench items, since it changes the bitstream the A.1.1 ladder was
@@ -1180,9 +1213,12 @@ Begins after A3. Ordering within Phase B is dependency-driven, not fixed.
       specifically (the `rx_a_en`/`rx_b_en` one already got that check,
       now folded into the RTL testbench coverage item above); re-running
       the A.1.1 bench ladder against the new bitstream. The board/cable
-      delay placeholders (1.5 ns) are staying as-is — no equipment to
-      measure at that resolution, and not load-bearing now that all four
-      SPI1 signals carry >1.5 ns of margin (spec §5.5).
+      delay estimates (1.5 ns) are staying as-is — resolving PCB delay at
+      this timescale needs an oscilloscope sampling in the 10s of GSa/s,
+      not equipment on hand, so this is an equipment ceiling rather than a
+      priority call — but CSB's narrowed margin against that estimate
+      (spec §9.2) is worth keeping in mind if real board numbers ever do
+      become available.
 - [ ] **FPGA timing constraints — remaining pins.** Spec:
       `docs/interfaces/fpga-timing-constraints.md` §7. Only SPI1
       (MISO/MOSI/CSB, the RHD2164 link) is constrained. Still entirely

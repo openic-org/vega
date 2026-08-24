@@ -30,6 +30,15 @@ written so the next person (including future Claude, which has no session
 memory) doesn't have to re-derive the clock topology or re-discover the
 Radiant syntax gotchas from scratch.
 
+Board/cable delay is an **estimate** (1.5 ns, §3), not a measurement —
+resolving PCB delay at this timescale needs an oscilloscope sampling in
+the 10s of GSa/s, not equipment on hand, so this is an equipment ceiling
+rather than a priority call. Independent of that estimate's accuracy, the
+`rx_a_en`/`rx_b_en`/`csb` pipelining fix (§6) moved SPI1's outputs off
+combinational logic onto a direct register-to-pad path, which buys
+structural margin against PCB delay regardless of what the real number
+turns out to be (§9.2).
+
 Companion: `PLAN.md` Phase B.1 (pointer only, no content duplicated there
 per working principle — see the memory note on this).
 
@@ -539,11 +548,18 @@ any of this needs revisiting.
       `SLOT_OFFSET = 3`) unchanged.
 - [x] **Decided against, 2026-08-24 (Manuel): real board/cable
       trace-length numbers.** `pcb_sck_ns`/`pcb_mosi_ns`/`pcb_miso_ns`/
-      `pcb_csb_ns` stay at the 1.5 ns placeholder permanently — no
-      equipment on hand to measure delay at that resolution, and not
-      load-bearing now that all four SPI1 signals carry >1.5 ns of margin
-      (§5.5). §5.3's sensitivity analysis stands as documentation of why
-      this was safe to decide, not as an open question.
+      `pcb_csb_ns` stay at the 1.5 ns estimate permanently — resolving
+      board delay at this timescale needs an oscilloscope sampling in the
+      10s of GSa/s, which isn't equipment on hand, so this is an equipment
+      ceiling rather than a priority call. Independent of whether 1.5 ns
+      is accurate, the `rx_a_en`/`rx_b_en`/`csb` pipelining fix (§6) moved
+      SPI1's outputs off combinational logic and onto a direct
+      register-to-pad path, buying structural margin against PCB delay
+      that holds regardless of the real number (§9.2). §5.3's sensitivity
+      analysis stands as documentation of the placeholder's impact, not as
+      an open question. §9.2 (2026-08-24, after placement pinning): CSB's
+      margin against the 1.5 ns estimate narrowed to +1.46 ns — still
+      passing, worth watching, not evidence the estimate itself was wrong.
 - [ ] A bench/simulation check specifically on the pipelined `csb` (§6,
       §5.5's follow-up fix) — the same class of confirmation the
       `rx_a_en`/`rx_b_en` simulation pass just gave `SLOT_OFFSET`, not yet
@@ -559,3 +575,173 @@ any of this needs revisiting.
 - [ ] Consider constraining `clk` on the PLL's `CLKOP` pin instead of the
       `clk` net, to silence Radiant's warning 70009502 cleanly (low
       priority — no evidence it's produced a wrong number so far).
+- [x] Restore the full constraint set (real `clkin`@31.25 ns, `spi1_sck`
+      generated clock, MISO/MOSI/CSB delays, multicycle exception) on top
+      of the placement-pinned design from
+      `fpga-rhd2164-chip0-placement.md`, and re-run §5's checks — done
+      2026-08-24, results and a real finding in §9.
+
+---
+
+## 8. Post-placement-fix baseline — `clkin`-only constraint (Manuel, 2026-08-24)
+
+Deliberate, acknowledged-as-incomplete STA run requested as a guideline to
+compare against if the full restoration (open item above) produces
+surprises. Design state: the chip0-placement fix is in
+(`macro_region_0`/`macro_region_1` pinning `spi1_rhd2164x2` and
+`controller0` — `fpga-rhd2164-chip0-placement.md`), and the full original
+RTL is restored (both chips confirmed live, channels 42 and 88 in the
+pc-app). `impl_1.sdc` itself is untouched from where §4-§7 left it: only
+the stray leftover clock is active —
+
+```
+create_generated_clock -name {clk} -source [get_pins {mypll/lscc_pll_inst/gen_no_refclk_mon.u_PLL.PLL_inst/REFCK}] -multiply_by 71 -divide_by 51 [get_pins {mypll/lscc_pll_inst/gen_no_refclk_mon.u_PLL.PLL_inst/CLKOP}]
+create_clock -name {clkin} -period 10 [get_ports clkin]
+```
+
+— i.e. `clkin` at the wrong 100 MHz (should be ~32 MHz / 31.25 ns), and
+none of `spi1_sck`/MISO/MOSI/CSB/multicycle from §4 present. Constraint
+coverage: 92.11%.
+
+### 8.1 Headline result
+
+Setup (both corners, 8_High-Performance_1.0V) and hold (`m` corner):
+**0 endpoints, 0.000 ns negative slack.** Clean across the board.
+
+### 8.2 Read this number with a correction factor — `clk`'s target is 3.15x too fast here
+
+`clk` is generated from `REFCK` (which tracks `clkin`) via `-multiply_by
+71 -divide_by 51`. With the stray `clkin` at 100 MHz, that makes `clk`'s
+**target** period 7.183 ns (139.2 MHz) — not the real 44.55 MHz (22.44 ns)
+the design actually runs at. The ratio is fixed in the SDC; only
+`clkin`'s value is wrong, so it drags `clk`'s target along with it, 3.15x
+too fast (139.2 MHz vs the real 44.55 MHz).
+
+**This makes the setup check in §8.1 strictly harder than reality, not
+easier.** The worst setup path found — `controller0/cnt0__i2` →
+`regbank/dout1_i14` (a 5-logic-level, 79%-route address-decode path into
+the config regbank; unrelated to SPI1) — passed with +0.346 ns slack at
+85°C / +0.552 ns at 0°C against the artificially tight 7.182 ns
+constraint. Once `clkin` is restored to its real ~31.25 ns period, that
+same path's setup budget grows to ~22.4 ns — roughly 15 ns of additional
+headroom on top of what's already a clean pass. **No setup risk expected
+anywhere in the design from the restoration itself; this path is not
+worth re-checking as a priority.**
+
+### 8.3 The number that *does* carry forward unchanged: hold on the RHD2164 DDR receive path
+
+Hold checks a fixed same-edge minimum delay — they don't scale with the
+clock period, so unlike §8.2's setup numbers, these are representative of
+the real restored/pinned design as-is. Every reported hold path is
+internal (register-to-register within `rxsr_a0`/`rxsr_a1`/`rxsr_b0` in
+`spi1_rhd2164x2`, and the equivalent in `spi0/rxsr`) — the same DDR
+shift-register capture logic the `rx_a_en`/`rx_b_en` pipelining fix (§6)
+targeted, not the SPI1 pad-to-pad paths themselves (those aren't checked
+here since MISO/MOSI/CSB have no I/O delay constraints active in this
+baseline). Every one of the ten worst hold paths reports **the same
++0.143 ns slack** — small, but consistently positive and structurally
+identical (single register hop, `REG_DEL` 0.142 ns against a 0.080 ns
+hold requirement). **This is the number to watch**: if the full
+constraint restoration or any future placement change erodes it, it'll
+show up here first, on this same set of internal DDR capture paths.
+
+### 8.4 Unconstrained scope (expected, not a new problem)
+
+`spi0_sck`/`spi0_mosi`/`spi0_csb`/`spi1_miso0`/`spi1_miso1`/`spi2_miso0`/
+`cmd_is_00`/`serial_lvds_rx`/`serial_lvds_tx`/`rstb` all report as
+unconstrained I/O — expected, since no `set_input_delay`/
+`set_output_delay`/generated clock exists yet for any of them in this
+deliberately-partial baseline. `spi1_rhd2164x2/txsr` and
+`spi1_rhd2164x2/spi_master_controller0/csb_reg` show as unconstrained
+start points for the same reason — their fan-out (the SPI1 output pads)
+has no downstream timing model without §4's constraints re-enabled.
+
+---
+
+## 9. Full constraint set restored on the placement-pinned design (Manuel, 2026-08-24)
+
+The real `clkin` (31.25 ns), `spi1_sck` generated clock, MISO/MOSI/CSB
+delays, `set_clock_uncertainty`, and the multicycle exception (§4) are
+all back in `impl_1.sdc`, on top of the chip0-placement fix and full RTL
+restoration (`fpga-rhd2164-chip0-placement.md`). This is the first STA
+run against that combination.
+
+### 9.1 Headline result
+
+Setup (both corners) and hold (`m` corner): **0 endpoints, 0.000 ns
+negative slack.** §8.2's prediction held — the `controller0`→`regbank`
+family of paths that were the tightest thing in the §8 baseline (+0.346 ns
+under the artificially fast 139 MHz target) now sit at **+10.9 to +11.4 ns**
+against the real 22.447 ns `clk` period. No setup risk anywhere in the
+design.
+
+### 9.2 SPI1 margins vs. §5.5 (same fixes, no placement pinning)
+
+| Endpoint | §5.5 (pre-pinning) | §9 (pinned + restored) | Change |
+|---|---|---|---|
+| **`spi1_csb`** | +1.581 / +1.563 ns | **+1.464 / +1.462 ns** | **−0.12 / −0.10 ns** |
+| `rxsr_a1` (MISO1) | +2.442 / +2.428 ns | +3.126 / +3.132 ns | +0.68 / +0.70 ns |
+| `rxsr_b1` (MISO1) | +2.507 / +2.493 ns | +3.334 / +3.338 ns | +0.83 / +0.85 ns |
+| `rxsr_a0` (MISO0) | +2.733 / +2.717 ns | +3.263 / +3.268 ns | +0.53 / +0.55 ns |
+| `rxsr_b0` (MISO0) | +2.733 / +2.717 ns | +3.471 / +3.474 ns | +0.74 / +0.76 ns |
+| `spi1_mosi` | +11.019 / +10.998 ns | +11.210 / +11.204 ns | +0.19 / +0.21 ns |
+
+All four MISO paths and MOSI **improved** with placement pinning — plausibly
+tighter/more direct routing now that `spi1_rhd2164x2` and `controller0`
+have fixed locations instead of whatever P&R picked incrementally before.
+
+**CSB is the one signal that got worse, and it's now the tightest path in
+the whole SPI1 link at +1.46 ns — below the 1.5 ns `pcb_csb_ns` value in
+§3.** Two corrections to how that number should be read, per Manuel
+2026-08-24:
+
+- **The 1.5 ns is an *estimate*, not a measurement** — §3 already flags it
+  as "NOT yet extracted from real trace lengths or a bench measurement."
+  So "CSB dropped below 1.5 ns" isn't "CSB dropped below a known real
+  number" — it's "the margin against an *assumed* number got thinner."
+  Nothing about the real PCB delay is any better or worse understood than
+  it was before this run.
+- **Why no real measurement is planned: it's an equipment ceiling, not a
+  priority call.** Resolving a board delay at this timescale needs an
+  oscilloscope sampling in the 10s of GSa/s — not equipment on hand. This
+  isn't "not worth measuring yet," it's "can't measure it here."
+- **The `rx_a_en`/`rx_b_en`/`csb` pipelining fix (§6) helps regardless of
+  what the real PCB delay turns out to be.** It moved output generation
+  off combinational logic and onto a direct register-to-pad path, which
+  is what bought CSB's slack back from near-zero (§5.4→§5.5) in the first
+  place. That structural margin exists independent of the 1.5 ns
+  estimate's accuracy — even if the real board delay is somewhat larger
+  than assumed, the design has more room to absorb it now than it did
+  before the fix.
+
+Net: still a real, small (~0.1 ns) regression from placement pinning worth
+tracking, and CSB is the signal to watch first if anything shifts again —
+but it's not evidence the 1.5 ns budget has been "used up" by something
+concrete, since that number was never measured to begin with. See the
+updated PLAN.md B.1 entry.
+
+### 9.3 Hold margins dropped sharply — expected, traced to `set_clock_uncertainty`
+
+The ten worst hold paths in this run range **0.012–0.018 ns** — far
+tighter than §8.3's uniform +0.143 ns on the same class of internal DDR
+capture paths. This is not a placement regression: `impl_1.sdc` now
+carries `set_clock_uncertainty -setup -hold 0.125 [get_clocks clk]`,
+which wasn't active in §8's baseline. Each hold report's `Uncertainty`
+line shows the full 0.125 ns added directly against the requirement
+(e.g. Path 1: `0.887 → 1.012`), and 0.143 − 0.125 = 0.018 ns — matching
+the reported slack on most of the ten paths almost exactly (two paths,
+`regbank/ram[9][15]` and `regbank/ram[191][2]`, come in slightly tighter
+at 0.012/0.016 ns due to a smaller common-path-skew cancellation, −0.023 ns
+vs. the more typical −0.040 ns). **The constraint is doing exactly what
+it's supposed to do** — 0.125 ns is the uncertainty budget the design is
+meant to absorb, and every path still clears it with margin to spare, just
+thinner margin than the unconstrained §8 baseline showed. Still 0 hold
+errors. Worth knowing this is normal before anyone sees a sub-0.02 ns
+number and assumes something broke.
+
+### 9.4 Scope check
+
+Constraint coverage 92.19% (vs. 92.11% in §8) — negligible change, as
+expected; `spi0`, `rstb`, `serial_lvds_tx`/`serial_lvds_rx`, `cmd_is_00`
+remain unconstrained exactly as tracked in §7's open items, nothing new
+here.
