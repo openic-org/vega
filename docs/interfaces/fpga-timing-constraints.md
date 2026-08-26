@@ -745,3 +745,101 @@ Constraint coverage 92.19% (vs. 92.11% in §8) — negligible change, as
 expected; `spi0`, `rstb`, `serial_lvds_tx`/`serial_lvds_rx`, `cmd_is_00`
 remain unconstrained exactly as tracked in §7's open items, nothing new
 here.
+
+---
+
+## 10. `spi0` and `rstb` — asynchronous exceptions, drafted 2026-08-26
+
+Both ports are architecturally different from SPI1, so "constrain them"
+does not mean "give them a clock" — it means declaring them as explicit,
+justified exceptions instead of leaving them as silent unconstrained I/O.
+Drafted here for Manuel to add to `impl_1.sdc` and verify in Radiant
+(same division of labour as §4-§9: the constraint text and rationale are
+worked out here, the actual entry into the tool and STA re-run happen on
+the bench). Not yet added to `impl_1.sdc` as of this writing — Manuel is
+mid-edit on that file for the item-4 placement-region work (macros for
+`regbank`/`ch_sel0`/`controller1`/`fifo0`/`spi0`, extending the
+`macro_region_0`/`macro_region_1` pinning from
+`fpga-rhd2164-chip0-placement.md` to more blocks), so this section stays
+text-only here until that's clear of the file.
+
+### 10.1 `spi0` — genuinely asynchronous, not a second clock domain
+
+`spi_slave` (`spi_controllers.v:250`) does not use `spi0_sck` as a clock
+anywhere. `spi0_csb` and `spi0_sck` both go through `edge_detector`
+(`spi_controllers.v:334`) — a plain 2-flop `clk`-domain synchronizer — and
+`spi_slave_controller`'s FSM reacts only to the synchronized
+`csb_redge`/`csb_fedge`/`sck_redge`/`sck_fedge` pulses, never the raw
+pins. `spi0_mosi` is shifted into `sr_s2p` (`rx_en`) exactly one `clk`
+cycle after `sck_redge` fires — i.e. deliberately mid-bit-period, the same
+margin strategy a real sck-domain shift register would use, except the
+"domain" here is `clk` throughout and `csb`/`sck`/`mosi` are ordinary
+asynchronous data inputs to it. `spi0_miso` is driven purely from `clk`-domain
+logic (`sr_p2s`) with no defined relationship to when the far end (the
+STM32WB0, bit-banging GPIOs per `fpga_spi.c`) samples it.
+
+There is no clock-edge relationship to declare on either side, so
+`set_input_delay`/`set_output_delay` (SPI1's tool) doesn't apply here —
+the correct STA statement is that these paths are exempt from
+clock-relative timing checks by design:
+
+```tcl
+set_false_path -from [get_ports {spi0_csb spi0_sck spi0_mosi}]
+set_false_path -to   [get_ports spi0_miso]
+```
+
+This is not "we didn't get to it" — it's the standard treatment for an
+interface whose safety comes from the RTL's synchronizer plus the
+one-cycle-late capture, not from any clock relationship Radiant could
+check. It also converts `spi0` from silently-unconstrained I/O
+(§8.4/§9.4) into an explicit, justified exception, which is what closes
+PLAN.md B.1's "`spi0` ... not started" item — "fully constrained" for an
+asynchronous interface means documented exceptions, not a fabricated
+clock.
+
+**What this does NOT verify**, and STA cannot: whether `fpga_spi.c`'s
+bit-bang gap between SCK edges leaves enough margin for `edge_detector`'s
+2-clk synchronizer delay plus the 1-clk capture delay. That is a
+firmware/protocol timing budget, invisible to a false-pathed interface by
+definition, and its only evidence is empirical — A.2's full round-trip and
+the whole A.1.1 ladder already run correctly on the bench at the
+firmware's current bit-bang rate. If that rate is ever increased
+significantly, this margin should be re-examined on its own terms, not by
+looking for it in an STA report that has been told not to check it.
+
+### 10.2 `rstb` — false-pathed by necessity, not fixed
+
+`rstb` drives `negedge rstb` directly in every sequential `always` block
+across the design (~2747 endpoints, PLAN.md B.1). Assertion needs no
+timing check by construction — that is what an asynchronous reset is for.
+Removal/recovery is the real question: whether `rstb`'s rising edge lands
+far enough from a `clk` edge that every flop in the design exits reset on
+a consistent cycle. This design has never synchronized that — every
+module takes the raw `rstb` pin as its async reset directly; there is no
+2-flop release-synchronizer anywhere generating an internal `rstb_sync`.
+
+```tcl
+set_false_path -from [get_ports rstb]
+```
+
+This is standard practice for a single global reset asserted for an
+extended period at power-up rather than toggled during normal operation,
+and it is the only way to make Radiant's coverage report honest about
+this signal — but it is a **documented risk acceptance, not a fix**: it
+tells Radiant not to check recovery/removal timing, it does not make a
+borderline-timed release safe. A flop or two exiting reset one cycle later
+than its neighbours, on an unlucky release edge, is exactly the kind of
+one-time, power-up-only glitch that would be extremely hard to catch on
+the bench (indistinguishable from any other early-boot flakiness) and
+easy to dismiss if it were ever seen. The robust fix — synchronizing
+`rstb`'s deassertion in RTL and distributing `rstb_sync` in place of the
+raw pin everywhere — is real, tracked follow-up work (RTL change,
+Manuel's queue), not something this SDC exception substitutes for.
+
+### 10.3 Net effect on coverage
+
+Once both are added, `spi0`/`rstb` move from "unconstrained" to
+"explicitly excepted" in Radiant's report — expect constraint coverage to
+rise from 92.19% (§9.4), though `serial_lvds_tx`/`serial_lvds_rx`/
+`cmd_is_00` remain genuinely open (the uHDMI tunnel isn't built yet) and
+should still show as unconstrained after this change, not disappear.

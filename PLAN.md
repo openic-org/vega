@@ -816,16 +816,94 @@ in the same class as B.6's licensed-toolchain problem, not a convenience.
       is using a lot of FPGA area.** Consistent with the hypothesis above —
       word-by-word initialisation under an asynchronous reset forces
       flip-flop inference rather than EBR, so 256×16 is ~4096 FFs of fabric,
-      not free block RAM. Not yet re-confirmed against a utilization report
-      number, just visually obvious in the floorplan. **Action, deferred:**
-      reduce regbank area — the standing option is splitting into three
-      memories sized to purpose (config, sampling, control), matching how
-      they are actually used — config written once at boot and read
-      sequentially, sampling read every frame, control random-access driving
-      combinational taps. They share one RAM today out of convenience, not
-      behaviour. Do this after the chip0 investigation concludes, not
-      during — it's exactly the kind of RTL change that would confound the
-      current placement-pinning experiment.
+      not free block RAM.
+
+      **Quantified 2026-08-26**, from the per-macro area reports generated
+      as a byproduct of the item-4 placement-region work
+      (`regbank_macro/kuntur_fpga_impl_1.arearep`): `regbank` alone uses
+      **4147 of the whole design's 4657 register bits — 89% of the
+      design's flip-flop usage, 30% of the entire device's register
+      capacity** — plus 2720 of 2752 `WIDEFN9` wide-fanin LUTs (the
+      256-deep read-address muxing for `dout0`/`dout1`). `4147 ≈
+      256 × 16 + addr_reg/staged_h` confirms the array really is 256
+      individual flip-flop words, not EBR. The device already uses real
+      EBR elsewhere (`PDPSC16K` × 8, almost certainly `fifo0`) — this is
+      specific to how `ram` (`components.v:457`) is coded, not a device
+      limitation.
+
+      **Root cause, precisely — corrects the "split by purpose" framing
+      below.** The area driver is not memory *size*, it's that every one
+      of 256 words gets an explicit `if (!rstb) ram[N] <= <distinct
+      value>;` (`components.v:516-700`). EBR has no way to async-reset 256
+      words to 256 different nonzero values combinationally in one edge —
+      its only power-on mechanism is bitstream-loaded INIT content, and
+      any reset it supports is a synchronous clear to one shared value.
+      Splitting into three memories by purpose, as originally proposed,
+      would **not** fix most of this: 67 of the 256 words (34 config + 33
+      sampling) carry live, distinct default values and would need the
+      *same* per-word async-reset pattern in any split, in three smaller
+      boxes instead of one. Splitting cleanly helps only the **control**
+      region (192–255): just ~6 of those 64 words are actually live
+      (`ch_a`, `ch_b`, `stream_enable`, `data_source_sel`, plus the 4 dead
+      `rhd2164_sampling_cmd0-3` words A.1.4 already flags for deletion) —
+      those become plain named registers, near-zero cost. Separately, 112
+      words (96–191, 240–255) are reserved-for-future-use padding, reset
+      to 0, and are *currently* costing real flip-flops (~1792 of the
+      4096 bits) for storing nothing.
+
+      **Decided 2026-08-26 (Manuel): move to EBR for the config/sampling
+      tables.** Checked first whether anything depends on a bare `rstb`
+      pulse (no bitstream reprogram) restoring the RHD config/sampling
+      table to defaults — answer: not today, but Phase B's planned
+      `doctor`/self-recovery capability (B.5/B.6) was going to want
+      *something* like it. Resolved by choosing a better mechanism for
+      that, not by keeping the expensive one: restoring known-good
+      defaults becomes a **firmware-issued sequence of `REG_WRITE`s**
+      over the existing runtime-writable regbank interface (already fully
+      supported end-to-end by A.1.1g's uniform indirect write path — no
+      new RTL needed for this), rather than an implicit side effect of a
+      shared hardware reset pin that also resets everything else in the
+      design. This fits the regbank's existing "dumb, uniform, rewritable
+      at runtime" philosophy (A.1.1g's "writes are left unrestricted"
+      decision) better than an RTL-side reset trick would, and gives
+      `doctor` an explicit, host-driven remedy action instead of an
+      implicit one. **New tracked item, Phase B (B.5/B.6):** MCU-side
+      "restore regbank defaults" helper — a table of the known-good
+      config/sampling words pushed via existing `REG_WRITE` sequencing —
+      as part of the `doctor`/pre-session self-test machinery. *(Claude,
+      once B.5/B.6 work starts.)*
+
+      **DONE 2026-08-26** — landed directly as "the real fix" (`kuntur`
+      `2021971`), skipping the cheap-padding-only intermediate step:
+      - [x] Restructured `ram`'s config+sampling+free region (words 0–191)
+            to use an `initial` block (bitstream-configuration-time power-on
+            values) instead of active per-word `if (!rstb)` assignment, so
+            it can synthesize as EBR. `ch_a`/`ch_b`/`stream_enable`/
+            `data_source_sel` pulled out into small dedicated registers with
+            their own unchanged async reset — required, not optional: those
+            four are read combinationally every cycle by `ch_sel` and a hard
+            EBR primitive has no combinational output for a fixed address.
+      - [ ] `rhd2164_sampling_cmd0-3` deletion (A.1.4, words 192–195) —
+            deliberately **not** done in this pass, since it needs
+            `kuntur_fpga.v` port-list changes and that file was mid-edit for
+            the item-4 placement work below at the time. Still tracked there.
+
+      **Measured post-synthesis (Manuel, 2026-08-26)** —
+      `regbank_macro/kuntur_fpga_impl_1.arearep`: **4147 → 35 register bits
+      (30% → 0.253% of the device)**, now backed by 2 real `PDPSC16K` EBR
+      blocks (was 0). Whole-design register usage: **4657 → 545 bits (33.7%
+      → 3.9% of the device)**; the 256-deep read-address `WIDEFN9` wide-mux
+      LUTs collapsed **2752 → 32**. **STA clean** (Manuel). One small,
+      expected residual: `DPR16X4 × 16` (small LUT-based distributed RAM,
+      not registers) appears in the same report — almost certainly the
+      dead `rhd2164_sampling_cmd0-3` combinational taps forcing a small side
+      copy of the table, since LSE doesn't optimize across the module
+      boundary those ports sit on. Resolves itself once the A.1.4 deletion
+      above lands; harmless in the meantime (no register cost).
+
+      Not yet exercised on the bench — functional confirmation of
+      `SET_CHANNELS`/channel selection round-trip (matching A.2) against
+      this rewrite is still open.
 
       **Writes are left unrestricted** — no RTL write-protection on any word.
       Both the sampling table and the RHD config table are legitimately
@@ -1220,13 +1298,23 @@ Begins after A3. Ordering within Phase B is dependency-driven, not fixed.
       (spec §9.2) is worth keeping in mind if real board numbers ever do
       become available.
 - [ ] **FPGA timing constraints — remaining pins.** Spec:
-      `docs/interfaces/fpga-timing-constraints.md` §7. Only SPI1
-      (MISO/MOSI/CSB, the RHD2164 link) is constrained. Still entirely
-      unconstrained: `spi0` (the MCU-facing SPI link — separate exercise
-      from SPI1's RHD2164 timing), async reset (`rstb`) recovery/removal
-      timing (2747 endpoints), and `serial_lvds_tx`/`cmd_is_00` (uHDMI
-      tunnel / debug, not yet built out). The design is not "fully
-      constrained" until these are addressed too.
+      `docs/interfaces/fpga-timing-constraints.md` §7, §10. Only SPI1
+      (MISO/MOSI/CSB, the RHD2164 link) is constrained.
+      **`spi0` and `rstb` — drafted 2026-08-26, not yet in `impl_1.sdc`.**
+      Both are asynchronous-exception cases, not missing clocks: `spi0`
+      is architecturally async to `clk` (no sck-domain logic anywhere —
+      `edge_detector` 2-flop synchronizer + one-cycle-late capture), so
+      the fix is `set_false_path -from`/`-to` on its four ports, not
+      `set_input_delay`; `rstb` is a single global async reset with no
+      release synchronizer (~2747 endpoints), so `set_false_path -from`
+      documents the exception but is a risk acceptance, not a fix — the
+      robust version needs an RTL `rstb_sync` release synchronizer,
+      tracked separately. Full derivation and the exact SDC lines: §10.
+      Blocked on Manuel adding them to `impl_1.sdc` (currently mid-edit
+      on that file for the item-4 placement-region work below) and
+      re-running STA. Still genuinely unconstrained after this lands:
+      `serial_lvds_tx`/`serial_lvds_rx`/`cmd_is_00` (uHDMI tunnel /
+      debug, not yet built out) — expected, not a gap.
 
 - [ ] **A.1.1 verification ladder — the simulation half.** Moved here from
       Phase A, 2026-08-11 (Manuel's call: Phase A is bench-only). Specified in
