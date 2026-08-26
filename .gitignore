@@ -36,6 +36,13 @@ android-app/app/build/
 android-app/.gradle/
 android-app/.idea/
 
+# Android Studio project state actually lives at the repo root (opened with
+# the repo itself as the project, not android-app/) — the rules above never
+# matched it, so it sat tracked in history until 2026-08-26.
+/.gradle/
+/.idea/
+/local.properties
+
 # Python
 __pycache__/
 *.pyc
@@ -48,3 +55,8 @@ pc-app/recordings/vega_*.csv
 
 # Raw oscilloscope waveform captures (large; settings .txt files still tracked)
 pc-app/analysis/scope/*.csv
+
+# Bench/soak data — research data, slated for a private research repo per
+# PLAN.md B.1 ("Move research data out"), not vega history.
+pc-app/bench/*.csv
+pc-app/stall_log_*.txt
