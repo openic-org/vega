@@ -984,9 +984,16 @@ in the same class as B.6's licensed-toolchain problem, not a convenience.
             already runs the sampling cycle; this is an assertion, not new
             stimulus.
       - [ ] **Delete `rhd2164_sampling_cmd0-3`** — module ports, top-level
-            wires, and the `ram` assigns. Frees words 192–195. Do it before
-            someone wires something to them believing they are the intended
-            path.
+            wires, and the `regbank` (renamed from `ram`, 2026-08-26 — see
+            B.3) assigns. Frees words 192–195. Do it before someone wires
+            something to them believing they are the intended path.
+            **Now unblocked and worth prioritizing**: `kuntur_fpga.v` is
+            no longer mid-edit for the item-4 placement work that
+            deferred this during the 2026-08-26 session, and the
+            `DPR16X4 × 16` residual noted in `regbank_macro`'s arearep
+            (a small LUT-based side copy of the table, forced by these
+            dead ports still being wired to top-level output) should
+            disappear once this lands.
       - [ ] MCU helper `FPGA_SPI_SetSamplingCmd(uint16_t cmd)` →
             `reg_write16(80, cmd)`. One line on top of the A.1.1g rewrite.
 
@@ -1297,10 +1304,7 @@ Begins after A3. Ordering within Phase B is dependency-driven, not fixed.
       priority call — but CSB's narrowed margin against that estimate
       (spec §9.2) is worth keeping in mind if real board numbers ever do
       become available.
-- [ ] **FPGA timing constraints — remaining pins.** Spec:
-      `docs/interfaces/fpga-timing-constraints.md` §7, §10. Only SPI1
-      (MISO/MOSI/CSB, the RHD2164 link) is constrained.
-      **`spi0` and `rstb` — drafted 2026-08-26, not yet in `impl_1.sdc`.**
+- [x] **`spi0` and `rstb` false-path exceptions — landed 2026-08-26.**
       Both are asynchronous-exception cases, not missing clocks: `spi0`
       is architecturally async to `clk` (no sck-domain logic anywhere —
       `edge_detector` 2-flop synchronizer + one-cycle-late capture), so
@@ -1309,12 +1313,21 @@ Begins after A3. Ordering within Phase B is dependency-driven, not fixed.
       release synchronizer (~2747 endpoints), so `set_false_path -from`
       documents the exception but is a risk acceptance, not a fix — the
       robust version needs an RTL `rstb_sync` release synchronizer,
-      tracked separately. Full derivation and the exact SDC lines: §10.
-      Blocked on Manuel adding them to `impl_1.sdc` (currently mid-edit
-      on that file for the item-4 placement-region work below) and
-      re-running STA. Still genuinely unconstrained after this lands:
+      tracked separately below. Full derivation:
+      `docs/interfaces/fpga-timing-constraints.md` §10. Confirmed active
+      in the 2026-08-26 STA run — constraint coverage rose from 92.19%
+      to 96.4491%, matching exactly what closing this gap should do.
+- [ ] **FPGA timing constraints — still-remaining pins.** Spec:
+      `docs/interfaces/fpga-timing-constraints.md` §7, §10. SPI1
+      (MISO/MOSI/CSB) and now `spi0`/`rstb` (above) are constrained.
+      Still genuinely unconstrained, expected rather than a gap:
       `serial_lvds_tx`/`serial_lvds_rx`/`cmd_is_00` (uHDMI tunnel /
-      debug, not yet built out) — expected, not a gap.
+      debug, not yet built out — confirmed via the 2026-08-26 STA run's
+      unconstrained-ports listing, alongside `spi2_miso0`/RHS2116).
+      **New, not yet designed:** the `rstb_sync` release synchronizer
+      that would make `rstb`'s false-path exception a real fix instead
+      of a risk acceptance — this is real, tracked follow-up RTL work,
+      not something the false-path exception substitutes for.
 
 - [ ] **A.1.1 verification ladder — the simulation half.** Moved here from
       Phase A, 2026-08-11 (Manuel's call: Phase A is bench-only). Specified in
@@ -1415,11 +1428,60 @@ requirement, requirement→test traceability in CI, verification *evidence* reta
 
 Design the **seams**; file layout follows.
 
-- [ ] Split RTL: `common/` (ram, fifo, spi, edge_detector) · `afe/rhd2164/` · `app/`.
-      `components.v` is ~1,100 lines holding nine modules across all three tiers.
+- [x] **Split RTL — done 2026-08-26.** `components.v`/`spi_controllers.v`/
+      `intan.vh` (three grab-bag files) split into `source/impl_1/`
+      `common/` (`edge_detector`, `shift_registers`, `spi_slave`
+      +`spi_slave_controller`, `spi_master`+`spi_master_controller_std`,
+      `fifo`) · `afe/rhd2164/` (`rhd2164_controller`,
+      `spi_master_rhd2164x2`+`spi_master_controller`, `rhd2164_defs.vh`)
+      · `app/` (`ch_sel`, `main_controller`, `dtx_mux_reg`,
+      `test_pattern_gen`, `fifo_din_mux`, `regbank` — renamed from `ram`,
+      `regbank_map.vh`) · `tb/` (`kuntur_tb.sv`, `rhd2164_model` split
+      into its own file). Layering decided by checked macro/coupling
+      usage per module, not by guessing — e.g. `spi_master_rhd2164x2`
+      lives in `afe/` not `common/` despite being structurally generic
+      SPI, because its dual `rx_a_en`/`rx_b_en` capture path exists
+      specifically for the RHD2164's DDR output; `regbank` lives in
+      `app/` not `common/` because its `initial` block hardcodes the
+      actual RHD2164 command sequence. Each file `` `include``s its own
+      macro dependencies (guarded), rather than one top-level
+      include-order chain. Deleted along the way: `old.v` (fully dead)
+      and `spi_master_rhd2164` (the unused single-chip SPI master
+      variant — confirmed zero references anywhere, including the
+      testbench). Verified via full resynthesis: identical area/timing
+      to before the move (see A.1.1g's regbank entry and the
+      parametrization item below for the numbers). `kuntur` `af50765`,
+      `09d81f1`, `5c1f24f`. See `log/2026-08-26.md`.
 - [ ] **Decouple the AFE.** `ch_sel`'s ports (`data_a0/b0/a1/b1`) are shaped by "two
       RHD2164s with two outputs each" — AFE topology has leaked into application
-      logic. Define a generic `{channel, sample, valid}` source.
+      logic. Define a generic `{channel, sample, valid}` source. **Not done by
+      the 2026-08-26 file split** — that moved `ch_sel` into `app/` (correctly,
+      since it's still coupled) but didn't change its ports; this decoupling is
+      still open.
+- [x] **Parametrization review — done 2026-08-26.** Checked every module in
+      the reorganized tree for whether its `parameter`s (or lack of them)
+      were a good design choice — found four with false generality, two
+      of them real bugs: `ch_sel`'s `n` didn't actually resize `ch0`/`ch1`
+      (hardcoded `[15:0]`, silently mismatching `dout`'s `[2*n-1:0]` for
+      any `n != 16`); `spi_master`/`spi_master_rhd2164x2`'s `n`/`m` didn't
+      resize their FSMs (`spi_master_controller`/`_std` hand-unroll
+      exactly 16 SCK states regardless of the parameter — real data
+      corruption risk if ever overridden); `regbank`'s `DATA_WIDTH`/
+      `ADDR_WIDTH` looked free but are pinned by unparametrized protocol
+      assumptions in `main_controller.v`/`dtx_mux_reg.v`. Fixed all four
+      by converting to `localparam` (kept in the `#(...)` header only
+      because Verilog needs the value declared there before the port
+      widths that use it) rather than rewriting the timing-critical,
+      hardware-verified `spi_master_rhd2164x2` FSM to genuinely scale —
+      that risked disturbing `fpga-timing-constraints.md`'s cycle-exact
+      csb/rx_a_en/rx_b_en analysis for no present benefit. Deleted `m`
+      (confirmed unused in both spi_master variants) and the now-illegal
+      `#(...)` overrides at every instantiation site — all were restating
+      the existing default anyway. Verified via full resynthesis + STA
+      (twice — once via direct CLI, once by Manuel): area and timing
+      identical to before every fix, 0 negative-slack endpoints all
+      corners, constraint coverage 96.4491%. `kuntur` `20523a8`,
+      `21a2f34`. See `log/2026-08-26.md`.
 - [ ] **Transport abstraction in firmware.** `stream_app.c` (1,023 lines) is welded to
       BLE while v1 needs the same stream over LVDS.
 - [ ] Move `STREAM_DIAG_*` behind a hook interface — inline diagnostics on the hot
