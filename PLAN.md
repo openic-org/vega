@@ -1822,16 +1822,234 @@ Design the **seams**; file layout follows.
       yet confirmed, is that "overshoot" was a packet-rate-arithmetic
       artifact of bursty delivery rather than the chip genuinely
       producing samples faster than its own SPI clock permits.
-      **Manuel, 2026-08-27: agrees with the derivation.** Next: (1)
-      independent oscilloscope verification — output `spi1_csb` as a
-      test signal and measure the real period directly; (2) adjust the
-      PLL to actually hit 30,000 SPS, then re-verify; (3) once re-flashed,
-      a fresh full-stream BLE-throughput measurement to confirm delivery
-      still keeps up with the corrected (now genuinely 30,000) production
-      rate — the 2026-08-03 result (506.0 pps × 59 ≈ 29,854 SPS
-      delivered, matching the *old* ~29,348 production rate almost
-      exactly) doesn't by itself prove BLE has headroom for the new,
-      slightly higher target.
+      **Manuel, 2026-08-27: agrees with the derivation.**
+
+      **Bench session started 2026-08-27 — sequencing decided (Manuel):**
+      the FPGA needs reflashing regardless, so do the oscilloscope check
+      and the PLL retune in the same pass rather than verify-then-
+      re-verify. Order: (1) oscilloscope — output `spi1_csb` as a test
+      signal, measure the real period directly, against the *current*
+      (pre-retune) bitstream, to check the RTL cycle-count derivation
+      above before spending a resynthesis on it; (2) PLL retune to
+      actually hit 30,000 SPS; (3) **A.1.4's dead-port cleanup bundled
+      in** — deleting `rhd2164_sampling_cmd0-3` needs its own
+      `kuntur_fpga.v` port-list edit, and since that file is already
+      being resynthesized for the PLL change, doing both in one pass
+      avoids a second resynthesis cycle; (4) one resynthesis + reflash;
+      (5) full functional round-trip verification against the new
+      bitstream (the regbank EBR rewrite, RTL reorg, and parametrization
+      fixes from 2026-08-26 have *also* never been bench-verified — this
+      is that check too, not a separate pass); (6) re-check `spi1_csb`'s
+      period on the scope against the retuned rate; (7) a fresh full-
+      stream recording to confirm BLE keeps up with the corrected rate —
+      the 2026-08-03 result (506.0 pps × 59 ≈ 29,854 SPS delivered,
+      matching the *old* ~29,348 production rate almost exactly) doesn't
+      by itself prove BLE has headroom for the new, slightly higher
+      target. That recording is also the first real (non-ramp) data
+      since A.1.1e (2026-08-11) — unblocks A.6.4's DECISION 2 sentinel-
+      rate measurement as a side effect.
+
+      **Flagged, not blocking today's FPGA work:** the MCU firmware has
+      not been reflashed since 2026-08-11 (Manuel, 2026-08-27) — the
+      A.1.1g protocol rewrite (`fpga_spi.c`, tagged 3-transfer writes,
+      self-addressing reads) built clean that day but PLAN.md's A.2
+      status has said "still untested on hardware" ever since, and no
+      session log between then and now records flashing it. Step (5)'s
+      round-trip verification needs the MCU actually running that
+      firmware — worth confirming what's currently flashed before
+      relying on the register console, since a stale MCU speaking the
+      pre-A.1.1g protocol against the new regbank would fail in a way
+      that could be mistaken for an FPGA-side regression.
+      **Checked 2026-08-27, before the reflash:** MCU responded correctly
+      to `REG_READ16` (word 196) with a well-formed reply — confirms the
+      MCU is running A.1.1g-era firmware, not the pre-2026-08-11 protocol,
+      so no flash needed there. (`SET_CHANNELS`'s readback mismatched at
+      that point — expected, the FPGA regbank layout it was checked
+      against was still pre-reflash.)
+
+      **Step (1), oscilloscope — done, 2026-08-27 (Manuel):** `spi1_csb`
+      period measured directly: **1.03 µs**. Matches the RTL-derived
+      figure above (46 cycles × 22.447 ns = 1032.57 ns) to within 0.25%
+      — well inside oscilloscope rounding. Cycle count confirmed correct
+      by independent hardware measurement, against the pre-retune
+      bitstream as planned.
+
+      **Steps (2)-(4), PLL retune + A.1.4 cleanup + resynthesis +
+      reflash — done, 2026-08-27 (Manuel).** Exact new PLL value and its
+      own oscilloscope re-verification not yet reported here.
+
+      **Step (5), round-trip verification — partially done, 2026-08-27.**
+      Checked post-reflash: `STOP_STREAMING` → `SET_CHANNELS(5,6)` →
+      readback `(5,6)` (exact match) → `REG_READ16(196)`/`REG_READ16(197)`
+      both read back exactly what was written → `START_STREAMING` — full
+      SPI0/regbank protocol round-trip clean. **But real-data path check
+      surfaced a likely regression**, unrelated to the protocol round
+      trip: friendly channel 42 (chip0's range, 0–63) read a flat `-1`
+      (`0xFFFF`), zero variance over 745 packets; friendly channel 88
+      (chip1's range, 64–127) showed real, varying data
+      (std ≈ 13,232). **This is the exact signature of the dead-chip0-
+      MISO bug** root-caused and fixed 2026-08-24 (unconstrained
+      placement of `spi1_rhd2164x2`/`controller0`,
+      `fpga-rhd2164-chip0-placement.md`) — same symptom, same channel
+      range, and 42/88 are the identical pair that session used to
+      confirm the fix. **Confirmed by Manuel, 2026-08-27: a real
+      regression, same root cause class as before — placement, not
+      logic.**
+
+      **Corrected by Manuel mid-investigation: the actual broken signals
+      are MOSI/SCK, not MISO.** The MISO-side analysis below (pad
+      distance, `rxsr_a0`/`rxsr_b0`'s extra `LUT4`) was a red herring —
+      recorded here for completeness since it's still-true data about the
+      MISO path, but it is **not** the cause of this regression.
+
+      **Fix approach, isolated on a stripped-down bring-up build**
+      (`kuntur_fpga.v` with everything but `spi1_rhd2164x2` commented
+      out, `start` tied high, `impl_1.sdc` entirely commented out except
+      the original stray 100 MHz `clkin` line — a deliberate "both chips
+      respond" electrical-only check with zero timing constraints
+      active). **Both chips confirmed responding on this build.** Old
+      placement approach: one coarse region (`mr0`, anchor R20C56, 9×8)
+      pinning the whole `spi1_rhd2164x2` macro — anchored near
+      `spi1_miso1`'s pad (`PB56`), nowhere near the MOSI/SCK/CSB pad
+      cluster (`spi1_csb`=`PB70`, `spi1_sck`=`PB68`, `spi1_mosi`=`PB64`).
+      New approach: `impl_1.pdc` now names every individual FF in
+      `spi_master_controller0` (the FSM driving MOSI/SCK/CSB) via
+      `ldc_create_group`, pinned to a small `region0` (anchor R20C69D,
+      4×6) — anchored *at* the pad cluster instead. **Verified placement
+      footprint** (GUI, Manuel, cross-checked against the subset
+      independently recovered from `.twr`'s path listings — consistent,
+      no conflicts): rows R21–23, full A–D at columns C70–71, plus two
+      single-slice extensions at R21C71D and R22C72D. Tight and compact,
+      essentially sitting on top of the pads it drives.
+
+      **Found while verifying the group's cell list: a fragile
+      constraint, independent of the chip0 bug itself.**
+      `ldc_create_group`'s cell list includes
+      `spi1_rhd2164x2/spi_master_controller0/i6_1_lut`, which **does not
+      exist in the current netlist** —
+      `WARNING <1026001> - impl_1.pdc (41): No cell matched
+      'spi1_rhd2164x2/spi_master_controller0/i6_1_lut'.`
+      (`kuntur_fpga_impl_1.mrp:142`, `automake.log:1902`). Radiant warns
+      and silently drops the cell from the group rather than failing the
+      build — confirmed via the GUI instance count (52, not the 53 the
+      `.pdc` list implies) and cross-checked against
+      `kuntur_fpga_impl_1.mrp:215`'s unrelated `Block
+      spi1_rhd2164x2/rxsr_a0/i6_1_lut was optimized away` (a
+      *different*, coincidentally-same-named LUT, under `rxsr_a0` not
+      `spi_master_controller0`). `i1_3_lut`/`i1_4_lut`/
+      `i1_4_lut_adj_1-6` are the same *class* of name — LSE's own
+      auto-generated numbering, not anything named in the RTL — and
+      happened to still resolve this run, but carry the identical risk:
+      nothing guarantees these survive a future resynthesis unchanged.
+      **This is the concrete answer to "how do we make this constrained
+      or verified"**: an enumerated list of synthesis-auto-named cells is
+      a constraint that degrades silently (a log warning, easy to miss,
+      not a build failure) rather than loudly.
+
+      **Root framing, worked out with Manuel 2026-08-27:** `spi1_mosi`/
+      `spi1_sck`/`spi1_csb` are shared — one FPGA pad each, fanning out
+      on the PCB to *both* RHD2164 chips (`spi_master_rhd2164x2.v`: a
+      single `mosi`/`sck`/`csb` port each, only `miso`/`miso1` are
+      per-chip). FPGA-internal placement can't differentially compensate
+      chip0 vs. chip1 for a shared signal — both see the same edge at
+      the same instant off the pad. What tight placement actually does
+      is minimize the FPGA-internal share of the fixed total period,
+      leaving more of it for the external PCB share — and since chip0's
+      and chip1's traces are presumably different lengths, whichever is
+      longer has less slack to begin with, which is why one chip fails
+      while the other doesn't (both bugs today, and A.1.1's original
+      2026-08-11 finding, are all this same shape). `impl_1.sdc`'s
+      MOSI/CSB `set_output_delay -max` uses a uniform, never-measured
+      1.5 ns board/cable placeholder (the file says so directly) as if
+      both traces were equal — tight placement has been standing in for
+      an honest bound on that real, likely-asymmetric external delay.
+
+      **Decided, 2026-08-27 (Manuel): cannot be measured with equipment
+      on hand** — resolving trace-length asymmetry at this timescale
+      needs sub-1 ns resolution (a GHz-bandwidth oscilloscope) *and*
+      physical probe access to the relevant pads, neither available.
+      Sharpens the existing 2026-08-24 "equipment ceiling" note in
+      `fpga-timing-constraints.md` rather than replacing it. **Decision:
+      fix the placement constraint instead** — pin `spi_master_controller0`
+      as a whole instance/region (`ldc_set_location -region region0
+      [get_cells spi1_rhd2164x2/spi_master_controller0]`, RTL-stable
+      hierarchical name, not synthesis-auto-named leaf cells), matching
+      how `spi1_rhd2164x2` itself was pinned before — rather than the
+      current enumerated-cell-list `ldc_create_group`. **In progress.**
+      Still open, separate from this: an automated check for "No cell
+      matched" warnings post-PAR generally (B.1's enforcement-ratchet
+      philosophy — few, fast, reliable checks), so any future case of
+      this class fails loudly instead of silently.
+
+      **Next, per Manuel:** re-add the blocks removed for this isolation
+      test (`regbank`, `ch_sel0`, `controller0`, `controller1`/
+      `main_controller`, `fifo0`, `muxreg0_spi0`, `test_pattern_gen0`,
+      `fifo_din_mux0`, `spi0`), re-enable `impl_1.sdc`'s commented-out
+      constraints (all of it — clocks, MISO/MOSI/CSB delays, the
+      `spi1_mosi` hold multicycle exception, `spi0`/`rstb` false-paths),
+      then decide the group-vs-region question above before the next
+      resynthesis. Device left in a safe streaming state (channels 42/88
+      selected) from the earlier round-trip test, before this isolation
+      build replaced it.
+
+      **RESOLVED, 2026-08-27 (Manuel).** Went further than the single
+      `spi_master_controller0` fix discussed above — restored the
+      **whole-design** whole-instance placement scheme from the
+      2026-08-26 "item-4" work (all `ldc_set_location -region <name>
+      [get_cells <RTL-instance-name>]`, no enumerated leaf-cell lists
+      anywhere), described as "the latest design we got working":
+
+      | Region | Anchor | W×H | Cell |
+      |---|---|---|---|
+      | `mregion0` | R20C38 | 10×5 | `spi1_rhd2164x2` (MISO capture *and* the MOSI/SCK/CSB-driving FSM together) |
+      | `mregion1` | R20C48 | 6×5 | `ch_sel0` |
+      | `mregion2` | R8C42 | 22×5 | `fifo0` |
+      | `mregion3` | R8C34 | 8×5 | `regbank0` |
+      | `mregion4` | R13C39 | 3×4 | `controller0` |
+      | `mregion5` | R13C52 | 2×6 | `fifo_din_mux0` |
+      | `mregion6` | R4C38 | 4×4 | `controller1` |
+      | `mregion7` | R4C42 | 5×4 | `spi0` |
+
+      A.1.4's dead-port cleanup (`rhd2164_sampling_cmd0-3`) also landed
+      in this same pass. **Full verification, all four legs:**
+
+      - **Placement — confirmed via `.twr`.** All of `spi1_rhd2164x2`'s
+        sub-instances (both `rxsr_a0`/`rxsr_b0`/`rxsr_a1`/`rxsr_b1` MISO
+        capture *and* `spi_master_controller0`'s `csb_reg`) landed
+        together in one compact cluster, **R21–24 × C42–47**, inside the
+        declared `mregion0` (R20–24 × C38–47) — unlike every placement
+        tried earlier today, MISO and MOSI/SCK/CSB logic are now
+        co-located rather than split across the die.
+      - **Timing — clean.** `1.3 Overall Summary`: **0 endpoints, 0.000 ns
+        total negative slack on all 3 corners** (setup 85°C/0°C, hold
+        m/0°C). Constraint coverage 98.1954%. Worst `spi1_sck`-related
+        margins 1.270 ns / 1.953 ns (both comfortably positive). Only 2
+        design warnings, both the known/expected `spi2_miso0`
+        (disabled RHS2116) ones — **zero** placement/cell-matching
+        warnings, confirming the RTL-stable-name approach has no
+        equivalent to today's earlier `i6_1_lut` fragility.
+      - **Area — improved vs. the 2026-08-26 baseline.**
+        `SLICE 595/6912 (9%)`, `LUT 543/13824 (4%)`, `REG 545/13824 (4%)`,
+        `EBR 10/24 (42%)` — SLICE/LUT dropped from 645/641 (register
+        count unchanged, as expected), consistent with A.1.4 actually
+        landing this time: confirmed zero `rhd2164_sampling_cmd` references
+        in `kuntur_fpga.v` (only an explanatory comment survives in
+        `regbank.v`), and the `DPR16X4` residual noted in every area
+        report since 2026-08-26 is **gone**.
+      - **Functional round-trip — clean, on real hardware.**
+        `STOP_STREAMING` → `SET_CHANNELS(42,88)` → readback `(42,88)`
+        (exact match) → `START_STREAMING`, all acked. Both friendly
+        channel 42 (chip0) and 88 (chip1) streaming real, varying data
+        (std ≈ 10,889 and ≈ 10,754 respectively — not flat, not stuck) —
+        matches what Manuel sees directly in the pc-app's own
+        visualization for both chips.
+
+      **Still open, tracked separately:** an automated check for "No
+      cell matched"-class warnings post-PAR, so a future case of this
+      failure shape (any project, any cell) fails loudly rather than
+      silently (B.1 enforcement-ratchet philosophy). Both repos have a
+      full day of uncommitted work sitting in the tree — worth a
+      checkpoint commit before anything else changes.
 - [ ] **Bridge UART TX ring-buffer silent drop** — noticed 2026-08-06 while
       diagnosing the RX overrun; not yet confirmed to actually occur.
       `VEGA_UART_Write()` drops bytes that don't fit when the ring is full
