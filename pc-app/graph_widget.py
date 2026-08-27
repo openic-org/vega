@@ -8,6 +8,9 @@ import pyqtgraph as pg
 from PyQt6.QtCore import QTimer
 from PyQt6.QtWidgets import QWidget, QVBoxLayout
 
+from packet_parser import is_fifo_underrun
+from rhd2164_units import counts_to_uv
+
 BUFFER_SECONDS   = 10
 UI_REFRESH_HZ    = 30
 WINDOW_SECONDS   = 5.0   # default display window
@@ -50,7 +53,12 @@ class GraphWidget(QWidget):
         for i, (color, label) in enumerate(zip(colors, labels)):
             plot = pg.PlotWidget(title=label)
             plot.showGrid(x=False, y=True, alpha=0.3)
-            plot.setLabel("left", "Signal", units="LSB")
+            plot.setLabel("left", "Amplitude", units="µV")
+            # Values plotted here are already converted to microvolts (see
+            # _refresh) — disable pyqtgraph's automatic SI-prefix rescaling,
+            # which otherwise assumes `units` names a base unit (e.g. "V")
+            # and would try to re-prefix already-scaled data.
+            plot.getAxis("left").enableAutoSIPrefix(False)
             plot.enableAutoRange(axis="y", enable=True)
             plot.setMouseEnabled(x=False, y=False)
             curve = plot.plot(pen=pg.mkPen(color, width=1))
@@ -59,10 +67,9 @@ class GraphWidget(QWidget):
             layout.addWidget(plot)
 
     def add_batch(self, timestamps_us: np.ndarray, ch0: np.ndarray, ch1: np.ndarray):
-        # Drop FPGA FIFO underrun sentinels (0x8000 = -32768 on BOTH channels) —
-        # not real samples. ch0 alone can legitimately be -32768 once per 16-bit
-        # ramp wrap (ch1 = ch0+1000 = -31768 then), so both must match.
-        valid = ~((ch0 == np.int16(-32768)) & (ch1 == np.int16(-32768)))
+        # Drop FPGA FIFO underrun sentinels — see packet_parser.is_fifo_underrun
+        # for the rule and its current known limitation against real data.
+        valid = ~is_fifo_underrun(ch0, ch1)
         if not np.any(valid):
             return
         timestamps_us = timestamps_us[valid]
@@ -108,8 +115,12 @@ class GraphWidget(QWidget):
         if len(ts) == 0:
             return
         x = (ts - ts[0]) / 1e6   # seconds from window start
-        self._curves[0].setData(x, ch0.astype(np.float32))
-        self._curves[1].setData(x, ch1.astype(np.float32))
+        # CH0/CH1 are amplifier channels in normal operation (SET_CHANNELS
+        # selects two of the 128 amplifier channels) — AMPLIFIER_UV_PER_LSB
+        # is the correct step size for both. counts_to_uv's float32 output
+        # avoids the raw-int16 plot pyqtgraph was showing before A.6.2.
+        self._curves[0].setData(x, counts_to_uv(ch0.astype(np.float32)))
+        self._curves[1].setData(x, counts_to_uv(ch1.astype(np.float32)))
 
     def clear(self):
         self._head = 0

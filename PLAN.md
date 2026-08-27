@@ -1189,6 +1189,22 @@ of it.**
 
 ## A.6 — pc-app readiness for real signals  *(Claude)*
 
+> **Status 2026-08-27 (Sonnet session, same day as the handoff):**
+> A.6.1/A.6.2/A.6.3 **done and verified** (A.6.2's DECISION 1 confirmed by
+> Manuel — 0.195/37.4/74.8 µV per LSB, `pc-app/rhd2164_units.py`). A.6.4
+> single-sourced (`packet_parser.is_fifo_underrun`) but its DECISION 2 is
+> still open and its empirical measurement is blocked — no real (non-ramp)
+> recording exists anywhere on this machine yet. **A.6.5's spec is fully
+> agreed** (`docs/interfaces/recording-format.md`) after real back-and-forth
+> that changed the design materially — see that spec and the updated B.5
+> "SPS overshoot" item for what changed and why — but **implementation is
+> still deliberately not started**: it needs both today's bench session
+> (the connect flow and `csv_recorder.py` it touches) and Manuel's
+> in-progress PLL retune/oscilloscope verification (the sidecar's
+> `sample_rate` figure depends on the result) to close out first. Work
+> done on branch `session-2026-08-27-a6`, per the working constraint below
+> — not yet merged.
+>
 > **Handed to Sonnet 2026-08-27.** Scoped and sequenced by Opus in the same
 > session; the intent is that this section is executable without re-deriving
 > anything from the rest of the plan. Read this whole section before starting
@@ -1209,9 +1225,9 @@ of it.**
 > do every other item and leave that one stated — do not pick a plausible
 > value and proceed, because two of the three end up in published numbers.
 
-### A.6.1 — Fix `serial_reader.py` crash on `num_pairs=0`  *(no decision, do first)*
+### A.6.1 — Fix `serial_reader.py` crash on `num_pairs=0`  *(no decision, do first)*  ✅ **DONE 2026-08-27**
 
-- [ ] Found 2026-08-06 while testing the A.2 readback feature. The monotonicity
+- [x] Found 2026-08-06 while testing the A.2 readback feature. The monotonicity
       clamp indexes the sample array unconditionally in the resync loop:
       `serial_reader.py:214` (`packet.timestamps_us[0]`) and `:221`
       (`packet.timestamps_us[-1]`). A header-only or malformed packet (empty
@@ -1222,10 +1238,24 @@ of it.**
       Fix in the reader, not by making `parse()` return `None` — a zero-pair
       packet is still a real packet whose `seq_num` must feed drop detection, and
       discarding it would corrupt the sequence-gap count.
+      **Fixed:** guarded the whole monotonicity-clamp block on
+      `len(packet.timestamps_us) > 0`; `_last_ts_us` is deliberately left
+      unchanged on an empty packet rather than advanced to a fabricated value.
+      **Verified two ways, not just read-through:** (1) mutation check — the
+      exact pre-fix `IndexError` at `serial_reader.py:214` reproduces on demand
+      by stashing the fix; (2) a real pty-loopback regression test,
+      `pc-app/test_serial_reader.py`, drives the actual `SerialReader.run()`
+      thread with real wire-framed packets (not a call into `parse()` directly,
+      since the bug was in the reader's indexing, not the parser) — one case
+      sandwiches a zero-pair frame between two real ones, one puts it first
+      (before `_last_ts_us` is ever set). Signal-driven with a watchdog timeout
+      rather than fixed sleeps after an earlier version proved flaky against
+      real QThread scheduling. 5/5 clean runs; fails deterministically against
+      the unfixed code. `QT_QPA_PLATFORM=offscreen python3 test_serial_reader.py`.
 
-### A.6.2 — Display in physical units (µV)  *(DECISION 1 in front of it)*
+### A.6.2 — Display in physical units (µV)  *(DECISION 1 in front of it)*  ✅ **DONE 2026-08-27**
 
-- [ ] **Plotting raw int16 is not acceptable for a neural recorder.**
+- [x] **Plotting raw int16 is not acceptable for a neural recorder.**
       `graph_widget.py:_build_ui` currently sets
       `plot.setLabel("left", "Signal", units="LSB")`; that axis must read µV.
 
@@ -1236,6 +1266,18 @@ of it.**
       a wrong value is invisible on screen and silently wrong in a methods
       section. Working principle 3 applies directly. There is no RHD2164
       datasheet in either repo — ask Manuel for the number *and* the page.
+      **Resolved 2026-08-27.** Located on Manuel's machine
+      (`~/Downloads/Intan_RHD2000_series_datasheet.pdf` — the RHD2164-specific
+      datasheet has no Electrical Characteristics table of its own, confirmed
+      by search). Read the rendered page image directly, not `pdftotext` — the
+      2026-08-24 session found `pdftotext` mis-tabling numeric values in this
+      document family. Page 6, symbol `V_LSB`, three rows, all confirmed by
+      Manuel and all now sourced in `pc-app/rhd2164_units.py`:
+      **`AMPLIFIER_UV_PER_LSB = 0.195`** µV (referred to amplifier input — what
+      CH0/CH1 are in normal operation), `AUX_ADC_UV_PER_LSB = 37.4` µV, and
+      `SUPPLY_SENSE_UV_PER_LSB = 74.8` µV. The last cross-checks exactly
+      against A.1.1f's independently-derived `VDD = 0.0000748 × result` note
+      (0.0000748 V = 74.8 µV) — two independent sources agreeing.
 
       Two configuration facts already verified in the RTL, both load-bearing
       for this conversion (`kuntur` `source/impl_1/afe/rhd2164/rhd2164_defs.vh`):
@@ -1255,16 +1297,40 @@ of it.**
       datasheet source cited in a comment. It is needed by the graph, by the
       sidecar (A.6.5) and by `analyze_recording.py`; three copies is how the
       sentinel rule below became wrong in three files at once.
+      **Wired into `graph_widget.py`:** axis relabelled "Amplitude"/µV,
+      `enableAutoSIPrefix(False)` on the left axis (values are already in µV;
+      pyqtgraph's SI-prefix autoscaling assumes `units=` names a base unit and
+      would otherwise re-prefix an already-scaled value), `_refresh()` now
+      plots `counts_to_uv(ch0)`/`counts_to_uv(ch1)`. Verified end to end
+      offscreen through the real widget, not just the conversion function in
+      isolation: 1000 raw counts → 195.0 µV on the actual plotted curve data,
+      underrun filtering still correct on the converted values.
 
-### A.6.3 — Sensible amplitude ranges / autoscale  *(depends on A.6.2)*
+### A.6.3 — Sensible amplitude ranges / autoscale  *(depends on A.6.2)*  ✅ **DONE 2026-08-27**
 
-- [ ] Do this **after** the µV conversion, not before — the ranges are only
+- [x] Do this **after** the µV conversion, not before — the ranges are only
       meaningful in physical units. Spikes are ~50–500 µV, LFP ~mV.
       Note the consequence of `RHD_DSPEN = 0` above: raw DC offset may be
       large compared to the signal, so a naive full-range autoscale will
       flatten the neural content against its own baseline. Whatever is done
       here, the graph must not silently hide saturation — a rail-to-rail
       channel and a quiet channel must look different.
+      **Resolved 2026-08-27.** `enableAutoRange(axis="y")` was already enabled
+      (pre-existing), and per-window min/max autorange is the correct strategy
+      here — it tracks the *visible* signal's actual range rather than a fixed
+      full-ADC-span display, which is exactly what avoids the DSPEN=0 DC-offset
+      flattening risk. The only change needed was operating on physical (µV)
+      values instead of raw counts, which A.6.2 already did. Verified through
+      the real widget (forced layout + `updateAutoRange()`, since an
+      offscreen/unshown widget never gets the resize event that normally
+      triggers it): a flat/railed +32767-count channel settles at a
+      non-degenerate range centred on the true rail (~6389–6390 µV, matching
+      32767 × 0.195 µV); a single-sample window doesn't produce `NaN`; and a
+      synthetic ~200 µV-std spike-scale signal settles the axis on roughly
+      [-930, +765] µV — tracking the actual signal, not the ±6390 µV full ADC
+      span. No saturation-highlight UI was added beyond this — that's a
+      Phase-B polish decision (PLAN.md already scopes "polished UI is Phase
+      B" elsewhere in A.2), not implied by this bullet's literal ask.
 
 ### A.6.4 — Underrun sentinel against real (non-ramp) data  *(DECISION 2)*
 
@@ -1306,6 +1372,21 @@ of it.**
       against a real (non-ramp) recording what the sentinel rate actually looks
       like now, and report the number — that measurement is what makes the
       decision above answerable.
+      **Single-sourcing done 2026-08-27.** New `packet_parser.is_fifo_underrun(ch0,
+      ch1)`, documented with both the rule and its known post-A.1.1e limitation
+      inline so the ambiguity travels with the code, not just this plan.
+      `graph_widget.py` and `analyze_recording.py` both now call it instead of
+      restating the boolean-and; confirmed no other copy exists anywhere in
+      `pc-app/` (`grep`'d for `32768`/`0x8000` across every `.py` file — the only
+      other hits are diagnostic-message strings, not logic).
+      **The empirical measurement could not be done** — checked every recording
+      in `pc-app/recordings/` plus `~/Downloads/vega_*.csv`: all dated
+      2026-07-24 through 2026-08-03, which predates A.1.1e (2026-08-11) by at
+      least a week. There is no real (non-ramp) recording anywhere on this
+      machine yet. DECISION 2 is still fully open; the first real recording
+      from today's bench session (or any future one) is what unblocks this
+      measurement — report the sentinel rate against whichever recording comes
+      out of it first.
 
 ### A.6.5 — Recording metadata sidecar  *(DECISION 3 — spec first)*
 
@@ -1338,6 +1419,54 @@ of it.**
       registers and there is no version handshake (B.6). Do not invent a value or
       leave a field silently blank: spec the field, and have the writer record an
       explicit "unknown" until B.6 supplies it.
+
+      **Spec fully agreed 2026-08-27** (`docs/interfaces/recording-format.md`)
+      after a real design discussion with Manuel, not a rubber-stamp — three
+      of his four objections changed the design materially:
+      - **Filter settings, firmware/bitstream version must come from the
+        actual hardware, not "unknown" placeholders.** Checked what's really
+        available: RHD2164 filter registers (regs 4, 8–11, 12–13) are
+        readable *today*, no new RTL/firmware, via the same `RHD_READ(n)`
+        mechanism A.1.1 already proved on hardware — read once at connect
+        (not per-recording) and cached, generalizing the same
+        provenance-tagged pattern `channels` needed anyway (§2.1).
+        Firmware/bitstream version genuinely aren't obtainable yet — tracked
+        as new Phase B work against the existing B.5/B.6 items rather than
+        left open-ended.
+      - **`sample_rate` — the biggest change.** The original "nominal
+        constant + measured_sps" design was wrong on two counts: the
+        "nominal 30,000" framing itself doesn't match any real measurement
+        on this project (see B.5's "SPS overshoot" item, reframed the same
+        day), and `row_count/duration` wouldn't have revealed FIFO-underrun
+        data loss anyway, since underrun samples are written as sentinel
+        rows, not omitted. Replaced with the actual FPGA-derived rate
+        (cycle-counted from RTL — see B.5), and reshaped `sample_rate` into
+        a config-named object so a future per-mode lookup table (multi-
+        channel modes, PLAN.md's roadmap) is additive, not a schema break.
+      - **CSV needs its own version**, not just the JSON sidecar — a leading
+        `# vega-recording-format-version: 1` comment line, versioned
+        independently of the sidecar's `format_version` since the two
+        schemas can change independently. Existing readers need dynamic
+        `skiprows` detection so every pre-A.6.5 recording still parses.
+
+      **Found while writing the spec, not previously tracked anywhere:**
+      `main_window.py` has no persisted "last-verified" channel state.
+      `_on_channels_readback` compares against `_pending_channels` to drive the
+      `✓ Verified` UI label, then discards it — the only durable channel state
+      is the spinbox value (what the operator last *typed*, not what was last
+      *confirmed on the FPGA*), and `_btn_rec` enables purely on `connected`,
+      independent of channel-apply state. The spec (§2.1) requires persisting
+      that state, with a `provenance` field (`verified_readback` /
+      `unverified_requested` / `unknown`) so the sidecar says which case it
+      is rather than presenting an unverified value with false confidence.
+
+      **Implementation still deliberately not started** — two independent
+      reasons, both from Manuel 2026-08-27: the pc-app is on today's
+      bench-session path (`main_window.py`'s connect flow and
+      `csv_recorder.py` both need touching), and `sample_rate`'s exact
+      figure depends on his in-progress PLL retune + oscilloscope
+      verification (B.5). Starting now would mean redoing it once the PLL
+      changes. Wait for both to close out.
 
 ---
 
@@ -1674,7 +1803,35 @@ Design the **seams**; file layout follows.
 
 - [ ] **1.7% FPGA FIFO underrun rate** (1,924,235 / 111,946,128 on the hour soak) —
       real underruns, never investigated
-- [ ] **SPS overshoot** — measured ~30,700–31,900 vs. the FPGA's 30,000; unresolved
+- [ ] **SPS overshoot — reframed 2026-08-27, in progress.** Raised while
+      designing A.6.5's `sample_rate` sidecar field
+      (`docs/interfaces/recording-format.md` §3). Cycle-counted the
+      current RTL rather than relying on the measured-overshoot framing:
+      `spi_master_rhd2164x2.v` (42 cycles/SPI1 transaction) +
+      `rhd2164_controller.v`'s outer loop (+4 cycles) = 46 `clk`
+      cycles/sampling slot × 33 slots/frame = 1,518 cycles/frame; at
+      `clk = 44.549 MHz` (`pll0.ldc`, PLL `×71 ÷51` off 32 MHz `clkin`)
+      that's 34.074 µs/frame → **≈29,348 SPS per channel, not 30,000** —
+      a real ~2.2% shortfall from the PLL's clock choice, not a
+      measurement artifact. Cross-validates to within 0.1% against
+      2026-08-03's measured *production* (FPGA ground-truth) rate of
+      29,350–29,390 SPS. The every-above-30,000 figures on record
+      (05-04, 05-15, this item's own "~30,700–31,900") are all
+      **delivered/BLE packet-rate** measurements (`pkt/s × 59`), a
+      different quantity from production rate — working hypothesis, not
+      yet confirmed, is that "overshoot" was a packet-rate-arithmetic
+      artifact of bursty delivery rather than the chip genuinely
+      producing samples faster than its own SPI clock permits.
+      **Manuel, 2026-08-27: agrees with the derivation.** Next: (1)
+      independent oscilloscope verification — output `spi1_csb` as a
+      test signal and measure the real period directly; (2) adjust the
+      PLL to actually hit 30,000 SPS, then re-verify; (3) once re-flashed,
+      a fresh full-stream BLE-throughput measurement to confirm delivery
+      still keeps up with the corrected (now genuinely 30,000) production
+      rate — the 2026-08-03 result (506.0 pps × 59 ≈ 29,854 SPS
+      delivered, matching the *old* ~29,348 production rate almost
+      exactly) doesn't by itself prove BLE has headroom for the new,
+      slightly higher target.
 - [ ] **Bridge UART TX ring-buffer silent drop** — noticed 2026-08-06 while
       diagnosing the RX overrun; not yet confirmed to actually occur.
       `VEGA_UART_Write()` drops bytes that don't fit when the ring is full
@@ -1695,6 +1852,14 @@ Design the **seams**; file layout follows.
       and B.6's version/name handshake, and belongs in B.2's FPGA register-map
       interface spec. Not blocking A.1; A.1.1g deliberately ships with writes
       unrestricted.
+      **Also needed by A.6.5** (confirmed with Manuel 2026-08-27): the recording
+      metadata sidecar's `bitstream_version` field reads `"unknown"` until this
+      lands — a hand-maintained version constant in a new read-only regbank
+      word, same `initial`-block mechanism as the 2026-08-26 EBR rewrite. Checked
+      2026-08-27 whether Lattice's `USERCODE` field could substitute instead:
+      no — it's currently unused (`impl_1.xcf:33`,
+      `VerifyUsercode value="FALSE"`) and is a JTAG-programmer feature in any
+      case, not reachable over the SPI0 path the MCU actually uses.
 - [ ] **pc-app can't distinguish a busy-rejection from any other timeout** — the
       MCU rejects (and logs) commands arriving while `s_command_busy` is held, but
       the pc-app only ever sees "no response within 2 s" and reports the same
@@ -1744,6 +1909,13 @@ Design the **seams**; file layout follows.
 - [ ] **Version/name handshake** replacing the bare `"Kuntur-Headstage"` string match
       (`app_ble.c:582`) — a mismatched pair must report *"bridge v1.2 cannot talk to
       headstage v0.9"*, not scan forever in silence.
+      **Also needed by A.6.5** (confirmed with Manuel 2026-08-27): the recording
+      metadata sidecar's `firmware_version` field reads `"unknown"` until this
+      exists. Checked 2026-08-27: no version constant is compiled into the MCU
+      firmware anywhere (`grep`'d `App/*.c`/`.h` for `VERSION`/`__DATE__`/UID —
+      nothing), and no existing command can fetch one. Needs a version constant
+      plus a way to carry it back — piggyback on an existing 0xFFF3 response, or
+      a new command.
 
 **First-run path:** pinned dependencies/lockfile/`pyproject.toml` (currently `>=`
 only) · serial port auto-detect (`serial_reader.py` already imports `list_ports`) ·

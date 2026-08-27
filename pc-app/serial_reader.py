@@ -211,14 +211,22 @@ class SerialReader(QThread):
                 # fixes backwards jumps from BLE burst delivery where multiple
                 # packets share the same RTC base timestamp.  Genuine forward
                 # gaps (missed CIs) are left untouched.
-                if self._last_ts_us > 0 and packet.timestamps_us[0] <= self._last_ts_us:
-                    new_base = self._last_ts_us + self._step_us
-                    packet.timestamps_us = (
-                        new_base
-                        + np.arange(len(packet.timestamps_us), dtype=np.int64)
-                        * self._step_us
-                    )
-                self._last_ts_us = int(packet.timestamps_us[-1])
+                # A header-only/malformed packet (num_pairs == 0) carries no
+                # samples to clamp or rebase on — skip this block rather than
+                # index an empty array (found 2026-08-06 as a reader-thread
+                # crash; never triggered by real firmware, which always sends
+                # 59 pairs, but the parser must not crash on a malformed frame
+                # it can't control). _last_ts_us is deliberately left
+                # unchanged: there is no timestamp here to advance it to.
+                if len(packet.timestamps_us) > 0:
+                    if self._last_ts_us > 0 and packet.timestamps_us[0] <= self._last_ts_us:
+                        new_base = self._last_ts_us + self._step_us
+                        packet.timestamps_us = (
+                            new_base
+                            + np.arange(len(packet.timestamps_us), dtype=np.int64)
+                            * self._step_us
+                        )
+                    self._last_ts_us = int(packet.timestamps_us[-1])
 
                 # Drop detection
                 seq = packet.header.seq_num

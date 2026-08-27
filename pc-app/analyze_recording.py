@@ -20,7 +20,7 @@ from pathlib import Path
 import numpy as np
 import matplotlib.pyplot as plt
 
-FIFO_EMPTY_SENTINEL = np.int16(-32768)  # 0x8000 — FPGA FIFO underrun marker
+from packet_parser import is_fifo_underrun
 
 
 def compute_stats(path: Path) -> dict:
@@ -44,14 +44,11 @@ def compute_stats(path: Path) -> dict:
     duration_s = (t[-1] - t[0]) / 1e6
     sps = n / duration_s
 
-    # ch0 alone is not a reliable underrun marker: the ramp test pattern
-    # legitimately passes through -32768 once per 16-bit wrap (ch1 = ch0+1000
-    # then reads -31768, not -32768) — checking ch0 only misclassifies that
-    # real sample as an underrun and drops it, which then shows up as a
-    # bogus +2 "SKP" in the step-continuity check below. FPGA_SPI_ReadSamples
-    # (kuntur-mcu/Core/Src/fpga_spi.c) confirms a true underrun sets BOTH
-    # channels to 0x8000.
-    underrun_mask = (ch0 == FIFO_EMPTY_SENTINEL) & (ch1 == FIFO_EMPTY_SENTINEL)
+    # See packet_parser.is_fifo_underrun for the rule (checking ch0 alone
+    # misclassifies the ramp pattern's legitimate -32768 wrap as an underrun,
+    # which then shows up as a bogus +2 "SKP" in the step-continuity check
+    # below) and its current known limitation against real (non-ramp) data.
+    underrun_mask = is_fifo_underrun(ch0, ch1)
     n_underrun = int(np.sum(underrun_mask))
 
     valid = ~underrun_mask
