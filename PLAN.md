@@ -1189,19 +1189,155 @@ of it.**
 
 ## A.6 — pc-app readiness for real signals  *(Claude)*
 
-- [ ] **Display in physical units (µV), not raw ADC counts** — requires the RHD2164
-      gain/LSB conversion; plotting raw int16 is not acceptable for a neural recorder
-- [ ] Sensible amplitude ranges/autoscale for neural signals
-- [ ] Verify the underrun-sentinel path behaves against real (non-ramp) data
-- [ ] Recording metadata sidecar — minimum: sample rate, gain, channel map, filter
-      settings, firmware/bitstream versions
-- [ ] **Fix `serial_reader.py` crash on `num_pairs=0`** — found 2026-08-06
-      while testing the A.2 readback feature. The monotonicity clamp does
-      `packet.timestamps_us[-1]` unconditionally in the resync loop; a
-      header-only or malformed packet (empty sample array) raises
-      `IndexError` and kills the reader thread. Never triggered by real
-      firmware (always 59 pairs), but the parser shouldn't crash on a
-      malformed frame it can't control.
+> **Handed to Sonnet 2026-08-27.** Scoped and sequenced by Opus in the same
+> session; the intent is that this section is executable without re-deriving
+> anything from the rest of the plan. Read this whole section before starting
+> — the ordering exists because two items have a decision in front of them,
+> and the traps below are the reason this was written out rather than just
+> assigned.
+>
+> **Working constraint — the pc-app is the bench instrument, and there is a
+> bench session on 2026-08-27.** `main_window.py`, `serial_reader.py` and
+> `diagnostics.py` are all on the bench path (A.2 round-trip re-test + the
+> A.1.1 ladder runner). Work on a branch; do **not** restructure the command
+> or diagnostics path; keep every change additive and revertible until the
+> bench session has run. A.6.1 is the sole exception — it is a strict
+> robustness fix on that path and is safe to land first.
+>
+> **Three decisions gate parts of this work. None may be assumed.** They are
+> called out inline as **DECISION** below. If Manuel has not answered one,
+> do every other item and leave that one stated — do not pick a plausible
+> value and proceed, because two of the three end up in published numbers.
+
+### A.6.1 — Fix `serial_reader.py` crash on `num_pairs=0`  *(no decision, do first)*
+
+- [ ] Found 2026-08-06 while testing the A.2 readback feature. The monotonicity
+      clamp indexes the sample array unconditionally in the resync loop:
+      `serial_reader.py:214` (`packet.timestamps_us[0]`) and `:221`
+      (`packet.timestamps_us[-1]`). A header-only or malformed packet (empty
+      sample array — `parse()` returns a valid `ParsedPacket` with
+      `num_pairs = 0`, it does not reject it) raises `IndexError` and kills the
+      reader thread. Never triggered by real firmware (always 59 pairs), but the
+      parser should not crash on a malformed frame it cannot control.
+      Fix in the reader, not by making `parse()` return `None` — a zero-pair
+      packet is still a real packet whose `seq_num` must feed drop detection, and
+      discarding it would corrupt the sequence-gap count.
+
+### A.6.2 — Display in physical units (µV)  *(DECISION 1 in front of it)*
+
+- [ ] **Plotting raw int16 is not acceptable for a neural recorder.**
+      `graph_widget.py:_build_ui` currently sets
+      `plot.setLabel("left", "Signal", units="LSB")`; that axis must read µV.
+
+      **DECISION 1 — the µV/LSB constant must come from the RHD2164 datasheet
+      and be confirmed by Manuel. Do not take it from a model's recollection,
+      and do not copy it from an Intan software package.** It is the scale
+      factor under every amplitude number this instrument will ever publish;
+      a wrong value is invisible on screen and silently wrong in a methods
+      section. Working principle 3 applies directly. There is no RHD2164
+      datasheet in either repo — ask Manuel for the number *and* the page.
+
+      Two configuration facts already verified in the RTL, both load-bearing
+      for this conversion (`kuntur` `source/impl_1/afe/rhd2164/rhd2164_defs.vh`):
+      - **`RHD_TWOSCMP = 1'b1` (line 112)** — the chip is configured to emit
+        **two's complement**, so interpreting the wire value as signed `int16`
+        (which the whole pc-app already does) is correct, and `0x8000` really is
+        the full-negative rail rather than mid-scale. Confirm this still holds
+        before trusting the sign convention; if `RHD_TWOSCMP` ever goes to `0`
+        the format becomes offset binary and every sample in the app is
+        misinterpreted by 32768 counts.
+      - **`RHD_DSPEN = 1'b0` (line 114)** — the on-chip DSP offset-removal
+        high-pass filter is **disabled**. The signal therefore carries the
+        amplifier's DC offset; a channel at rest will not sit near zero. This
+        is why A.6.3 is a real task and not a cosmetic one.
+
+      Keep the conversion in exactly one place with the constant named and its
+      datasheet source cited in a comment. It is needed by the graph, by the
+      sidecar (A.6.5) and by `analyze_recording.py`; three copies is how the
+      sentinel rule below became wrong in three files at once.
+
+### A.6.3 — Sensible amplitude ranges / autoscale  *(depends on A.6.2)*
+
+- [ ] Do this **after** the µV conversion, not before — the ranges are only
+      meaningful in physical units. Spikes are ~50–500 µV, LFP ~mV.
+      Note the consequence of `RHD_DSPEN = 0` above: raw DC offset may be
+      large compared to the signal, so a naive full-range autoscale will
+      flatten the neural content against its own baseline. Whatever is done
+      here, the graph must not silently hide saturation — a rail-to-rail
+      channel and a quiet channel must look different.
+
+### A.6.4 — Underrun sentinel against real (non-ramp) data  *(DECISION 2)*
+
+- [ ] The current rule — count an underrun only when **both** channels read
+      `0x8000` — is implemented three times over:
+      `packet_parser.py:25,73` · `graph_widget.py:62-65` ·
+      `analyze_recording.py:23,54`. All three carry the same comment justifying
+      it from the **ramp** test pattern (`ch1 = ch0 + 1000`, so ch0 alone can
+      legitimately hit `-32768` while ch1 reads `-31768`).
+
+      **That justification expired when A.1.1e connected real data (2026-08-11).**
+      With real RHD2164 samples the two channels are independent, so:
+      *both channels can legitimately rail simultaneously* (a genuinely saturated
+      pair reads as an underrun and is silently dropped from the display), and
+      *a real underrun is indistinguishable from that*. PLAN.md's A.1.1 spec note
+      predicted exactly this: "`0x8000` is simultaneously the empty-FIFO sentinel
+      and a legal full-negative-rail ADC sample once A.1.1e lands, so underrun
+      statistics start counting saturated inputs."
+
+      **DECISION 2 — this is a protocol question, not a pc-app question, and it
+      belongs to Manuel.** The honest options, in rough order of cost:
+      *(a)* accept the ambiguity and document it (cheapest, but the 1.7% underrun
+      figure in B.5 stays uninterpretable against real signals);
+      *(b)* have the FPGA/MCU carry underrun as out-of-band metadata — a count or
+      a flag in the packet header — rather than in-band in the sample values,
+      which is the only option that actually resolves it;
+      *(c)* pick a sentinel that is not a reachable ADC code (there isn't one in
+      a full-scale 16-bit two's-complement range, so this mostly doesn't work).
+      Option (b) is an interface change touching RTL, MCU and the packet format,
+      so it is a Phase-B-shaped decision surfacing in Phase A — flag it, do not
+      start it.
+
+      **What Sonnet should do now, without the decision:** do not change the rule.
+      Instead make it *single-sourced* (import the one definition from
+      `packet_parser.py` into the other two rather than restating it) so that
+      whichever way the decision goes, it changes in one place. That is B.3's
+      "single-source the underrun sentinel rule" item, and doing it here costs
+      almost nothing and removes the tri-copy trap. Then verify empirically
+      against a real (non-ramp) recording what the sentinel rate actually looks
+      like now, and report the number — that measurement is what makes the
+      decision above answerable.
+
+### A.6.5 — Recording metadata sidecar  *(DECISION 3 — spec first)*
+
+- [ ] Minimum content: sample rate, gain / µV-per-LSB, channel map, filter
+      settings, firmware + bitstream versions.
+
+      **DECISION 3 — this is a new cross-boundary interface (the recording
+      format), so per working principle 5 and the standing project rule it needs
+      a spec in `docs/interfaces/` written before the implementation.** Write
+      `docs/interfaces/recording-format.md` and get it agreed before touching
+      `csv_recorder.py`. It should cover the sidecar's format, its filename
+      relationship to the `.csv`, every field with units and provenance, and —
+      explicitly — a **format version field**, whose absence B.2 already flags as
+      blocking safe evolution once the format is public.
+
+      **Trap, verified 2026-08-27 — there are two different sample-rate constants
+      in this app and they disagree.** `packet_parser.py:22` has
+      `SAMPLE_RATE_HZ = 30_000` (used to stamp per-sample timestamps) while
+      `main_window.py:26` has `DELIVERED_SPS = 5_000` (used to size the graph
+      buffer and window). These measure different things — sampled rate vs.
+      currently-delivered rate — and both are arguably "the sample rate" to a
+      naive reader. The sidecar must record the right one, say which it is, and
+      ideally record both with distinct names. Also note B.5's open item that
+      measured SPS overshoots to ~30,700–31,900 against the FPGA's nominal
+      30,000, so the nominal figure is not a measurement and must not be written
+      into a sidecar field that implies it was one.
+
+      Firmware/bitstream versions are **not currently obtainable** — B.5's
+      known-open list records that the FPGA regbank has no read-only identity
+      registers and there is no version handshake (B.6). Do not invent a value or
+      leave a field silently blank: spec the field, and have the writer record an
+      explicit "unknown" until B.6 supplies it.
 
 ---
 
