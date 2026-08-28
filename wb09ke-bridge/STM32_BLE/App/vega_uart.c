@@ -7,8 +7,15 @@
  *
  * Head is written only by the main context; tail only by the TXE ISR.
  * No mutex needed.
+ *
+ * The truncation counters are the one exception: VEGA_UART_Write() is
+ * reachable from ISR context when CFG_DEBUG_APP_TRACE is on (DT_INFO_MSG
+ * inside USART1_IRQHandler), and the M0+ has no atomic read-modify-write, so
+ * they are incremented under a short critical section. Only the drop path
+ * pays for it.
  */
 
+#include <stddef.h>
 #include "vega_uart.h"
 #include "vega_bridge_app.h"
 #include "stm32wb0x.h"
@@ -20,6 +27,12 @@ static uint8_t           s_buf[VEGA_UART_TX_BUF_SIZE];
 static volatile uint16_t s_head;   /* next write slot  — main context only */
 static volatile uint16_t s_tail;   /* next read  slot  — TXE ISR only      */
 
+/* Truncation accounting — see the note in vega_uart.h. Zeroed at startup by
+ * the C runtime; deliberately not touched by VEGA_UART_Init() so a re-init
+ * cannot erase the history. */
+static volatile uint32_t s_drop_bytes;    /* bytes discarded, ring was full   */
+static volatile uint32_t s_drop_frames;   /* Write() calls that truncated     */
+
 void VEGA_UART_Init(void)
 {
     s_head = 0;
@@ -29,7 +42,8 @@ void VEGA_UART_Init(void)
 void VEGA_UART_Write(const uint8_t *data, uint16_t len)
 {
     uint16_t head = s_head;
-    for (uint16_t i = 0; i < len; i++) {
+    uint16_t i;
+    for (i = 0; i < len; i++) {
         uint16_t next = (head + 1U) & BUF_MASK;
         if (next == s_tail) break;          /* buffer full — drop remainder */
         s_buf[head] = data[i];
@@ -37,7 +51,30 @@ void VEGA_UART_Write(const uint8_t *data, uint16_t len)
     }
     /* Commit the new head before enabling the IRQ. */
     s_head = head;
+
+    if (i < len) {
+        /* Truncated. (len - i) bytes of this frame never reach the wire, and
+         * the frame already committed above is now short of its length field
+         * — the pc-app will resync on the next magic pair. Nothing can be
+         * done about it here; the point is that it stops being silent. */
+        uint32_t primask = __get_PRIMASK();
+        __disable_irq();
+        s_drop_bytes  += (uint32_t)(len - i);
+        s_drop_frames += 1U;
+        __set_PRIMASK(primask);
+    }
+
     LL_USART_EnableIT_TXE(USART1);
+}
+
+void VEGA_UART_GetDropStats(uint32_t *p_bytes, uint32_t *p_frames)
+{
+    /* Each load is a single aligned 32-bit read, atomic on the M0+, so no
+     * critical section is needed to read them — but the pair is not sampled
+     * atomically with respect to each other. Treat a bytes/frames ratio taken
+     * across a live drop burst as approximate. */
+    if (p_bytes  != NULL) *p_bytes  = s_drop_bytes;
+    if (p_frames != NULL) *p_frames = s_drop_frames;
 }
 
 uint8_t VEGA_UART_TxBytePop(uint8_t *byte)

@@ -983,17 +983,15 @@ in the same class as B.6's licensed-toolchain problem, not a convenience.
       - [ ] Confirm slot 32 → `ram[80]` → MOSI in simulation. The testbench
             already runs the sampling cycle; this is an assertion, not new
             stimulus.
-      - [ ] **Delete `rhd2164_sampling_cmd0-3`** — module ports, top-level
+      - [x] **Delete `rhd2164_sampling_cmd0-3`** — module ports, top-level
             wires, and the `regbank` (renamed from `ram`, 2026-08-26 — see
-            B.3) assigns. Frees words 192–195. Do it before someone wires
-            something to them believing they are the intended path.
-            **Now unblocked and worth prioritizing**: `kuntur_fpga.v` is
-            no longer mid-edit for the item-4 placement work that
-            deferred this during the 2026-08-26 session, and the
-            `DPR16X4 × 16` residual noted in `regbank_macro`'s arearep
-            (a small LUT-based side copy of the table, forced by these
-            dead ports still being wired to top-level output) should
-            disappear once this lands.
+            B.3) assigns. Frees words 192–195.
+            **Done, 2026-08-27** (landed in the same pass as the chip0
+            placement fix, `kuntur` `e89671d`) — confirmed zero
+            references left in `kuntur_fpga.v` (only an explanatory
+            comment survives in `regbank.v`), and the `DPR16X4 × 16`
+            residual noted in every area report since 2026-08-26 is
+            gone from the fresh `arearep`.
       - [ ] MCU helper `FPGA_SPI_SetSamplingCmd(uint16_t cmd)` →
             `reg_write16(80, cmd)`. One line on top of the A.1.1g rewrite.
 
@@ -2099,9 +2097,84 @@ Design the **seams**; file layout follows.
 - [ ] **mblock margin + FPGA FIFO sizing as one joint tuning project.** *Permanently
       valuable, not v1-specific — the fixed ~60 kSPS budget means every future mode
       inherits it.*
+      **New evidence, 2026-08-27 — the PLL retune exposed exactly this
+      margin.** After retuning the PLL to hit true 30,000 SPS production
+      (`impl_1.sdc`'s `clk` period corrected to 21.9587393093 ns,
+      `CLKOP_FREQ_ACTUAL = 45.539955 MHz`, STA clean — 0 violations, all
+      3 corners, worst `spi1_sck` margin now **0.915 ns**, tighter than
+      anything else recorded this investigation but still passing),
+      measured *delivered* rate over a real 10 s capture came in at
+      **29,482.9 SPS — 1.7% below the new 30,000 target**, versus
+      comfortably matching/exceeding the *old* ~29,348 production rate
+      before the retune (2026-08-03's post-mblock-fix result, and this
+      session's own earlier checks, both ~29,500–29,850). **Underrun
+      measured 0%** — consistent with production now *exceeding*
+      delivery rather than the reverse: the FPGA's 4096-pair ring buffer
+      fills instead of draining (at the ~517 pair/s deficit implied
+      here, full in ~8 s, inside the capture window), and excess
+      samples are most likely silently dropped on the write side, which
+      does **not** produce the `0x8000` underrun sentinel the read side
+      already watches for. Different failure mode than the one the
+      2026-08-03 mblock-margin fix targeted, and the sharper `spi1_sck`
+      timing margin above narrows headroom on the production side at
+      the same time. **Not yet root-caused or fixed** — this is the
+      concrete measurement this tracked item has been waiting for, not
+      a resolution. Two real captures per channel pair are on record
+      (chA=3/chB=121, plus earlier 42/88), both from live `pc-app`
+      sessions, neither saved as a CSV recording.
 - [ ] Reduced sample rate as a reliability lever — characterise empirically
 - [ ] FIFO/ring occupancy telemetry — MCU ring watch written but
       `STREAM_DIAG_RING_WATCH=0`, never flashed; FPGA FIFO occupancy needs new RTL
+- [ ] **Bridge TX-ring truncation telemetry — counters done 2026-08-28, reporting
+      path still open.** `VEGA_UART_Write()` drops the remainder of a write when the
+      4096-byte ring is full, which puts a *truncated* frame on the wire. The pc-app
+      resynchronises on the next magic pair and books it as a missing packet —
+      indistinguishable from a packet lost on air, so a USB-side backlog and a radio
+      problem read identically in `dropped_packets`. The bridge is the only place
+      that can tell them apart.
+
+      **Done:** `s_drop_bytes` / `s_drop_frames` in `wb09ke-bridge/STM32_BLE/App/
+      vega_uart.c`, incremented under a short critical section on the drop path only
+      (that function is reachable from ISR context whenever `CFG_DEBUG_APP_TRACE` is
+      on, and the M0+ has no atomic read-modify-write). Read via
+      `VEGA_UART_GetDropStats()`. +40 B flash, +8 B RAM.
+
+      **Open — and blocked on a spec, not on code.** Nothing reports them. The debug
+      console is a no-op by default and deliberately so (it shares the wire with the
+      data stream), and `VEGA_UART_GetDropStats()` is currently collected away by
+      `--gc-sections` because nothing calls it, so today the counters are SWD-only.
+      Surfacing them means a new bridge→PC frame type — a cross-boundary interface,
+      which gets a spec in `docs/interfaces/` first. Proposed shape: a `0xDD 0x22`
+      telemetry frame carrying both counters on a slow cadence, decoded by
+      `serial_reader.py` alongside the existing `0xAA 0x55` data and `0xEE 0x11`
+      response frames, and surfaced in the pc-app's status line next to the drop
+      figure it currently cannot qualify. Same argument as A.6.4's DECISION 2: loss
+      that is reported out of band can be attributed; loss inferred from the data
+      stream cannot.
+- [ ] **Bridge TX ring is single-producer by assumption, not by construction.**
+      `vega_uart.c` documents itself as single-producer/main-context-only, and
+      `VEGA_UART_Write()` relies on that: it caches `s_head`, fills slots, and commits
+      the new head at the end. That is safe with one producer and unsafe with two.
+
+      There *is* a second producer, latent: `USART1_IRQHandler`'s ORE branch calls
+      `DT_INFO_MSG` → `printf` → `__io_putchar` → `VEGA_UART_Write`, from ISR context.
+      It is inert today only because `CFG_DEBUG_APP_TRACE` is `0`. Turn tracing on and
+      an ISR write landing mid-frame reads the same uncommitted `s_head`, overwrites
+      bytes the interrupted call had already placed, and commits a head the
+      interrupted call then overwrites in turn — so the frame on the wire is
+      *corrupted*, not merely delayed, and the debug character is swallowed into it.
+      `printf` emitting one byte per `__io_putchar` call narrows the window but does
+      not close it.
+
+      The trap is the shape of it: the configuration you would enable to diagnose a
+      streaming problem is the one that can corrupt the stream, and the corruption
+      looks like a framing error rather than like a tracing bug. Cheapest honest fix
+      is a critical section around the head cache/commit in `VEGA_UART_Write()` — the
+      same guard the truncation counters above already use, widened to the write
+      itself; measure it on the hot path first, since unlike the counters this one
+      runs per frame rather than per drop. Alternative: give ISR-context tracing its
+      own single-byte path that touches only a reserved slot. Not urgent while the
+      flag is `0`; worth fixing before anyone debugs with it.
 - [ ] **ST support ticket** — `BLE_STACK_Tick()` ~10–22 ms block. Evidence assembled
       in `project_st_support_ticket_ble_stack.md`; never filed. External response
       time — file early.

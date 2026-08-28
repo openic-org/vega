@@ -98,8 +98,9 @@ CsvRecorder            — timestamp_us,ch0,ch1  (identical format to Android)
 ## BLE Device Protocol
 
 - **Service**: `0xFFF0`
-- **Notify characteristic**: `0xFFF2` (STM32 → Android, `StreamDataPacket`)
-- **Write characteristic**: `0xFFF1` (reserved, phone → STM32)
+- **Notify characteristic**: `0xFFF2` (STM32 → host, `StreamDataPacket`)
+- **Write characteristic**: `0xFFF1` (host → STM32, command frames — see below)
+- **Response characteristic**: `0xFFF3` (notify, STM32 → host, command responses)
 - **Packet layout** (little-endian):
   - bytes 0–3: `uint32` timestamp_s
   - bytes 4–5: `uint16` timestamp_sub_s (ms%1000 × 32, range 0–31999)
@@ -108,6 +109,34 @@ CsvRecorder            — timestamp_us,ch0,ch1  (identical format to Android)
   - bytes 8–243: 59 pairs × (`int16_t` ch0 + `int16_t` ch1), interleaved, signed, little-endian = 236 bytes
 - **Timestamp formula**: `packetBaseUs = timestampS × 1_000_000 + timestampSubS × 1_000 / 32`
 - A monotonicity clamp in `onBatchDataReceived` prevents backwards jumps caused by HAL_GetTick() 1 ms resolution + BLE CI jitter.
+
+### Control plane (`0xFFF1` write → `0xFFF3` notify)
+
+Commands are **validated in the BLE callback and deferred** — the callback stashes a
+pending flag and returns; the SPI work runs later inside `StreamSendTask`, and only from
+its stopped branch. That is what keeps regbank traffic from interleaving with an
+in-progress `FPGA_SPI_ReadSamples()`. `s_command_busy` rejects a second command while one
+is in flight.
+
+| Cmd | Name | Length | Requires streaming stopped |
+|---|---|---|---|
+| `0x01` | `SET_CHANNELS` (ch_a, ch_b — friendly 0–127) | 3 | yes |
+| `0x02` | `STOP_STREAMING` | 1 | — (this is what stops it) |
+| `0x03` | `START_STREAMING` | 1 | — |
+| `0x04` | `REG_WRITE16` (addr, val_lo, val_hi) | 4 | yes |
+| `0x05` | `REG_READ16` (addr) | 2 | yes |
+
+Responses on `0xFFF3` — first byte always echoes the command opcode it answers:
+
+- `[0x01, ch_a, ch_b]` — channel readback, converted back to friendly indices
+- `[0x02\|0x03, success]` — stop/start ack; `success` is an **FPGA readback**
+  confirmation of `stream_enable`, not a host-side timer
+- `[0x04\|0x05, addr, val_lo, val_hi]` — register access; the value is what the regbank
+  *holds* after the operation, so a `REG_WRITE16` ack doubles as verification
+
+`STOP_STREAMING` order matters: `SetStreamEnable(0)` → readback → only then flush `fifo0`,
+so the flush drains a static backlog rather than racing a live 30 kSPS producer. If the
+readback is non-zero the flush is skipped and logged loudly.
 
 ## CSV Recording
 
@@ -142,16 +171,16 @@ Key application files (under `STM32_BLE/App/`):
 | File | Role |
 |---|---|
 | `stream.h` / `stream.c` | GATT service definition, `StreamDataPacket_t` struct, `STREAM_NotifyData()` |
-| `stream_app.h` / `stream_app.c` | Ring buffer (4096 pairs = ~137 ms at 30 kSps), simulation path, VTIMER-driven send task |
+| `stream_app.h` / `stream_app.c` | Ring buffer (2048 pairs ≈ 68 ms at 30 kSps) used as a stall backlog, VTIMER-paced send task, 0xFFF1 command handler |
 | `app_ble.c` | BLE event dispatcher; calls `STREAM_APP_OnCCCDWrite()` and `STREAM_APP_ResumeSending()` |
 
 **STM32 streaming pipeline**:
 ```
-VTIMER (StreamSendTimerCb) → UTIL_SEQ task (StreamSendTask)
-  ├─ Ring buffer has ≥59 pairs → send real FPGA data
-  └─ Ring buffer empty        → send simulation (10-bit sawtooth: CH0=N, CH1=(N+512)%1024)
+VTIMER (StreamSendTimerCb, 2 ms safety fallback) → UTIL_SEQ task (StreamSendTask)
+→ StreamAssemblePacket(): pop any backlog from the ring first,
+  then pull the remaining pairs live via FPGA_SPI_ReadSamples()
 → STREAM_NotifyData() → aci_gatt_srv_notify on 0xFFF2
-→ BLEStack_Process_Schedule() + self-reschedule (multi-packet per CI)
+→ BLE_STACK_Tick() directly, looping until 0x88 (multi-packet per CI)
 ```
 
 TX flow control: if `aci_gatt_srv_notify` returns `0x88` (pool full), `s_txFlowOff` is set and sending stops. It resumes via `ACI_GATT_TX_POOL_AVAILABLE_VSEVT_CODE` → `STREAM_APP_ResumeSending()`.
@@ -168,7 +197,9 @@ TX flow control: if `aci_gatt_srv_notify` returns `0x88` (pool full), `s_txFlowO
 
 **UART debug**: USART1 at 115200 8N1, TX on PA1. `APP_DBG_MSG` / `printf` route through `__io_putchar` → `HAL_UART_Transmit`. On startup there is a 5-second delay to allow ST-LINK debugger attach before the BLE stack starts.
 
-**Ingesting real FPGA data**: call `STREAM_APP_IngestSamples(ch0, ch1, numPairs)` from the SPI DMA completion handler. The ring buffer is ISR-safe (atomic index increments only). When the ring buffer has ≥59 pairs, `StreamSendTask` automatically switches from simulation to real data — no other code change needed.
+**FPGA sample ingestion** — a synchronous pull, not a DMA push. `StreamAssemblePacket()` calls `FPGA_SPI_ReadSamples()` (bit-banged SPI0 on APB0 pins — the SPI peripheral is unusable because the BLE radio gates APB1) from inside `StreamSendTask`, at BLE send cadence. There is no ISR path and no simulation fallback.
+
+The ring buffer is a backlog absorber, not the normal path: it is empty in steady state, and fills only while `s_txFlowOff` holds the send loop back — `StreamIngestDuringStall()` then pulls one packet's worth (59 pairs) per ~2 ms tick. On the next send, the ring is drained first and only the shortfall is read live from the FPGA. Second line of defense behind it is the FPGA's own ~34 ms hardware FIFO (fifo0).
 
 ## Logcat Tags
 
