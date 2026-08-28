@@ -1,14 +1,37 @@
 # Stream packet format (v1) — interface spec
 
-**Status: PROPOSED 2026-08-28. Not agreed, not implemented.** Written
-before any code, per PLAN.md working principle 5 and the standing
-project rule that cross-boundary interfaces get a spec first. This is a
-**breaking wire-format change** to the `0xFFF2` notify payload, plus one
-new frame type; it supersedes the format documented in CLAUDE.md's *BLE
-Device Protocol* section (here called **v0**).
+**Status: AGREED 2026-08-28, not yet implemented.** Written before any
+code, per PLAN.md working principle 5 and the standing project rule that
+cross-boundary interfaces get a spec first. This is a **breaking
+wire-format change** to the `0xFFF2` notify payload, plus one new
+characteristic and one new frame type; it supersedes the format
+documented in CLAUDE.md's *BLE Device Protocol* section (here called
+**v0**).
 
-Two decisions from the 2026-08-28 architecture discussion with Manuel are
-taken as settled inputs and are not re-argued here:
+CLAUDE.md is deliberately **not** updated to describe any of this yet —
+it documents as-built, and none of this is built (working principle 4).
+
+**Agreed with Manuel, 2026-08-28** — the four questions that were open at
+proposal, now closed:
+
+- **No header CRC** (§3.5). Argued and rejected as the wrong layer: BLE
+  already CRCs and retransmits the headstage→bridge hop, so a header CRC
+  computed on the MCU protects a hop that is already protected. The
+  exposed segment is bridge→PC over UART, which needs a frame-level CRC
+  over header *and* payload added by the bridge — an existing B.2 item,
+  not this one. Byte 7 stays reserved.
+- **Telemetry gets its own characteristic, `0xFFF4`** (§6.1) — *changed
+  from the proposal*, on Manuel's call, and correctly. See §6.1 for the
+  reasoning; the short version is that `0xFFF3`'s contract is
+  request/response and unsolicited traffic on it would be safe only by
+  convention, which is this project's recurring failure shape.
+- **`mode_id` changes require streaming stopped** (§3.2), matching
+  `SET_CHANNELS`, so no new enforcement mechanism exists to get wrong.
+- **`sample_index` stays `uint32`** (§3.1), accepting the 19.9 h wrap
+  with a modular-comparison requirement on receivers.
+
+Two decisions from the same day's architecture discussion are taken as
+settled inputs and are not re-argued here:
 
 - **Lossless-by-margin** (option A): production rate is set *below*
   measured transport capacity, and the system claims zero sample loss for
@@ -216,7 +239,10 @@ monotonicity clamp, and it makes loss exactly quantifiable (§7).
   budget. Past the 10-minute recording cap and any realistic session, but
   it shrinks if the aggregate budget rises. Receivers **must** treat
   `sample_index` as wrapping (unsigned modular comparison), not as
-  monotonic forever. Flagged as open question §10.4.
+  monotonic forever. **Decided 2026-08-28: `uint32` accepted**, with that
+  modular-comparison requirement as the price. Revisit only if the
+  aggregate budget rises enough to bring the wrap inside a plausible
+  session.
 
 ### 3.2 `mode_id` — an index into the mode table, not a channel count
 
@@ -274,10 +300,22 @@ something was dropped, never *how much* or *where*.
 
 ### 3.5 `reserved`
 
-Must be written 0 and must **not** be validated as 0 by receivers beyond
-the v0/v1 discrimination in §8.2 — reserving it for a future header CRC
-(§10.1) requires that a v1 receiver tolerate a non-zero value it does not
-understand.
+Must be written 0. Receivers **must** tolerate a non-zero value they do
+not understand, and must not validate it as 0 beyond the v0/v1
+discrimination in §8.2 — that is what keeps the byte genuinely available
+for a future field.
+
+**Decided 2026-08-28: no header CRC here.** It was proposed and rejected
+as the wrong layer. BLE's link layer already carries a 24-bit CRC per
+packet and retransmits on failure, so a CRC computed on the MCU would
+protect the headstage→bridge hop, which is already protected. The
+unprotected segment is bridge→PC over UART, where a corrupted length
+desynchronizes the stream until the next magic pair — and there the fix
+is a frame-level CRC over header *and* payload, emitted by the bridge.
+That is an existing B.2 item ("bridge UART wire format — add CRC") and it
+covers 248 bytes rather than 8. Spending MCU hot-path cycles at 508 pkt/s
+on the one lane with no slack, to protect a hop that does not need it and
+only 3% of the frame that does, is the wrong trade.
 
 ---
 
@@ -380,28 +418,51 @@ Counters originate in two places, so the frame is assembled in two hops:
 
 ```
 FPGA  fifo0 overflow counter  ──(regbank read)──▶ MCU
-MCU   ring truncation, flow-off, RTC anchor
-      ──(0xFFF3 notify, opcode 0x80)──▶ Bridge
+MCU   ring truncation, flow-off, stall time, RTC anchor
+      ──(0xFFF4 notify)──▶ Bridge
 Bridge adds its own TX-ring counters
       ──(0xDD 0x22 frame)──▶ pc-app
 ```
 
-**No new BLE characteristic.** `0xFFF3` already exists as an MCU→host
-notify channel and is idle except during command exchanges. Its existing
-convention is that byte 0 echoes the command opcode being answered; an
-unsolicited notification therefore uses **opcode `0x80`**, chosen so the
-high bit distinguishes *unsolicited* from *response* without colliding
-with any current or plausible future command opcode (`0x01`–`0x05` today).
+**Telemetry gets a new notify characteristic, `0xFFF4`** — decided
+2026-08-28, changed from this spec's original proposal, which was to
+reuse `0xFFF3` with an unsolicited high-bit opcode (`0x80`).
 
-The bridge must inspect byte 0 of every `0xFFF3` notification: high bit
-clear → relay as today's `0xEE 0x11` response frame; high bit set →
-append its own counters and emit `0xDD 0x22`. Without this the pc-app
-would try to match telemetry against a pending command.
+**Why the change.** `0xFFF3`'s contract is request/response: every
+notification on it answers a command, first byte echoing that command's
+opcode. Unsolicited traffic there would be safe only by *convention* — a
+high-bit rule enforced nowhere, which breaks the moment anyone writes the
+natural code ("a `0xFFF3` notification answers my pending command") or
+adds an opcode with the high bit set. That is the same failure shape as
+the bridge's single-producer TX ring found 2026-08-28: correct by
+assumption rather than by construction. A characteristic handle is
+enforced by the GATT layer, so the bridge demultiplexes structurally
+instead of by inspecting payload content.
+
+The cost initially argued against it — GATT table space — was a
+mis-weighing: table space is flash/RAM at init, while the budget that is
+actually scarce is per-packet MCU cycles on the hot path (§3). A 1 Hz
+frame costs nothing on either count.
+
+**The real cost, named honestly:** the bridge's connection sequence gains
+a fourth characteristic to discover and a fourth CCCD to write, in a
+sequence with a history of fragility. That is accepted because it fails
+*loudly* — telemetry does not arrive — rather than silently misrouting a
+command response. It also buys a genuine capability: telemetry has its own
+CCCD, so it can be enabled or disabled independently of the command plane
+(useful to leave on through a soak and off during a latency-sensitive
+test).
+
+`0xFFF3` is therefore unchanged by this spec, and the `0x80` opcode
+convention is dropped as unnecessary. The payload's own versioning moves
+into the frame itself (§6.2).
 
 ### 6.2 Contents
 
 | Group | Field | Type | Source |
 |---|---|---|---|
+| Header | `telemetry_version` | `uint8` | constant, `1` |
+| Header | `reserved` | `uint8` | must be 0 |
 | Anchor | `anchor_sample_index` | `uint32` | MCU |
 | Anchor | `anchor_timestamp_s` | `uint32` | MCU RTC |
 | Anchor | `anchor_timestamp_sub_s` | `uint16` | MCU RTC |
@@ -420,6 +481,16 @@ sample's absolute time follows from its index and the mode's rate. This
 is strictly better than v0: one RTC read per second instead of one per
 packet, no clamp, and the interpolation is over an exactly-known sample
 count rather than a jittery packet arrival.
+
+`telemetry_version` exists because this frame is the one place new
+counters will want to be added — it is off the hot path, so there is no
+pressure to keep it minimal, and a version byte on a 1 Hz frame costs
+nothing. Receivers decode the fields their version knows and ignore
+trailing bytes, so adding a counter is additive rather than breaking.
+The MCU fills every field except the `Bridge` group, which the bridge
+appends before emitting `0xDD 0x22`; a bridge that has never seen a
+notification on `0xFFF4` must not synthesise one from its own counters
+alone.
 
 ### 6.3 Rules
 
@@ -534,7 +605,8 @@ worth surfacing early.
 **Fallback if the handshake slips:** byte 7 is `num_pairs` in v0 (always
 `59` = `0x3B` in steady state) and `reserved` in v1 (always `0`). A
 receiver can discriminate on `byte7 == 0`. This is serviceable but
-fragile — it breaks the moment §10.1's header CRC uses that byte, and a
+fragile — it depends on byte 7 staying reserved, which §3.5 commits to
+but a future field could reclaim, and a
 v0 short final packet could in principle carry `num_pairs == 0`
 (`serial_reader.py`'s A.6.1 crash was exactly that case). Use it only as
 an interim, and only with the handshake already scheduled.
@@ -559,10 +631,15 @@ telemetry it depends on exists. Do not reorder 1–3.
    words** (RTL, §6.4). Makes the one uncontrolled loss point visible.
    Smallest change, largest information gain, and the first real use case
    for read-only regbank registers.
-2. **`0xDD 0x22` telemetry frame** end-to-end (MCU `0xFFF3` opcode
-   `0x80`, bridge re-framing, `serial_reader.py` decode, pc-app status
-   line). §6. Retires one of the three causes currently conflated in
-   `dropped_packets` on its own, independent of everything below.
+2. **Telemetry frame end-to-end** — new `0xFFF4` notify characteristic
+   in `stream.c`'s service definition, the bridge's connection sequence
+   extended to discover it and write its CCCD, bridge re-framing to
+   `0xDD 0x22` with its own counters appended, `serial_reader.py` decode,
+   pc-app status line. §6. Retires one of the three causes currently
+   conflated in `dropped_packets` on its own, independent of everything
+   below. The riskiest part is the bridge connection sequence, which has
+   a history of fragility — bring it up against a headstage that is
+   already streaming, so a telemetry failure is unambiguous.
 3. **Measure.** `μ_low` (re-measure the packet-rate ceiling directly —
    the cheapest way to separate an mblock-margin question from a
    per-packet-cost regression) and the stall duty cycle from
@@ -579,31 +656,34 @@ confined to step 4.
 
 ---
 
-## 10. Open questions — not decided
+## 10. Questions that were open at proposal
 
-1. **Header CRC in `reserved`?** Bridge framing carries a length but no
-   integrity check, so a corrupted length desynchronizes the stream until
-   the next magic pair. One byte of CRC over the 8-byte header would
-   catch it. Costs nothing in packet rate (the byte is already spent) but
-   costs MCU cycles on the hot path, which is the one budget with no
-   slack. Undecided.
-2. **`T_fill_max` per mode** (§3.3). Does not bind at 2ch/30k; needs a
-   number before any low-rate mode ships.
-3. **Should `mode_id` changes require streaming stopped?** Recommended
-   yes, matching `SET_CHANNELS`, but it forecloses a future
-   change-rate-on-the-fly feature. Cheap to decide now, expensive later.
-4. **`sample_index` 32-bit wrap at 19.9 h** (§3.1). Accept for v1 with a
-   documented modular-comparison requirement, or spend a header byte
-   (~2.1 pkt/s) on a wider counter? Recommend accept; revisit if the
-   aggregate budget rises.
-5. **Where the logical→physical channel map lives.** §4 puts it in the
-   sidecar via `SET_CHANNELS`, not on the wire. Correct while channels
-   are chosen at connect; would need revisiting if channels ever change
-   mid-stream.
-6. **Does `μ` depend on payload size at all?** §5.2 asserts one
-   characterisation covers all modes because packet rate and packet size
-   are both mode-independent. True if MCU per-packet cost dominates;
-   worth confirming in step 3 rather than assuming.
+**All four blocking questions were closed 2026-08-28** (see the status
+block at the top for the decisions and their reasoning):
+
+1. ~~Header CRC in `reserved`?~~ **No** — wrong layer; §3.5.
+2. ~~Telemetry on `0xFFF3` or its own characteristic?~~ **Own
+   characteristic, `0xFFF4`**; §6.1. *(Raised during the agreement pass,
+   not in the original proposal.)*
+3. ~~Should `mode_id` changes require streaming stopped?~~ **Yes**,
+   matching `SET_CHANNELS`; §3.2.
+4. ~~`sample_index` 32-bit wrap at 19.9 h?~~ **Accepted**, with a
+   modular-comparison requirement on receivers; §3.1.
+5. ~~Where the logical→physical channel map lives.~~ **Sidecar**, via
+   `SET_CHANNELS` — settled by decision 3: channels cannot change
+   mid-stream, so the map is constant for a recording and does not belong
+   on the wire. §4.
+
+**Two remain, neither blocking implementation:**
+
+- **`T_fill_max` per mode** (§3.3). Does not bind at 2ch/30k — the packet
+  always fills in 1.97 ms — so it needs a number only before the first
+  low-rate mode ships, which is step 6 at the earliest.
+- **Does `μ` depend on payload size at all?** (§5.2). The claim that one
+  characterisation covers all modes holds if MCU per-packet cost
+  dominates. Confirm it during step 3's measurement rather than assuming
+  it; if it turns out false, §5.2's payoff shrinks but nothing in the
+  format changes.
 
 ---
 
@@ -621,5 +701,9 @@ confined to step 4.
 | B.5 1.7% FPGA FIFO underrun | Becomes directly measurable, §6.4 |
 | B.5 SPS overshoot | λ set by §1.3 rather than by a nominal target |
 | B.6 version/name handshake | Promoted to a **prerequisite** of step 4, §8.2 |
+| B.2 bridge UART CRC | Confirmed as the right layer for integrity, §3.5 — a header CRC was rejected in its favour |
+| `stream.c` GATT service | Gains a fourth characteristic, `0xFFF4` notify, §6.1 |
+| Bridge connection sequence | Gains a fourth discovery + CCCD write, §6.1 — the accepted cost of `0xFFF4` |
+| CLAUDE.md | Deliberately **not** updated until built (working principle 4) |
 | B.1 ground-truth audit | `fifo0` "34 ms" is stale in CLAUDE.md; §1.2 |
 | T3.3 debug hijacks | `cmd_is_00 = fifo_full` is superseded by §6.4's counter |
