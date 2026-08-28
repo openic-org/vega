@@ -1685,11 +1685,14 @@ Begins after A3. Ordering within Phase B is dependency-driven, not fixed.
 requirement, requirement→test traceability in CI, verification *evidence* retained.
 
 - [ ] **Interface specs** (the A.4 tunnel spec is the first) — ~~BLE packet format~~
-      (**written 2026-08-28**, `docs/interfaces/stream-packet-format.md`, proposed
-      not yet agreed) · 0xFFF1 command protocol · bridge UART wire format
-      (**add CRC** — the stream-packet spec raises the same point as its open
-      question §10.1: framing carries a length but no integrity check, so a
-      corrupted length desynchronizes until the next magic pair) · FPGA register
+      (**AGREED 2026-08-28**, `docs/interfaces/stream-packet-format.md`, not yet
+      implemented) · 0xFFF1 command protocol · bridge UART wire format
+      (**add CRC** — promoted 2026-08-28: the stream-packet spec rejected a
+      per-packet *header* CRC as the wrong layer, since BLE already CRCs and
+      retransmits the headstage→bridge hop, and named this item as the right place
+      instead. The UART hop carries a length but no integrity check, so a corrupted
+      length desynchronizes until the next magic pair; the fix is a frame-level CRC
+      over header **and** payload, emitted by the bridge) · FPGA register
       map · RHD2164 configuration contract · recording format + metadata ·
       **protocol version field**, absent today, without which the format cannot
       evolve safely once public — *satisfied for the wire format* by the v1 header
@@ -2237,11 +2240,19 @@ Design the **seams**; file layout follows.
       the v1 header's removal of per-packet timestamps both need exactly this frame.
       Three frame types doing one job is the outcome that was worth avoiding.
       Path: FPGA counters → MCU over the existing `REG_READ16` regbank path → host
-      over `0xFFF3` as unsolicited **opcode `0x80`** (high bit set distinguishes
-      unsolicited from a command echo, so no new BLE characteristic) → bridge
-      appends its own counters and emits `0xDD 0x22`. Counters are **cumulative
-      since `START_STREAMING`**, so a lost telemetry frame costs resolution, not
+      over a **new `0xFFF4` notify characteristic** → bridge appends its own
+      counters and emits `0xDD 0x22`. Counters are **cumulative since
+      `START_STREAMING`**, so a lost telemetry frame costs resolution, not
       information.
+      **`0xFFF4` decided 2026-08-28 (Manuel), changed from the spec's original
+      proposal** of reusing `0xFFF3` with an unsolicited high-bit opcode. `0xFFF3`'s
+      contract is request/response, so unsolicited traffic on it would have been
+      safe only by convention — the same "correct by assumption, not by
+      construction" shape as the bridge's single-producer TX ring found the same
+      day. A characteristic handle is enforced by GATT instead. Accepted cost: the
+      bridge's connection sequence gains a fourth discovery + CCCD write, in a
+      sequence with a history of fragility — but it fails loudly (no telemetry)
+      rather than silently misrouting a command response.
 - [ ] **Bridge TX ring is single-producer by assumption, not by construction.**
       `vega_uart.c` documents itself as single-producer/main-context-only, and
       `VEGA_UART_Write()` relies on that: it caches `s_head`, fills slots, and commits
@@ -2402,6 +2413,18 @@ producer/transport model through; spec: `docs/interfaces/stream-packet-format.md
   same day: under the v1 format it costs exactly the same 508.5 pkt/s as 2ch@30k.
   Larger payoff: **B.4 characterisation no longer multiplies by the number of
   modes** — `μ_low` measured once applies to all of them.
+
+**Spec AGREED 2026-08-28** (`docs/interfaces/stream-packet-format.md`), with four
+further decisions taken in the agreement pass: **no header CRC** (wrong layer —
+BLE already protects that hop; the bridge UART frame CRC in B.2 is the right
+place); **telemetry gets its own `0xFFF4` characteristic** rather than riding
+`0xFFF3` unsolicited; **`mode_id` changes require streaming stopped**, matching
+`SET_CHANNELS`; **`sample_index` stays `uint32`**, accepting a 19.9 h wrap with a
+modular-comparison requirement on receivers. Two non-blocking questions remain
+(`T_fill_max` per mode, needed only before the first low-rate mode; and whether
+`μ` is truly payload-size-independent, to be confirmed during step 3's
+measurement). **Implementation is unblocked and follows the spec's §9 order** —
+`fifo0` counter, then telemetry, then measure, then the format.
 
 ---
 
