@@ -110,11 +110,35 @@ only. That loses the simultaneous reference comparison, not the test.
 
 ## Milestones
 
-| ID | Milestone |
-|---|---|
-| **A1** | Real RHD2164 signal on the bench, end-to-end to the pc-app (injected) |
-| **A2** | Dual-path validated — Kuntur wireless and Intan controller agree, bench |
-| **A3** | **In-vivo animal recording** |
+| ID | Milestone | Status |
+|---|---|---|
+| **A1** | Real RHD2164 signal on the bench, end-to-end to the pc-app (injected) | **All but declared** — 2026-08-27 injected 8 mVpp/1 kHz read back at 8.294 mV (3.7%) through the real chain, both chips streaming varying data, clean 60 Hz on floating inputs. Remaining: A.1.1f + the ladder bench run |
+| **A2** | Dual-path validated — Kuntur wireless and Intan controller agree, bench | Blocked on A.4 (LVDS tunnel) and A.3 (injection rig) |
+| **A3** | **In-vivo animal recording** | |
+
+### Current critical path — ordered, 2026-08-28
+
+Sections below are not in execution order (A.6 and A.7 run parallel to
+A.3–A.5). This is the order that actually matters:
+
+1. **A.7 steps 1–3** — make loss visible, then measurable, then set λ.
+   Cheap, non-breaking, and everything recorded at the animal test depends
+   on it. *(Manuel: step 1 RTL. Claude: step 2 firmware/app.)*
+2. **A.1.1f + ladder bench run** — closes out A1. *(Manuel)*
+3. **A.4 interface spec** — writable now, does not wait on the companion
+   FPGA hardware arriving, and it is the long pole for both A2 and A3.
+   *(Joint)*
+4. **A.3 attenuation network** — independent of everything above, and the
+   noise-floor headline number cannot be measured without it. *(Manuel)*
+5. **A.6.5 sidecar implementation** — unblocked, parallel. *(Claude)*
+6. A.4 RTL (both ends) → A.3 dual-endpoint capture → A.5 arbitration → **A2**.
+
+**Live external gate:** A.0's animal-protocol amendment, in progress with
+the collaborator since 2026-08-05, **revisit 2026-09-05**.
+
+**Schedule risk, unconfirmed:** the LIFCL-40-EVN and IAM FMC breakout were
+ordered ~2026-08-05 and no session since records them arriving. The A.4
+spec proceeds without them; A.4 RTL bring-up does not.
 
 ## A.0 — Start this week (pure lead time / minutes of work)
 
@@ -161,17 +185,28 @@ only. That loses the simultaneous reference comparison, not the test.
 
 ## A.1 — Make the signal real  → **A1**  *(Manuel, RTL)*
 
-- [ ] **The FPGA has never sent neural data.** In `ch_sel` (`components.v`),
+- [x] **The FPGA has never sent neural data.** ✅ **DONE 2026-08-11**, discharged
+      by A.1.1e below — rungs (a)–(d) pass on chip1, which is only possible with
+      real RHD data reaching the FIFO. Re-confirmed on hardware 2026-08-27 after
+      the chip0 placement fix: both friendly 42 (chip0) and 88 (chip1) streaming
+      real, varying data. *(Checkbox was stale until 2026-08-28.)* Original text:
+      In `ch_sel` (`components.v`),
       `data0_synced`/`data1_synced` are computed from the RHD2164s and then
       discarded: `assign dout = {ch0, ch1}` where `ch0 = cnt0` (ramp),
       `ch1 = cnt0 + 1000`. The real path is commented out. **Every metric in the
       entire SKP/throughput investigation measured a synthetic ramp** — the
       transport is well validated, the instrument is not.
-- [ ] **Fix structurally, not tactically.** Extract test-pattern generation into its
-      own module; mux at the top level behind an obvious named signal, so "am I
-      streaming real data?" is answerable from the top file. The bug exists *because*
-      test pattern and real path share a module with no visible mux. Doing the
-      restructure now avoids touching `ch_sel` twice.
+- [x] **Fix structurally, not tactically.** ✅ **DONE 2026-08-11** in the same pass
+      as A.1.1e, as specified. Test-pattern generation lives in its own module
+      (`test_pattern_gen0`) and is muxed at the **top level**, selected by regbank
+      word **229** bits `[1:0]` — `0` = real RHD data = reset default, `1` = ramp.
+      A runtime word rather than a `` `define ``, so B.5's pre-session self-test
+      and B.6's `doctor` can push a known pattern through the real path on an
+      assembled device that will not be re-synthesised. *(Checkbox was stale until
+      2026-08-28.)* Original intent: extract test-pattern generation into its own
+      module; mux at the top level behind an obvious named signal, so "am I
+      streaming real data?" is answerable from the top file. The bug existed
+      *because* test pattern and real path shared a module with no visible mux.
 
 ### A.1.1 — Verification ladder, using the RHD2164's own known values
 
@@ -528,12 +563,18 @@ and 32 have their answers land at slots 0 and 1 of the *next* frame — across t
 on the awkward side of that boundary, so it is the case most likely to expose an
 off-by-one-frame in the alignment.
 
-- [ ] **A.1.1g — Widen regbank access so any word is MCU-readable/writable at
-      runtime.** *Status 2026-08-11: **RTL landed and now verified in
-      simulation** (see A.1.1g-tb, 27/27 checks). The only remaining piece is
-      the **MCU-side rewrite**, listed under "MCU-side impact" below — it is the
-      blocking item, since the new bitstream cannot be flashed without it
-      without breaking A.2's round-trip.*
+- [x] **A.1.1g — Widen regbank access so any word is MCU-readable/writable at
+      runtime.** ✅ **DONE, hardware-verified 2026-08-27.** *(Checkbox was stale
+      until 2026-08-28.)* RTL landed and verified in simulation 2026-08-11
+      (A.1.1g-tb, 27/27 checks); the MCU-side rewrite (`fpga_spi.c`, tagged
+      3-transfer writes, self-addressing reads) built clean the same day, and was
+      confirmed on hardware 2026-08-27 — post-reflash round trip
+      `STOP_STREAMING` → `SET_CHANNELS(42,88)` → exact readback →
+      `REG_READ16(196)`/`REG_READ16(197)` both returning exactly what was written
+      → `START_STREAMING`, all acked. *Historical status 2026-08-11: RTL landed
+      and verified in simulation; the MCU-side rewrite under "MCU-side impact"
+      below was the blocking item, since the new bitstream could not be flashed
+      without it without breaking A.2's round-trip.*
       Decided 2026-08-07, originally framed as a prerequisite alongside A.1.4 —
       in the event it **subsumed** A.1.4's purpose entirely (uniform 16-bit
       access made the sampling table itself the command-injection mechanism).
@@ -883,10 +924,15 @@ in the same class as B.6's licensed-toolchain problem, not a convenience.
             their own unchanged async reset — required, not optional: those
             four are read combinationally every cycle by `ch_sel` and a hard
             EBR primitive has no combinational output for a fixed address.
-      - [ ] `rhd2164_sampling_cmd0-3` deletion (A.1.4, words 192–195) —
+      - [x] `rhd2164_sampling_cmd0-3` deletion (A.1.4, words 192–195) —
             deliberately **not** done in this pass, since it needs
             `kuntur_fpga.v` port-list changes and that file was mid-edit for
-            the item-4 placement work below at the time. Still tracked there.
+            the item-4 placement work below at the time.
+            ✅ **Landed 2026-08-27** (`kuntur` `e89671d`), bundled into the
+            PLL-retune resynthesis as planned; confirmed by the area report
+            (SLICE/LUT 645/641 → 595/543, `DPR16X4 × 16` residual gone) and
+            zero remaining references in `kuntur_fpga.v`. *(Checkbox was stale
+            until 2026-08-28.)*
 
       **Measured post-synthesis (Manuel, 2026-08-26)** —
       `regbank_macro/kuntur_fpga_impl_1.arearep`: **4147 → 35 register bits
@@ -1332,8 +1378,14 @@ of it.**
 
 ### A.6.4 — Underrun sentinel against real (non-ramp) data  *(DECISION 2)*
 
-- [ ] The current rule — count an underrun only when **both** channels read
-      `0x8000` — is implemented three times over:
+- [x] **RESOLVED 2026-08-28** — see DECISION 2 at the end of this item. The
+      single-sourcing was done 2026-08-27; the decision landed 2026-08-28 as
+      out-of-band loss accounting, which retires the rule rather than fixing it.
+      The remaining code change (deleting `is_fifo_underrun()` and both callers)
+      is `stream-packet-format.md` §9 **step 5**, and stays in Phase B with the
+      rest of the v1 format work — A.7 steps 1–3 do not depend on it.
+      *Original text:* the current rule — count an underrun only when **both**
+      channels read `0x8000` — is implemented three times over:
       `packet_parser.py:25,73` · `graph_widget.py:62-65` ·
       `analyze_recording.py:23,54`. All three carry the same comment justifying
       it from the **ramp** test pattern (`ch1 = ch0 + 1000`, so ch0 alone can
@@ -1482,6 +1534,82 @@ of it.**
       figure depends on his in-progress PLL retune + oscilloscope
       verification (B.5). Starting now would mean redoing it once the PLL
       changes. Wait for both to close out.
+
+      **Both gates cleared — unblocked as of 2026-08-28.** The bench session
+      ran 2026-08-27 and the PLL retune landed the same day
+      (`CLKOP_FREQ_ACTUAL = 45.539955 MHz`). Two additions from that day and
+      the next, neither a reason to wait: the sidecar gains a `mode_id` field
+      (`stream-packet-format.md` §3.2, additive), and `sample_rate` will take
+      one more *value* update after A.7 step 3 sets λ — which is exactly the
+      change the config-named-object design was chosen to absorb without a
+      schema break. Do not write `30,000` into it; A.7 step 3 is expected to
+      land λ below that deliberately.
+
+## A.7 — Loss accounting & rate margin  *(moved into Phase A 2026-08-28)*
+
+**Spec:** `docs/interfaces/stream-packet-format.md` (AGREED 2026-08-28), §9
+steps 1–3. **History and the investigation that produced it:** B.5's
+"mblock margin + FPGA FIFO sizing", "FIFO/ring occupancy telemetry" and
+"Bridge TX-ring truncation telemetry" items, which retain the narrative and
+now point here for scheduling. Not duplicated.
+
+**Why this is Phase A and not Phase B.** The headstage drops samples
+silently and unquantifiably today: `fifo.v:58` discards writes when `fifo0`
+is full with no counter and no latched flag, and since the 2026-08-27 PLL
+retune put production above delivery (ρ ≥ 1), that path is *active*, not
+theoretical. A recording made at the animal test under those conditions
+cannot be shown to be complete. The animal test is a one-shot external
+commitment with an anaesthetised subject and a collaborator's protocol
+behind it — there is no second run to fix an uninterpretable dataset.
+Steps 1–3 are cheap, non-breaking, and turn "we believe it is lossless"
+into a number.
+
+Steps 4–6 (the breaking v1 wire format) stay in Phase B: they are genuinely
+deferrable past the animal test, and step 4 additionally gates on B.6's
+version handshake.
+
+- [ ] **Step 1 — make loss visible.** *(Manuel, RTL)* Saturating overflow
+      counter and high-water mark in `fifo`, exposed as **read-only regbank
+      words**; MCU reads them over the existing `REG_READ16` path that
+      A.1.1g already generalised — no new mechanism, just a counter and two
+      words. Smallest change in the whole plan, largest information gain.
+      Two things fold into it:
+      - It is the first real use case for B.5's tracked *"FPGA regbank has
+        no read-only registers"* item, which should be built as this rather
+        than separately.
+      - **T3.3's `cmd_is_00 = fifo_full` debug hijack is superseded by it**
+        (`kuntur_fpga.v:118`), so that cleanup wants doing in the same pass
+        rather than as a separate carried-over item.
+- [ ] **Step 2 — make loss measurable.** *(Claude: MCU + bridge + pc-app)*
+      The telemetry frame end to end: new `0xFFF4` notify characteristic in
+      `stream.c`'s service definition, the bridge's connection sequence
+      extended to discover it and write its CCCD, bridge re-framing to
+      `0xDD 0x22` with its own TX-ring counters appended, `serial_reader.py`
+      decode, pc-app status line. Plus two new MCU counters —
+      `ring_truncated_samples` (`stream_app.c:1098-1103` and `:826-835` both
+      clamp their push and silently discard the remainder) and
+      `stall_time_ms_total`, which with the existing `s_flowoff_total` gives
+      both halves of the stall duty cycle.
+      Retires one of the three causes currently conflated in
+      `dropped_packets` on its own merit, independent of step 3. Riskiest
+      part is the bridge connection sequence, which has a history of
+      fragility — bring it up against an already-streaming headstage so a
+      telemetry failure is unambiguous.
+- [ ] **Step 3 — measure, then set λ.** *(Joint)* `μ_low` from a direct
+      re-measurement of the MCU packet-rate ceiling — the cheapest way to
+      separate an mblock-margin question from a per-packet-cost regression,
+      and the thing the 2026-05-15 figure of 512 pkt/s can no longer answer.
+      Stall duty cycle from `flow_off_count` / `stall_time_ms_total`. Then
+      set λ and `m` per the spec's §1.3 invariant (`λ_aggregate < μ_low`,
+      `m` ≥ the stall duty cycle) and re-tune the PLL to the chosen λ.
+      **Expect λ to land below 30,000 SPS/ch, and that is the intended
+      outcome** — 30,000 is a target, not a requirement, and A.6.5's sidecar
+      records the real rate either way. Also confirm here whether `μ` is
+      genuinely payload-size-independent (spec §10, non-blocking).
+- [ ] **Consequence for A.6.5:** `sample_rate` needs one value update after
+      step 3. Not a reason to delay the sidecar — the config-named-object
+      design agreed 2026-08-27 was chosen precisely to absorb this without a
+      schema break.
 
 ---
 
@@ -2164,8 +2292,10 @@ Design the **seams**; file layout follows.
       sessions, neither saved as a CSV recording.
 
       **Reframed 2026-08-28 — this is a margin problem, not a depth
-      problem.** See `docs/interfaces/stream-packet-format.md` §1, which
-      supersedes the framing above. The retune moved the system across
+      problem, and the work moved to Phase A (A.7).** This item retains the
+      investigation history; **A.7 holds the actionable steps** and is where
+      scheduling lives. See `docs/interfaces/stream-packet-format.md` §1,
+      which supersedes the framing above. The retune moved the system across
       ρ = 1: delivery (499.7 pkt/s) fell below production (508.5 pkt/s)
       with underrun at 0%, meaning `fifo0` accumulates rather than
       drains. Buffer depth is *not* the constraint — real depth is
@@ -2184,9 +2314,11 @@ Design the **seams**; file layout follows.
       MCU ring watch written but `STREAM_DIAG_RING_WATCH=0`, never flashed; FPGA
       FIFO occupancy needs new RTL.
       **Specified 2026-08-28** in `docs/interfaces/stream-packet-format.md`
-      §6.4–6.5, and promoted from "tracked but unbuilt" to **steps 1–2 of that
+      §6.4–6.5, promoted from "tracked but unbuilt" to **steps 1–2 of that
       spec's implementation order** — nothing downstream can be tuned until it
-      exists, because `m` cannot be chosen without the stall duty cycle.
+      exists, because `m` cannot be chosen without the stall duty cycle — and
+      **moved into Phase A as A.7 steps 1–2** the same day. This item retains
+      the source findings; A.7 holds the schedule.
       Two findings from reading the source to write it:
       - `fifo.v:58` is `else if (wen && !full)` — on full the write is silently
         discarded, with no counter and no latched flag (`fifo_full` reaches only
@@ -2232,7 +2364,7 @@ Design the **seams**; file layout follows.
       that is reported out of band can be attributed; loss inferred from the data
       stream cannot.
 
-      **Specified 2026-08-28, and widened** —
+      **Specified 2026-08-28, widened, and moved into Phase A as A.7 step 2** —
       `docs/interfaces/stream-packet-format.md` §6. The `0xDD 0x22` shape above is
       kept but is **no longer bridge-specific**: it carries every counter in the
       chain (FPGA `fifo0` overflow, MCU ring truncation and stall time, bridge TX
