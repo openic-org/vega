@@ -24,8 +24,19 @@ from packet_parser import is_fifo_underrun
 
 
 def compute_stats(path: Path) -> dict:
+    # A vega-recording-format-version >= 1 CSV (docs/interfaces/
+    # recording-format.md §1a) carries a leading '# ...' comment line
+    # before the real header, so the header line and skiprows count are
+    # both one higher. Detected dynamically, not by filename/date, so
+    # every pre-A.6.5 recording (no comment line) still parses unchanged.
     with open(path) as f:
-        header = f.readline().strip().split(",")
+        first = f.readline()
+        skiprows = 1
+        header_line = first
+        if first.startswith("#"):
+            header_line = f.readline()
+            skiprows = 2
+    header = header_line.strip().split(",")
     has_seq = "seq_num" in header
 
     names = ["t", "ch0", "ch1", "seq"] if has_seq else ["t", "ch0", "ch1"]
@@ -35,7 +46,7 @@ def compute_stats(path: Path) -> dict:
     # under genfromtxt; loadtxt's C-level reader stays close to the array's
     # native size instead.
     dtype = np.dtype({"names": names, "formats": [np.int64] * len(names)})
-    data = np.loadtxt(path, delimiter=",", skiprows=1, dtype=dtype)
+    data = np.loadtxt(path, delimiter=",", skiprows=skiprows, dtype=dtype)
     t   = data["t"]
     ch0 = data["ch0"].astype(np.int16)
     ch1 = data["ch1"].astype(np.int16)

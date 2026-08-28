@@ -16,14 +16,23 @@ from PyQt6.QtGui import QFont
 
 from serial_reader import SerialReader
 from graph_widget  import GraphWidget
-from csv_recorder  import CsvRecorder
-from diagnostics   import RUNGS, RungRunner
+from csv_recorder  import CsvRecorder, MAX_DURATION_STR
+from diagnostics   import RUNGS, RungRunner, FilterSettingsReader
+import rhd2164_units
 
 RECORDINGS_DIR = Path(__file__).parent / "recordings"
 BENCH_DIR      = Path(__file__).parent / "bench"
 
 # Measured at ~4 500 SPS with current CI (~13 ms). Update when CI is tightened to 7.5 ms.
 DELIVERED_SPS = 5_000
+
+# FPGA production rate, per-channel, current firmware — see
+# docs/interfaces/stream-packet-format.md §1.1 (2026-08-27 PLL retune).
+# Recorded into every sidecar's sample_rate.channel_hz (see
+# _build_sidecar_metadata below). PLAN.md A.7 step 3 is expected to set
+# the actual streaming rate below this deliberately (rate margin) — update
+# this constant when that lands, not before.
+SAMPLE_RATE_CHANNEL_HZ = 29_999.97
 
 # How long to wait for a real STOP_STREAMING/START_STREAMING acknowledgment
 # (section 5.6) before giving up and proceeding anyway — same reasoning as
@@ -101,6 +110,19 @@ class MainWindow(QMainWindow):
         self._apply_ch_a = 0
         self._apply_ch_b = 0
         self._is_connected = False
+
+        # Recording-metadata sidecar state — docs/interfaces/recording-format.md
+        # §2.1. "unknown" until a real hardware confirmation lands; a change in
+        # flight (Apply clicked, Get Settings running) downgrades to
+        # "unverified_requested"/stays "unknown" rather than keeping a stale
+        # verified value.
+        self._channels_state = {"ch_a": None, "ch_b": None, "provenance": "unknown"}
+        self._filter_settings_state = {"registers": None, "provenance": "unknown"}
+
+        self._filter_settings_reader = FilterSettingsReader(self._reader, self)
+        self._filter_settings_reader.progress.connect(self._on_get_settings_progress)
+        self._filter_settings_reader.finished.connect(self._on_get_settings_finished)
+        self._filter_settings_reader.failed.connect(self._on_get_settings_failed)
 
         # GPIO bench logging — opened on BLE connect, closed on disconnect
         self._bench_log: "csv.writer | None" = None
@@ -195,6 +217,21 @@ class MainWindow(QMainWindow):
         self._lbl_verify.setStyleSheet("font-size: 11px;")
         row.addWidget(self._lbl_verify)
 
+        # "Get Settings" — docs/interfaces/recording-format.md §2.1/§2.1a.
+        # Reads the RHD2164 filter/bandwidth registers for the sidecar.
+        # Operator-triggered, not automatic, because it briefly stops
+        # streaming and repoints ch_a at the FPGA's command slot before
+        # restoring the operator's own channels — same STOP/act/restore/
+        # START shape as Apply, just for a read instead of a write.
+        self._btn_get_settings = QPushButton("Get Settings")
+        self._btn_get_settings.setEnabled(False)
+        self._btn_get_settings.clicked.connect(self._get_filter_settings)
+        row.addWidget(self._btn_get_settings)
+
+        self._lbl_settings = QLabel("")
+        self._lbl_settings.setStyleSheet("font-size: 11px;")
+        row.addWidget(self._lbl_settings)
+
         row.addStretch(1)
         return row
 
@@ -254,6 +291,7 @@ class MainWindow(QMainWindow):
             return
         self._btn_run_rung.setEnabled(False)
         self._btn_apply_channels.setEnabled(False)
+        self._btn_get_settings.setEnabled(False)
         print(f"\n=== {rung.title} ===\n{rung.note}\n")
 
     def _on_rung_progress(self, line: str) -> None:
@@ -263,6 +301,7 @@ class MainWindow(QMainWindow):
     def _on_rung_finished(self, key: str, results: list, all_passed: bool) -> None:
         self._btn_run_rung.setEnabled(True)
         self._btn_apply_channels.setEnabled(True)
+        self._btn_get_settings.setEnabled(self._is_connected)
         verdicts = [r for r in results if not getattr(r, "info", False)]
         if not verdicts:
             summary = f"rung {key}: {len(results)} measurements recorded — read the console"
@@ -285,6 +324,7 @@ class MainWindow(QMainWindow):
     def _on_rung_failed(self, key: str, reason: str) -> None:
         self._btn_run_rung.setEnabled(True)
         self._btn_apply_channels.setEnabled(True)
+        self._btn_get_settings.setEnabled(self._is_connected)
         self._lbl_rung.setText(f"✗ rung {key} aborted: {reason}")
         self._lbl_rung.setStyleSheet("color: #c62828;")
         print(f"\nrung {key} ABORTED: {reason}")
@@ -372,16 +412,54 @@ class MainWindow(QMainWindow):
     def _toggle_recording(self, checked: bool):
         if checked:
             RECORDINGS_DIR.mkdir(exist_ok=True)
-            path = self._recorder.start(str(RECORDINGS_DIR))
+            path = self._recorder.start(str(RECORDINGS_DIR), metadata=self._build_sidecar_metadata())
             self._btn_rec.setText("■ Stop")
             self._lbl_rec_path.setText(f"Recording → {path}")
         else:
             self._recorder.stop()
             self._btn_rec.setText("● REC")
             info = self._recorder.info
+            reason = f"  ({info.auto_stop_reason})" if info.auto_stop_reason else ""
             self._lbl_rec_path.setText(
-                f"Saved  {info.elapsed_sec}s  ~{info.estimated_mb} MB  → {info.file_path}"
+                f"Saved  {info.elapsed_sec}s  ~{info.estimated_mb} MB{reason}  → {info.file_path}"
             )
+
+    def _build_sidecar_metadata(self) -> dict:
+        """Everything known at recording-start() time, per
+        docs/interfaces/recording-format.md §2. firmware_version/
+        bitstream_version are genuinely not obtainable yet (spec §5) — do
+        not infer them from git state, they must read "unknown" literally
+        until PLAN.md B.5/B.6 land."""
+        return {
+            "sample_rate": {
+                "config": "2ch_v1",
+                "channel_hz": SAMPLE_RATE_CHANNEL_HZ,
+                "source": (
+                    "docs/interfaces/stream-packet-format.md §1.1 — "
+                    "2026-08-27 PLL retune. Will be revised after "
+                    "PLAN.md A.7 step 3 sets the rate margin; the actual "
+                    "streaming rate is expected to land below this figure "
+                    "deliberately."
+                ),
+            },
+            "gain": {
+                "amplifier_uv_per_lsb": rhd2164_units.AMPLIFIER_UV_PER_LSB,
+                "source": (
+                    "Intan_RHD2000_series_datasheet.pdf, page 6, table "
+                    "'Electrical Characteristics', symbol V_LSB, row "
+                    "'referred to amplifier input'. Confirmed by Manuel "
+                    "2026-08-27 (PLAN.md A.6.2, DECISION 1). Applies to "
+                    "CH0/CH1 as amplifier channels, which is what "
+                    "SET_CHANNELS selects in normal operation -- see "
+                    "pc-app/rhd2164_units.py for the auxiliary-input and "
+                    "supply-sensor step sizes, not used by this field."
+                ),
+            },
+            "channels": dict(self._channels_state),
+            "filter_settings": dict(self._filter_settings_state),
+            "firmware_version": "unknown",
+            "bitstream_version": "unknown",
+        }
 
     def _on_batch(self, packet):
         self._total_underruns += packet.fifo_underruns
@@ -403,6 +481,7 @@ class MainWindow(QMainWindow):
             self._lbl_status.setStyleSheet("font-size: 11px; color: green;")
             self._btn_rec.setEnabled(True)
             self._btn_apply_channels.setEnabled(True)
+            self._btn_get_settings.setEnabled(True)
             self._graph.clear()
             self._rate_ts         = time.time()
             self._rate_pkts       = 0
@@ -421,6 +500,7 @@ class MainWindow(QMainWindow):
             self._lbl_status.setStyleSheet("font-size: 11px; color: gray;")
             self._btn_rec.setEnabled(False)
             self._btn_apply_channels.setEnabled(False)
+            self._btn_get_settings.setEnabled(False)
             self._verify_timer.stop()
             self._pending_channels = None
             self._stop_ack_timer.stop()
@@ -428,6 +508,13 @@ class MainWindow(QMainWindow):
             self._awaiting_stop_ack = False
             self._awaiting_start_ack = False
             self._lbl_verify.setText("")
+            self._lbl_settings.setText("")
+            self._filter_settings_reader.abort("disconnected")
+            # A different device (or the same one power-cycled) may be on
+            # the other end of the next connect — last-known state doesn't
+            # carry over, same reasoning as _pending_channels above.
+            self._channels_state = {"ch_a": None, "ch_b": None, "provenance": "unknown"}
+            self._filter_settings_state = {"registers": None, "provenance": "unknown"}
             if self._recorder.info.is_recording:
                 self._btn_rec.setChecked(False)
                 self._toggle_recording(False)
@@ -457,11 +544,19 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage("STOP_STREAMING failed — not connected", 3000)
             return
         self._btn_apply_channels.setEnabled(False)
+        self._btn_get_settings.setEnabled(False)
+        self._btn_run_rung.setEnabled(False)
         self._lbl_verify.setText("… stopping stream")
         self._lbl_verify.setStyleSheet("font-size: 11px; color: gray;")
         self.statusBar().showMessage("STOP_STREAMING sent", 2000)
         self._apply_ch_a = self._spin_ch_a.value()
         self._apply_ch_b = self._spin_ch_b.value()
+        # A change is in flight — whatever was verified before is stale as
+        # of this click (spec §2.1's "invalidation/refresh" requirement).
+        self._channels_state = {
+            "ch_a": self._apply_ch_a, "ch_b": self._apply_ch_b,
+            "provenance": "unverified_requested",
+        }
         self._awaiting_stop_ack = True
         self._stop_ack_timer.start()
 
@@ -502,7 +597,16 @@ class MainWindow(QMainWindow):
 
     def _on_channels_readback(self, ch_a: int, ch_b: int):
         """SET_CHANNELS readback arrived on 0xFFF3 — see
-        docs/interfaces/channel-selection-control-plane.md section 4."""
+        docs/interfaces/channel-selection-control-plane.md section 4.
+
+        Always a real hardware confirmation regardless of what triggered it
+        (an Apply click below, or Get Settings restoring the operator's
+        channels after reading filter registers) — sidecar provenance
+        (spec §2.1) is updated unconditionally, using what the FPGA
+        actually reports rather than what was requested."""
+        self._channels_state = {
+            "ch_a": ch_a, "ch_b": ch_b, "provenance": "verified_readback",
+        }
         self._verify_timer.stop()
         if self._pending_channels is None:
             return  # stale/unsolicited — already timed out or nothing was applied
@@ -565,12 +669,51 @@ class MainWindow(QMainWindow):
         self.statusBar().showMessage("✗ START_STREAMING unsuccessful — no confirmation received", 3000)
         QTimer.singleShot(APPLY_COOLDOWN_MS, self._apply_channels_reenable)
 
+    def _get_filter_settings(self):
+        """'Get Settings' — docs/interfaces/recording-format.md §2.1/§2.1a.
+        Mutually exclusive with Apply and the diagnostics ladder: all three
+        drive the same live FPGA state (channel selection, sampling table,
+        streaming), so only one may run at a time."""
+        orig_ch_a = self._channels_state["ch_a"] if self._channels_state["ch_a"] is not None \
+            else self._spin_ch_a.value()
+        orig_ch_b = self._channels_state["ch_b"] if self._channels_state["ch_b"] is not None \
+            else self._spin_ch_b.value()
+        if not self._filter_settings_reader.run(orig_ch_a, orig_ch_b):
+            return
+        self._btn_get_settings.setEnabled(False)
+        self._btn_apply_channels.setEnabled(False)
+        self._btn_run_rung.setEnabled(False)
+        self._lbl_settings.setText("… reading filter registers")
+        self._lbl_settings.setStyleSheet("font-size: 11px; color: gray;")
+
+    def _on_get_settings_progress(self, line: str) -> None:
+        self._lbl_settings.setText(line.strip())
+
+    def _on_get_settings_finished(self, result) -> None:
+        self._btn_get_settings.setEnabled(self._is_connected)
+        self._btn_apply_channels.setEnabled(self._is_connected)
+        self._btn_run_rung.setEnabled(True)
+        self._filter_settings_state = {
+            "registers": result.registers, "provenance": "verified_readback",
+        }
+        self._lbl_settings.setText(f"✓ {len(result.registers)} registers read")
+        self._lbl_settings.setStyleSheet("font-size: 11px; color: green; font-weight: bold;")
+
+    def _on_get_settings_failed(self, reason: str) -> None:
+        self._btn_get_settings.setEnabled(self._is_connected)
+        self._btn_apply_channels.setEnabled(self._is_connected)
+        self._btn_run_rung.setEnabled(True)
+        self._lbl_settings.setText(f"✗ Get Settings failed: {reason}")
+        self._lbl_settings.setStyleSheet("font-size: 11px; color: #B71C1C; font-weight: bold;")
+
     def _apply_channels_reenable(self):
         # Guard against a disconnect happening mid-sequence — don't
         # re-enable Apply if we're not actually connected anymore;
         # _on_connection_changed(True, ...) will re-enable it on reconnect.
         if self._is_connected:
             self._btn_apply_channels.setEnabled(True)
+            self._btn_get_settings.setEnabled(True)
+        self._btn_run_rung.setEnabled(True)
 
     def _on_error(self, msg: str):
         self._btn_connect.setChecked(False)
@@ -622,5 +765,17 @@ class MainWindow(QMainWindow):
             info = self._recorder.info
             m, s = divmod(info.elapsed_sec, 60)
             self._lbl_rec_path.setText(
-                f"Recording  {m}:{s:02d} / 10:00  •  ~{info.estimated_mb} MB"
+                f"Recording  {m}:{s:02d} / {MAX_DURATION_STR}  •  ~{info.estimated_mb} MB"
             )
+
+    def closeEvent(self, event):
+        """Without this, closing the window mid-recording/mid-connection
+        just kills the process: CsvRecorder's buffered writes (64 KB) can
+        lose their last unflushed chunk, and the sidecar never gets its
+        stop()-time rewrite (duration, stop reason, etc.) — a clean window
+        close shouldn't degrade to the same failure mode as a crash."""
+        if self._recorder.info.is_recording:
+            self._recorder.stop()
+        if self._is_connected:
+            self._reader.stop()
+        super().closeEvent(event)

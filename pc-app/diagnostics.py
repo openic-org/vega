@@ -650,3 +650,248 @@ class RungRunner(QObject):
         # default if the restore list never ran.
         self._reader.send_start_streaming()
         self.failed.emit(key, reason)
+
+
+# ── "Get Settings" — RHD2164 filter/bandwidth register read ────────────────
+# docs/interfaces/recording-format.md §2.1/§2.1a. Same register-console
+# primitives as RungRunner (rhd_read, slot_word, ch_code, the ack-gated
+# queue), but a different shape: RungRunner's setup writes the WHOLE
+# sampling table up front and always restores to hardcoded FPGA defaults;
+# this reads one register at a time through the dedicated command slot 32
+# only (never slots 0-31, never REG_CH_B) and restores the operator's own
+# live channel selection via SET_CHANNELS — the same command Apply uses —
+# rather than a raw register poke, so restoration is verified the same way
+# Apply already is.
+FILTER_REGISTERS = [4, 8, 9, 10, 11, 12, 13]
+
+# Slot 32's value at reset / in normal operation (components.v: ram[80]
+# initial value) — what "Get Settings" puts back once it's done using the
+# slot for its own reads. Not a full RESET_SAMPLING_TABLE restore: slots
+# 0-31 are never touched in the first place, so there is nothing else to
+# put back.
+SLOT32_RESET_CMD = rhd_read(63)
+
+
+@dataclass
+class FilterSettingsResult:
+    registers: dict[str, int]     # {"4": value, "8": value, ...}
+    ok: bool
+    reason: str = ""              # set when ok is False
+
+
+class FilterSettingsReader(QObject):
+    """Runs the 'Get Settings' sequence: STOP -> read FILTER_REGISTERS one
+    at a time through slot 32 -> put slot 32 back -> SET_CHANNELS(orig) ->
+    verified readback -> START. Only REG_CH_A and regbank word 80 (slot 32)
+    are ever written.
+    """
+
+    progress = pyqtSignal(str)
+    finished = pyqtSignal(object)   # FilterSettingsResult
+    failed = pyqtSignal(str)        # reason
+
+    def __init__(self, reader, parent=None):
+        super().__init__(parent)
+        self._reader = reader
+        self._queue: list = []
+        self._results: dict[str, int] = {}
+        self._collect: list[int] | None = None
+        self._pending_addr: int | None = None
+        self._pending_value: int | None = None
+        self._orig_channels: tuple[int, int] | None = None
+        self._retries = 0
+        self._timer = QTimer(self)
+        self._timer.setSingleShot(True)
+        self._timer.timeout.connect(self._on_timeout)
+        self._running = False
+
+    # -- public -------------------------------------------------------------
+
+    def run(self, orig_ch_a: int, orig_ch_b: int) -> bool:
+        """orig_ch_a/orig_ch_b are the operator's current live channels
+        (friendly 0-127 indices) — restored via SET_CHANNELS at the end,
+        exactly like the Apply button would."""
+        if self._running:
+            return False
+        self._orig_channels = (orig_ch_a, orig_ch_b)
+        self._results = {}
+        self._running = True
+
+        q: list = [("stop", None)]
+        for reg in FILTER_REGISTERS:
+            q.append(("write", (slot_word(32), rhd_read(reg))))
+            q.append(("write", (REG_CH_A, ch_code(PRIMARY_SRC, 32))))
+            q.append(("start", None))
+            q.append(("collect", reg))
+            q.append(("stop", None))
+        q.append(("write", (slot_word(32), SLOT32_RESET_CMD)))
+        q.append(("set_channels", (orig_ch_a, orig_ch_b)))
+        q.append(("start", None))
+        self._queue = q
+
+        self._connect()
+        self.progress.emit(f"Get Settings: reading {len(FILTER_REGISTERS)} registers")
+        self._next()
+        return True
+
+    def abort(self, reason: str = "aborted") -> None:
+        if not self._running:
+            return
+        self._finish_failed(reason)
+
+    # -- plumbing -----------------------------------------------------------
+
+    def _connect(self) -> None:
+        self._reader.reg_access_response.connect(self._on_reg_response)
+        self._reader.stop_streaming_ack.connect(self._on_stop_ack)
+        self._reader.start_streaming_ack.connect(self._on_start_ack)
+        self._reader.batch_received.connect(self._on_batch)
+        self._reader.channels_readback.connect(self._on_channels_readback)
+
+    def _disconnect(self) -> None:
+        for sig, slot in (
+            (self._reader.reg_access_response, self._on_reg_response),
+            (self._reader.stop_streaming_ack, self._on_stop_ack),
+            (self._reader.start_streaming_ack, self._on_start_ack),
+            (self._reader.batch_received, self._on_batch),
+            (self._reader.channels_readback, self._on_channels_readback),
+        ):
+            try:
+                sig.disconnect(slot)
+            except TypeError:
+                pass
+
+    def _next(self) -> None:
+        self._timer.stop()
+        if not self._queue:
+            self._finish_ok()
+            return
+        # Same COMMAND_GAP_MS pacing as RungRunner — back-to-back commands
+        # provoke the bridge USART1 overrun (control-plane spec, Resolved
+        # 2026-08-06).
+        QTimer.singleShot(COMMAND_GAP_MS, self._dispatch)
+
+    def _dispatch(self) -> None:
+        if not self._running or not self._queue:
+            return
+        kind, arg = self._queue[0]
+        if kind == "write":
+            addr, value = arg
+            self._pending_addr, self._pending_value = addr, value
+            self._reader.send_reg_write16(addr, value)
+            self._timer.start(ACK_TIMEOUT_MS)
+        elif kind == "stop":
+            self._reader.send_stop_streaming()
+            self._timer.start(ACK_TIMEOUT_MS)
+        elif kind == "start":
+            self._reader.send_start_streaming()
+            self._timer.start(ACK_TIMEOUT_MS)
+        elif kind == "collect":
+            self._collect = []
+            self._timer.start(ACK_TIMEOUT_MS * 3)   # streaming must actually flow
+        elif kind == "set_channels":
+            ch_a, ch_b = arg
+            self._reader.send_set_channels(ch_a, ch_b)
+            self._timer.start(ACK_TIMEOUT_MS)
+
+    def _pop(self) -> None:
+        self._queue.pop(0)
+        self._retries = 0
+        self._next()
+
+    # -- signal handlers ----------------------------------------------------
+
+    def _on_reg_response(self, rtype: int, addr: int, value: int) -> None:
+        if not self._running or not self._queue or self._queue[0][0] != "write":
+            return
+        if rtype not in (CMD_REG_WRITE16, CMD_REG_READ16) or addr != self._pending_addr:
+            return
+        self._timer.stop()
+        if value != self._pending_value:
+            self._finish_failed(
+                f"word {addr}: wrote 0x{self._pending_value:04X}, "
+                f"regbank holds 0x{value:04X}")
+            return
+        self._pop()
+
+    def _on_stop_ack(self, success: bool) -> None:
+        if self._running and self._queue and self._queue[0][0] == "stop":
+            self._timer.stop()
+            if not success:
+                self._finish_failed("STOP_STREAMING ack reported failure")
+                return
+            self._pop()
+
+    def _on_start_ack(self, success: bool) -> None:
+        if self._running and self._queue and self._queue[0][0] == "start":
+            self._timer.stop()
+            if not success:
+                self._finish_failed("START_STREAMING ack reported failure")
+                return
+            self._pop()
+
+    def _on_channels_readback(self, ch_a: int, ch_b: int) -> None:
+        if not self._running or not self._queue or self._queue[0][0] != "set_channels":
+            return
+        want_a, want_b = self._queue[0][1]
+        self._timer.stop()
+        if (ch_a, ch_b) != (want_a, want_b):
+            self._finish_failed(
+                f"restore mismatch: wanted ch_a={want_a}/ch_b={want_b}, "
+                f"FPGA now holds ch_a={ch_a}/ch_b={ch_b}")
+            return
+        self._pop()
+
+    def _on_batch(self, packet) -> None:
+        if not self._running or self._collect is None:
+            return
+        if not self._queue or self._queue[0][0] != "collect":
+            return
+        self._collect.extend(int(v) & 0xFFFF for v in packet.ch0)
+        if len(self._collect) < OBSERVE_PAIRS + DISCARD_PAIRS:
+            return
+        self._timer.stop()
+        reg: int = self._queue[0][1]
+        pairs = self._collect[DISCARD_PAIRS:]
+        self._collect = None
+        # Majority vote, same reasoning as RungRunner._record: the value
+        # under read is static, so any spread is itself a finding.
+        value, _ = Counter(pairs).most_common(1)[0]
+        self._results[str(reg)] = value & 0xFF
+        self.progress.emit(f"  reg {reg}: 0x{value & 0xFF:02X}")
+        self._pop()
+
+    def _on_timeout(self) -> None:
+        if not self._running or not self._queue:
+            return
+        kind, arg = self._queue[0]
+        if kind == "collect":
+            self._finish_failed("no sample data arrived after START_STREAMING")
+            return
+        self._retries += 1
+        if self._retries > WRITE_RETRIES:
+            what = f"word {self._pending_addr}" if kind == "write" else kind.upper()
+            self._finish_failed(f"{what}: no response after {WRITE_RETRIES} retries")
+            return
+        self.progress.emit(f"  timeout, retry {self._retries}/{WRITE_RETRIES}")
+        self._dispatch()
+
+    # -- termination --------------------------------------------------------
+
+    def _finish_ok(self) -> None:
+        self._running = False
+        self._timer.stop()
+        self._disconnect()
+        self.finished.emit(FilterSettingsResult(registers=dict(self._results), ok=True))
+
+    def _finish_failed(self, reason: str) -> None:
+        self._running = False
+        self._timer.stop()
+        self._disconnect()
+        # Same philosophy as RungRunner: never leave the instrument silent.
+        # If the failure happened before the channel restore ran, this
+        # leaves REG_CH_A pointed at slot 32 rather than the operator's
+        # channel — the operator must re-Apply to recover, same recovery
+        # path as any other failed command sequence.
+        self._reader.send_start_streaming()
+        self.failed.emit(reason)
