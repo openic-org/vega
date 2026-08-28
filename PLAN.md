@@ -1386,6 +1386,23 @@ of it.**
       measurement — report the sentinel rate against whichever recording comes
       out of it first.
 
+      **DECISION 2 resolved 2026-08-28 — option (b), out-of-band metadata.**
+      `docs/interfaces/stream-packet-format.md` §7. The v1 packet header carries an
+      absolute `sample_index`, so loss is detected structurally
+      (`gap = sample_index − (prev_index + prev_payload_samples)`) and gives the
+      exact count and position of every missing sample; attribution — producer-side
+      `fifo0` overflow vs. MCU ring truncation vs. bridge USB backlog vs. genuine
+      air loss — comes from differencing the §6 telemetry counters across the gap.
+      **The `0x8000` sentinel is retired entirely** and becomes an ordinary ADC
+      code, which is what makes the ambiguity go away rather than merely documenting
+      it. Consequences: `packet_parser.is_fifo_underrun()` and both its callers are
+      deleted (B.3's "single-source the underrun sentinel rule" closes as
+      resolved-by-removal — the 2026-08-27 single-sourcing did its job, which was to
+      make this a one-place change); and the blocked empirical measurement above
+      becomes **moot**, since `fifo0_overflow_samples` answers directly the question
+      the sentinel rate was a proxy for. Implementation follows the spec's §9 order,
+      not this item.
+
 ### A.6.5 — Recording metadata sidecar  *(DECISION 3 — spec first)*
 
 - [ ] Minimum content: sample rate, gain / µV-per-LSB, channel map, filter
@@ -1480,7 +1497,11 @@ Begins after A3. Ordering within Phase B is dependency-driven, not fixed.
       · `NORDIC_HF` "not implemented" · PA10→TP5 · `CFG_LPM_SUPPORTED` (memory says
       `0`, code is `1` at `app_conf.h:415`) · `project_fpga_spi_status.md`
       self-flagged untrustworthy · `serial_reader.py:2` still describes the removed
-      nRF52840 bridge.
+      nRF52840 bridge · **`fifo0` depth** (CLAUDE.md and `log/2026-08-28.md` both say
+      "~34 ms"; it was deepened 1024→4096 frames on 2026-07-31, so it is ~137 ms —
+      `stream_app.c:226-229` and `kuntur_fpga.v:246` `ADDR_WIDTH=12` are correct,
+      found 2026-08-28 while writing `stream-packet-format.md` §1.2; this one
+      matters because it feeds every buffer-sizing argument).
 - [ ] **New monorepo, fresh start — named `kuntur`.** Kuntur is the system; Vega is
       the app component within it. Two things to resolve first:
   - **Name collision:** `ssh://git@openic.org:2222/headstages/kuntur.git` already
@@ -1663,11 +1684,16 @@ Begins after A3. Ordering within Phase B is dependency-driven, not fixed.
 **Structured, safety-ready from day one.** Permanent IDs, verification method per
 requirement, requirement→test traceability in CI, verification *evidence* retained.
 
-- [ ] **Interface specs** (the A.4 tunnel spec is the first) — BLE packet format ·
-      0xFFF1 command protocol · bridge UART wire format (**add CRC**) · FPGA register
+- [ ] **Interface specs** (the A.4 tunnel spec is the first) — ~~BLE packet format~~
+      (**written 2026-08-28**, `docs/interfaces/stream-packet-format.md`, proposed
+      not yet agreed) · 0xFFF1 command protocol · bridge UART wire format
+      (**add CRC** — the stream-packet spec raises the same point as its open
+      question §10.1: framing carries a length but no integrity check, so a
+      corrupted length desynchronizes until the next magic pair) · FPGA register
       map · RHD2164 configuration contract · recording format + metadata ·
       **protocol version field**, absent today, without which the format cannot
-      evolve safely once public
+      evolve safely once public — *satisfied for the wire format* by the v1 header
+      plus B.6's version handshake (`stream-packet-format.md` §8.2)
 - [ ] System requirements — including the lossless claim stated testably (duration +
       RF envelope)
 - [ ] Subsystem requirements — MCU, FPGA, bridge, pc-app, companion FPGA
@@ -1752,7 +1778,12 @@ Design the **seams**; file layout follows.
       print flood).
 - [ ] **Single-source the underrun sentinel rule** — triplicated across
       `analyze_recording.py`, `packet_parser.py`, `graph_widget.py`; all three had the
-      same bug.
+      same bug. **Done 2026-08-27** (`packet_parser.is_fifo_underrun()`), and
+      **closes as resolved-by-removal** once the v1 packet format lands: A.6.4's
+      DECISION 2 retires the `0x8000` sentinel entirely
+      (`docs/interfaces/stream-packet-format.md` §7), so the single definition and
+      both its callers are deleted. The single-sourcing did exactly the job it was
+      done for — making this a one-place change.
 - [ ] Restructure pc-app — 14 flat files mixing product app, analysis tools, one-off
       investigation plots, and a test harness in one namespace.
 - [ ] **Committed extension points** (few, versioned): AFE driver · transport · data
@@ -1800,7 +1831,13 @@ Design the **seams**; file layout follows.
 ### Known-open technical issues
 
 - [ ] **1.7% FPGA FIFO underrun rate** (1,924,235 / 111,946,128 on the hour soak) —
-      real underruns, never investigated
+      real underruns, never investigated. **Becomes directly measurable 2026-08-28**:
+      the figure is a *read-side* sentinel count, which is a proxy for the quantity
+      actually wanted; `fifo0_overflow_samples`
+      (`docs/interfaces/stream-packet-format.md` §6.4) counts the write-side drop
+      directly. Re-derive the number from that counter rather than investigating the
+      old one — and note the old figure is uninterpretable against real data anyway,
+      per A.6.4.
 - [ ] **SPS overshoot — reframed 2026-08-27, in progress.** Raised while
       designing A.6.5's `sample_rate` sidecar field
       (`docs/interfaces/recording-format.md` §3). Cycle-counted the
@@ -2122,9 +2159,49 @@ Design the **seams**; file layout follows.
       a resolution. Two real captures per channel pair are on record
       (chA=3/chB=121, plus earlier 42/88), both from live `pc-app`
       sessions, neither saved as a CSV recording.
+
+      **Reframed 2026-08-28 — this is a margin problem, not a depth
+      problem.** See `docs/interfaces/stream-packet-format.md` §1, which
+      supersedes the framing above. The retune moved the system across
+      ρ = 1: delivery (499.7 pkt/s) fell below production (508.5 pkt/s)
+      with underrun at 0%, meaning `fifo0` accumulates rather than
+      drains. Buffer depth is *not* the constraint — real depth is
+      ~205 ms headstage (`fifo0` 137 ms + MCU ring 68 ms), ~10× the
+      worst measured stall. The constraint is that margin `m` sets the
+      *drain rate*: at today's ~0.69%, recovery from one 22 ms stall
+      takes 3.1 s, so stalls arriving more often than that accumulate
+      backlog regardless of depth. **This item cannot be closed by
+      tuning; it closes by measuring `μ_low` and the stall duty cycle
+      (spec §9 steps 1–3) and then setting λ.** Note also that the
+      per-mode framing in this item's own title is no longer needed:
+      under the v1 packet format the packet rate is mode-independent
+      (spec §5), so one tuning result covers every future mode.
 - [ ] Reduced sample rate as a reliability lever — characterise empirically
-- [ ] FIFO/ring occupancy telemetry — MCU ring watch written but
-      `STREAM_DIAG_RING_WATCH=0`, never flashed; FPGA FIFO occupancy needs new RTL
+- [ ] **FIFO/ring occupancy telemetry — now specified and on the critical path.**
+      MCU ring watch written but `STREAM_DIAG_RING_WATCH=0`, never flashed; FPGA
+      FIFO occupancy needs new RTL.
+      **Specified 2026-08-28** in `docs/interfaces/stream-packet-format.md`
+      §6.4–6.5, and promoted from "tracked but unbuilt" to **steps 1–2 of that
+      spec's implementation order** — nothing downstream can be tuned until it
+      exists, because `m` cannot be chosen without the stall duty cycle.
+      Two findings from reading the source to write it:
+      - `fifo.v:58` is `else if (wen && !full)` — on full the write is silently
+        discarded, with no counter and no latched flag (`fifo_full` reaches only
+        `cmd_is_00`, itself T3.3's debug hijack). **This is the single
+        uncontrolled loss point in the headstage**, and its invisibility is why
+        the 2026-08-27 deficit had to be inferred from delivered-rate arithmetic.
+        Fix: a saturating overflow counter + high-water mark exposed as
+        **read-only regbank words** — the first real use case for the tracked
+        "FPGA regbank has no read-only registers" item below, which should be
+        built as this rather than separately.
+      - `stream_app.c:1098-1103` (the `flow_off:` path) and `:826-835` clamp their
+        push to whatever ring room remains and silently discard the remainder.
+        Only reachable when the ring is already full, but real and uncounted.
+      Also needs `stall_time_ms_total` alongside the existing `s_flowoff_total`:
+      together they give both halves of the stall duty cycle, which is the number
+      nobody currently has. Backpressure elsewhere in the headstage is already
+      correct — a full MCU ring stops `StreamIngestDuringStall`, pushing pressure
+      back onto `fifo0` rather than dropping — so no other counter is needed.
 - [ ] **Bridge TX-ring truncation telemetry — counters done 2026-08-28, reporting
       path still open.** `VEGA_UART_Write()` drops the remainder of a write when the
       4096-byte ring is full, which puts a *truncated* frame on the wire. The pc-app
@@ -2151,6 +2228,20 @@ Design the **seams**; file layout follows.
       figure it currently cannot qualify. Same argument as A.6.4's DECISION 2: loss
       that is reported out of band can be attributed; loss inferred from the data
       stream cannot.
+
+      **Specified 2026-08-28, and widened** —
+      `docs/interfaces/stream-packet-format.md` §6. The `0xDD 0x22` shape above is
+      kept but is **no longer bridge-specific**: it carries every counter in the
+      chain (FPGA `fifo0` overflow, MCU ring truncation and stall time, bridge TX
+      drops) *and* the RTC time anchor, because A.6.4's out-of-band loss report and
+      the v1 header's removal of per-packet timestamps both need exactly this frame.
+      Three frame types doing one job is the outcome that was worth avoiding.
+      Path: FPGA counters → MCU over the existing `REG_READ16` regbank path → host
+      over `0xFFF3` as unsolicited **opcode `0x80`** (high bit set distinguishes
+      unsolicited from a command echo, so no new BLE characteristic) → bridge
+      appends its own counters and emits `0xDD 0x22`. Counters are **cumulative
+      since `START_STREAMING`**, so a lost telemetry frame costs resolution, not
+      information.
 - [ ] **Bridge TX ring is single-producer by assumption, not by construction.**
       `vega_uart.c` documents itself as single-producer/main-context-only, and
       `VEGA_UART_Write()` relies on that: it caches `s_head`, fills slots, and commits
@@ -2200,6 +2291,14 @@ Design the **seams**; file layout follows.
 - [ ] **Version/name handshake** replacing the bare `"Kuntur-Headstage"` string match
       (`app_ble.c:582`) — a mismatched pair must report *"bridge v1.2 cannot talk to
       headstage v0.9"*, not scan forever in silence.
+      **Promoted 2026-08-28 from nice-to-have to a prerequisite**
+      (`docs/interfaces/stream-packet-format.md` §8.2): the v1 packet format is a
+      breaking wire change, and v0/v1 cannot coexist on `0xFFF2` without a
+      discriminator. The handshake is the clean one — the pc-app learns the
+      protocol version at connect and selects a parser. A byte-7 sniff
+      (`num_pairs`=59 in v0 vs. `reserved`=0 in v1) works as an interim fallback but
+      is fragile and breaks if §10.1's header CRC claims that byte. Schedule fact:
+      this now gates step 4 of that spec's implementation order.
       **Also needed by A.6.5** (confirmed with Manuel 2026-08-27): the recording
       metadata sidecar's `firmware_version` field reads `"unknown"` until this
       exists. Checked 2026-08-27: no version constant is compiled into the MCU
@@ -2270,6 +2369,39 @@ All four opening questions resolved 2026-08-04:
 Still to confirm (not blocking): whether the collaborator's animal protocol needs an
 amendment; RHS2116 unpopulated/disabled on test hardware; calibration status of
 instruments feeding datasheet numbers.
+
+**Decided 2026-08-28 — the rate architecture** (Manuel, after working the
+producer/transport model through; spec: `docs/interfaces/stream-packet-format.md`):
+
+- **Lossless-by-margin (option A).** Production rate is set *below* measured
+  transport capacity — `λ_aggregate < μ_low`, with margin `m` ≥ the stall duty
+  cycle — and v1 claims zero sample loss for a stated duration at a stated rate.
+  The alternative considered and rejected was "loss-accounted": run at the full
+  nominal rate and report every loss. Rejected because a complete recording is
+  worth more to every downstream analysis than a round sample-rate number, and
+  because **30,000 SPS is a target, not a requirement** — A.6.5's sidecar records
+  the actual rate either way.
+- **Build the loss-accounting machinery anyway.** The counters that would have
+  reported loss under option B are the same counters that *prove* option A's
+  claim, and they are the only way to size `fifo0` and pick `m` on evidence.
+- **Buffer depth and rate margin are two parameters, not one.** Depth sets how
+  long a stall is survived (`B ≥ λ × T_stall_max`); margin sets how long recovery
+  takes (`T_recover = T_stall / m`). Depth is already adequate (~205 ms headstage
+  vs. a ~22 ms worst measured stall); margin is ~0.69% and is what fails. This is
+  why the 2026-08-03 mblock fix does not apply a second time — that was a
+  variance fix for a variance problem, and this is a mean-rate problem.
+- **Store-and-forward through multi-second outages is foreclosed for v1** — it
+  needs ~120 kB/s of headstage buffering the WB09's 64 KB cannot provide. It is a
+  headstage-storage feature, not a tuning parameter. Margin is therefore the only
+  free lever, which is what makes the invariant above an invariant.
+- **Packet rate must not depend on channel count** (Manuel's argument, correct —
+  and it followed from a proposal already on the table). A packet carrying an
+  absolute stream position no longer needs whole-frame packing, so payload is
+  always full and `packets/s = aggregate_bytes/s ÷ 236` in *every* mode. This
+  retracts the "8ch@7.5k is infeasible at 60 kSPS aggregate" finding raised the
+  same day: under the v1 format it costs exactly the same 508.5 pkt/s as 2ch@30k.
+  Larger payoff: **B.4 characterisation no longer multiplies by the number of
+  modes** — `μ_low` measured once applies to all of them.
 
 ---
 
