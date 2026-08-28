@@ -41,4 +41,23 @@ uint8_t VEGA_UART_TxBytePop(uint8_t *byte);
 
 uint8_t VEGA_UART_RxByte(uint8_t byte);
 
+/* ── TX-ring truncation counters ─────────────────────────────────────────────
+ * VEGA_UART_Write() drops the remainder of a write when the ring is full.
+ * That puts a TRUNCATED frame on the wire: the pc-app resynchronises on the
+ * next magic pair and reads the result as a missing packet, indistinguishable
+ * from one lost on air. These counters make the two distinguishable at the
+ * source, which is the only place that knows.
+ *
+ * Free-running since boot; never reset. Diff two reads for a per-interval
+ * figure. Both are readable over SWD without stopping the core.
+ *
+ * Deliberately NOT reported anywhere yet: the debug console is a no-op by
+ * default (CFG_DEBUG_APP_TRACE, and it shares this wire with the data
+ * stream), and sending them to the pc-app would be a new bridge->PC frame
+ * type — a cross-boundary interface that wants a spec in docs/interfaces/
+ * before it exists. Nothing here writes to the wire.
+ *
+ * Either pointer may be NULL. */
+void VEGA_UART_GetDropStats(uint32_t *p_bytes, uint32_t *p_frames);
+
 #endif /* VEGA_UART_H */
