@@ -130,7 +130,8 @@ A.3–A.5). This is the order that actually matters:
    *(Joint)*
 4. **A.3 attenuation network** — independent of everything above, and the
    noise-floor headline number cannot be measured without it. *(Manuel)*
-5. **A.6.5 sidecar implementation** — unblocked, parallel. *(Claude)*
+5. ~~A.6.5 sidecar implementation~~ — **done 2026-08-28**, not yet
+   bench-verified. *(Claude)*
 6. A.4 RTL (both ends) → A.3 dual-endpoint capture → A.5 arbitration → **A2**.
 
 **Live external gate:** A.0's animal-protocol amendment, in progress with
@@ -1269,6 +1270,14 @@ of it.**
 > do every other item and leave that one stated — do not pick a plausible
 > value and proceed, because two of the three end up in published numbers.
 
+> **Update, 2026-08-28/29: A.6.5 implemented and merged to `main`** — see
+> that section below for what changed from this spec and `log/2026-08-28.md`
+> (third session) / `log/2026-08-29.md` for the full narrative. The
+> "implementation is still deliberately not started" line above is stale;
+> left in place as the historical record of why it waited. **A.6.4's
+> DECISION 2 remains the one open item in this section** — still blocked on
+> an empirical sentinel-rate measurement against real (non-ramp) data.
+
 ### A.6.1 — Fix `serial_reader.py` crash on `num_pairs=0`  *(no decision, do first)*  ✅ **DONE 2026-08-27**
 
 - [x] Found 2026-08-06 while testing the A.2 readback feature. The monotonicity
@@ -1455,9 +1464,9 @@ of it.**
       the sentinel rate was a proxy for. Implementation follows the spec's §9 order,
       not this item.
 
-### A.6.5 — Recording metadata sidecar  *(DECISION 3 — spec first)*
+### A.6.5 — Recording metadata sidecar  *(DECISION 3 — spec first)*  — ✅ **DONE 2026-08-28, not yet hardware-verified**
 
-- [ ] Minimum content: sample rate, gain / µV-per-LSB, channel map, filter
+- [x] Minimum content: sample rate, gain / µV-per-LSB, channel map, filter
       settings, firmware + bitstream versions.
 
       **DECISION 3 — this is a new cross-boundary interface (the recording
@@ -1544,6 +1553,25 @@ of it.**
       change the config-named-object design was chosen to absorb without a
       schema break. Do not write `30,000` into it; A.7 step 3 is expected to
       land λ below that deliberately.
+
+      **Implemented 2026-08-28 (Claude).** `csv_recorder.py` writes the
+      two-pass atomic sidecar (`start()`/`stop()`) and the versioned CSV
+      header; `analyze_recording.py` gained dynamic `skiprows` detection
+      so every pre-A.6.5 recording still parses unchanged. `channels`
+      provenance now persists through the existing Apply/readback flow
+      (the gap this section found while writing the spec, above) — no new
+      command needed. `filter_settings` ended up **not** read
+      automatically at connect as originally specced: reading it
+      unavoidably touches `REG_CH_A` transiently (the only path any RHD
+      SPI response takes back to the host), so Manuel's call was a
+      dedicated operator-triggered **"Get Settings" button**
+      (`diagnostics.FilterSettingsReader`) instead — same STOP/act/
+      restore/START shape as Apply. `firmware_version`/`bitstream_version`
+      write literally `"unknown"`, per this section's own instruction not
+      to infer a value from git state. Full narrative: `log/2026-08-28.md`
+      (third session). Both interface specs updated to as-built.
+      **Not yet bench-verified** — Get Settings' register reads need a
+      real device.
 
 ## A.7 — Loss accounting & rate margin  *(moved into Phase A 2026-08-28)*
 
@@ -2216,6 +2244,40 @@ Design the **seams**; file layout follows.
       silently (B.1 enforcement-ratchet philosophy). Both repos have a
       full day of uncommitted work sitting in the tree — worth a
       checkpoint commit before anything else changes.
+- [ ] **`SET_CHANNELS` has always selected the wrong physical RHD2164
+      channel — found 2026-08-29, compensated in pc-app, firmware still
+      wrong.** `docs/interfaces/channel-selection-control-plane.md` §1a's
+      friendly-index formula (written 2026-08-05) and its verbatim
+      firmware implementation (`FPGA_SPI_ChannelToRaw()`,
+      `fpga_spi.c:325-328`) apply **zero** correction — but A.1.1e later
+      confirmed on hardware (2026-08-11) that the RHD2164's response
+      pipeline needs a `+3` slot correction (`SLOT_OFFSET`,
+      `pc-app/diagnostics.py`). The two facts were never reconciled:
+      every `SET_CHANNELS` call this project has ever made has captured
+      physical channel `(n − 3) mod 32`, not `n`. New development the
+      same session that surfaced this: **both chips now respond**
+      (the 2026-08-27 chip0-placement fix above), which is what turned
+      this from a 64-channel question into a full 128-channel one.
+
+      Compensated in `pc-app/channel_mapping.py`, per explicit decision
+      to fix in pc-app rather than firmware — cross-checked against both
+      `diagnostics.py`'s hardware-confirmed `ch_code()` and a verbatim
+      copy of the real firmware formula (`test_channel_mapping.py`), not
+      just its own internal consistency. **4 of 128 channels (one per
+      32-channel module — friendly 29/61/93/125) are structurally
+      unreachable via `SET_CHANNELS` at all**, corrected or not — the
+      friendly encoding can never produce the raw code they need (it
+      always clears the bit that code depends on) — and go through a new
+      direct `REG_WRITE16` fallback (`RawChannelSetter`) instead.
+
+      Full derivation: `docs/interfaces/channel-selection-control-plane.md`
+      §1a-addendum; narrative: `log/2026-08-29.md`. **Not yet
+      bench-verified** — does requesting physical channel N actually
+      capture RHD channel N now? A firmware fix to
+      `FPGA_SPI_ChannelToRaw()` remains the more complete answer (closes
+      the 4-channel dead zone entirely, one code path instead of two);
+      noted as Phase B cleanup, not chased this session by explicit
+      choice.
 - [ ] **Bridge UART TX ring-buffer silent drop** — noticed 2026-08-06 while
       diagnosing the RX overrun; not yet confirmed to actually occur.
       `VEGA_UART_Write()` drops bytes that don't fit when the ring is full
