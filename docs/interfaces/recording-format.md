@@ -224,12 +224,21 @@ Sequence: STOP → for each register in `[4, 8, 9, 10, 11, 12, 13]`, write
 `READ(reg)` into the dedicated command slot (regbank word 80, "slot 32")
 → point `REG_CH_A` at slot 32 → START → collect ~64 samples → majority-
 vote decode → STOP → put slot 32 back to its normal-operation value
-(`READ(63)`, the chip-ID read) → **restore via `SET_CHANNELS`** (the same
-command Apply uses, verified the same way) rather than a raw register
-write, landing back on exactly the channels the operator had before the
-button was pressed. **`REG_CH_B` and sampling-table slots 0–31 are never
-written**, at any point in the sequence — the constraint Manuel gave when
-this button was scoped, 2026-08-28.
+(`READ(63)`, the chip-ID read) → **restore the operator's original
+channels** → START. During the read loop itself, only regbank word 80
+(slot 32) and `REG_CH_A` are ever written — `REG_CH_B` and sampling-table
+slots 0–31 are untouched, the constraint Manuel gave when this button was
+scoped, 2026-08-28.
+
+**Restore updated 2026-08-29** to use the same offset-compensated
+dual-path logic as Apply (`docs/interfaces/channel-selection-control-plane.md`
+§1a-addendum, `pc-app/channel_mapping.py`): most channel pairs restore via
+`SET_CHANNELS` (verified the same way Apply's readback is); the 4 physical
+channels per chip pair the friendly encoding can't express restore via a
+direct `REG_WRITE16` on `REG_CH_A`/`REG_CH_B` instead — and if *either*
+original channel needs that, both do, since one `SET_CHANNELS` call sets
+both registers together. `REG_CH_B` is written only during this restore
+step, never during the read loop above.
 
 `filter_settings.registers` shape, not fully specified when §2 was
 written — one key per register number, decimal string (JSON object keys
@@ -246,11 +255,13 @@ decoded Hz, per this section's original scope note):
 
 Tested offline against a fake register-console model
 (`test_filter_settings.py`, mirrors `test_diagnostics.py`'s `FakeReader`
-pattern) — proves the queue sequencing, the retry/timeout handling, and
-that only slot 32 and `REG_CH_A` are ever touched. **Not yet verified
-against real hardware** — needs a bench run confirming the decoded
-register values are plausible and that the streamed channels/graph are
-byte-for-byte unaffected after a run.
+pattern) — proves the queue sequencing, the retry/timeout handling, that
+only slot 32 and `REG_CH_A` are ever touched during the read loop, and
+(2026-08-29) that the restore step picks the raw path instead of
+`SET_CHANNELS` whenever either original channel needs it. **Not yet
+verified against real hardware** — needs a bench run confirming the
+decoded register values are plausible and that the streamed
+channels/graph are byte-for-byte unaffected after a run.
 
 ## 2.2. Written at `stop()`
 

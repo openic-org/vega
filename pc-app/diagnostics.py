@@ -23,6 +23,7 @@ from dataclasses import dataclass, field
 from PyQt6.QtCore import QObject, QTimer, pyqtSignal
 
 from serial_reader import CMD_REG_READ16, CMD_REG_WRITE16
+import channel_mapping
 
 # ── FPGA regbank map ────────────────────────────────────────────────────────
 # Authority is intan.vh (RB_CONFIG_BASE 0 / RB_SAMPLING_BASE 48 /
@@ -708,14 +709,24 @@ class FilterSettingsReader(QObject):
     # -- public -------------------------------------------------------------
 
     def run(self, orig_ch_a: int, orig_ch_b: int) -> bool:
-        """orig_ch_a/orig_ch_b are the operator's current live channels
-        (friendly 0-127 indices) — restored via SET_CHANNELS at the end,
-        exactly like the Apply button would."""
+        """orig_ch_a/orig_ch_b are the operator's current live channels, as
+        PHYSICAL RHD channel numbers (0-127, matching what the sidecar
+        records) — restored at the end exactly like the Apply button would,
+        including the same offset compensation (channel_mapping.py). Most
+        channels restore via SET_CHANNELS; the 4 per-chip-pair channels the
+        friendly encoding can't express (channel_mapping.is_reachable())
+        restore via a direct REG_WRITE16 on REG_CH_A/REG_CH_B instead — if
+        EITHER original channel needs that, both are restored that way,
+        since a single SET_CHANNELS call would otherwise overwrite the raw
+        one back to the wrong value."""
         if self._running:
             return False
         self._orig_channels = (orig_ch_a, orig_ch_b)
         self._results = {}
         self._running = True
+
+        wire_a, raw_a = channel_mapping.physical_to_wire(orig_ch_a)
+        wire_b, raw_b = channel_mapping.physical_to_wire(orig_ch_b)
 
         q: list = [("stop", None)]
         for reg in FILTER_REGISTERS:
@@ -725,7 +736,16 @@ class FilterSettingsReader(QObject):
             q.append(("collect", reg))
             q.append(("stop", None))
         q.append(("write", (slot_word(32), SLOT32_RESET_CMD)))
-        q.append(("set_channels", (orig_ch_a, orig_ch_b)))
+        if raw_a or raw_b:
+            # Either raw code below is a direct regbank value, not a
+            # friendly index — channel_mapping.physical_to_raw() gives the
+            # true raw code for *both* channels here (not physical_to_wire's
+            # wire_a/wire_b, which for a non-raw channel is a friendly
+            # index, not a raw code).
+            q.append(("write", (REG_CH_A, channel_mapping.physical_to_raw(orig_ch_a))))
+            q.append(("write", (REG_CH_B, channel_mapping.physical_to_raw(orig_ch_b))))
+        else:
+            q.append(("set_channels", (wire_a, wire_b)))
         q.append(("start", None))
         self._queue = q
 
@@ -894,4 +914,104 @@ class FilterSettingsReader(QObject):
         # channel — the operator must re-Apply to recover, same recovery
         # path as any other failed command sequence.
         self._reader.send_start_streaming()
+        self.failed.emit(reason)
+
+
+# ── Raw channel select — the 4-per-chip-pair channels SET_CHANNELS can't
+# reach (channel_mapping.py) ────────────────────────────────────────────────
+class RawChannelSetter(QObject):
+    """Writes REG_CH_A/REG_CH_B (196/197) directly via REG_WRITE16,
+    ack-gated with retries, for the physical channels
+    channel_mapping.physical_to_wire() marks is_raw=True — the friendly
+    SET_CHANNELS path structurally cannot express them (see
+    channel_mapping.py's module docstring). Caller (MainWindow's Apply
+    flow) is responsible for STOP_STREAMING before and START_STREAMING
+    after — this only ever writes the two words, mirroring how Apply
+    already wraps send_set_channels().
+    """
+
+    finished = pyqtSignal()
+    failed = pyqtSignal(str)
+
+    def __init__(self, reader, parent=None):
+        super().__init__(parent)
+        self._reader = reader
+        self._queue: list = []
+        self._pending_addr: int | None = None
+        self._pending_value: int | None = None
+        self._retries = 0
+        self._timer = QTimer(self)
+        self._timer.setSingleShot(True)
+        self._timer.timeout.connect(self._on_timeout)
+        self._running = False
+
+    def run(self, ch_a_raw: int, ch_b_raw: int) -> bool:
+        if self._running:
+            return False
+        self._queue = [(REG_CH_A, ch_a_raw), (REG_CH_B, ch_b_raw)]
+        self._running = True
+        self._reader.reg_access_response.connect(self._on_reg_response)
+        self._next()
+        return True
+
+    def abort(self, reason: str = "aborted") -> None:
+        if not self._running:
+            return
+        self._finish_failed(reason)
+
+    def _next(self) -> None:
+        self._timer.stop()
+        if not self._queue:
+            self._finish_ok()
+            return
+        QTimer.singleShot(COMMAND_GAP_MS, self._dispatch)
+
+    def _dispatch(self) -> None:
+        if not self._running or not self._queue:
+            return
+        addr, value = self._queue[0]
+        self._pending_addr, self._pending_value = addr, value
+        self._reader.send_reg_write16(addr, value)
+        self._timer.start(ACK_TIMEOUT_MS)
+
+    def _on_reg_response(self, rtype: int, addr: int, value: int) -> None:
+        if not self._running or not self._queue or addr != self._pending_addr:
+            return
+        if rtype not in (CMD_REG_WRITE16, CMD_REG_READ16):
+            return
+        self._timer.stop()
+        if value != self._pending_value:
+            self._finish_failed(
+                f"word {addr}: wrote 0x{self._pending_value:04X}, "
+                f"regbank holds 0x{value:04X}")
+            return
+        self._queue.pop(0)
+        self._retries = 0
+        self._next()
+
+    def _on_timeout(self) -> None:
+        if not self._running or not self._queue:
+            return
+        self._retries += 1
+        if self._retries > WRITE_RETRIES:
+            self._finish_failed(f"word {self._pending_addr}: no response after {WRITE_RETRIES} retries")
+            return
+        self._dispatch()
+
+    def _disconnect(self) -> None:
+        try:
+            self._reader.reg_access_response.disconnect(self._on_reg_response)
+        except TypeError:
+            pass
+
+    def _finish_ok(self) -> None:
+        self._running = False
+        self._timer.stop()
+        self._disconnect()
+        self.finished.emit()
+
+    def _finish_failed(self, reason: str) -> None:
+        self._running = False
+        self._timer.stop()
+        self._disconnect()
         self.failed.emit(reason)

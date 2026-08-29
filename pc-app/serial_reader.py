@@ -249,4 +249,11 @@ class SerialReader(QThread):
 
     @staticmethod
     def list_ports() -> list[str]:
-        return [p.device for p in serial.tools.list_ports.comports()]
+        """Only ttyACM* devices — this app only ever talks to a WB09KE
+        bridge over its USB CDC ACM port, so a full unfiltered port list
+        (ttyS*, Bluetooth RFCOMM, etc.) is noise the operator has to read
+        past every time, not a real choice."""
+        return sorted(
+            p.device for p in serial.tools.list_ports.comports()
+            if "ttyACM" in p.device
+        )

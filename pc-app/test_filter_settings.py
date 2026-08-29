@@ -18,6 +18,7 @@ from PyQt6.QtCore import QCoreApplication, QObject, QTimer, pyqtSignal
 
 sys.path.insert(0, str(Path(__file__).parent))
 import diagnostics as D
+import channel_mapping as M
 from test_diagnostics import FakeReader as _BaseFakeReader
 
 FILTER_ROM = {4: 0x1F, 8: 0x50, 9: 0x51, 10: 0x52, 11: 0x53, 12: 0x0A, 13: 0x0B}
@@ -54,6 +55,9 @@ class FakeReader(_BaseFakeReader):
 
 
 def run_get_settings(orig_ch_a=5, orig_ch_b=9, **kw):
+    """orig_ch_a/orig_ch_b are PHYSICAL channel numbers — FilterSettingsReader
+    compensates them (channel_mapping.py) before ever touching the wire, same
+    as MainWindow's Apply flow."""
     app = QCoreApplication.instance() or QCoreApplication(sys.argv)
     reader = FakeReader(**kw)
     for addr, val in D.RESET_SAMPLING_TABLE:
@@ -93,12 +97,38 @@ bad_writes = [(a, v) for a, v in reader.writes
 assert not bad_writes, f"touched forbidden registers: {bad_writes}"
 print(f"no writes to slots 0-31 or REG_CH_B ({len(reader.writes)} writes total)")
 
-# Restore must go through SET_CHANNELS (the same command Apply uses), and
-# land back on exactly the original pair.
-assert reader.set_channels_calls == [(5, 9)], reader.set_channels_calls
-assert reader.regs[D.REG_CH_A] == 5 and reader.regs[D.REG_CH_B] == 9
+# Restore must go through SET_CHANNELS (the same command Apply uses),
+# compensated (channel_mapping.py) the same way Apply's own SET_CHANNELS
+# call is, and land back on exactly the original PHYSICAL pair (5, 9) once
+# decoded — not the raw wire values.
+wire_5, raw_5 = M.physical_to_wire(5)
+wire_9, raw_9 = M.physical_to_wire(9)
+assert not raw_5 and not raw_9, "5 and 9 should both be friendly-reachable"
+assert reader.set_channels_calls == [(wire_5, wire_9)], reader.set_channels_calls
+assert reader.regs[D.REG_CH_A] == wire_5 and reader.regs[D.REG_CH_B] == wire_9
+assert M.wire_to_physical(reader.regs[D.REG_CH_A]) == 5
+assert M.wire_to_physical(reader.regs[D.REG_CH_B]) == 9
 assert reader.streaming, "must resume streaming when done"
-print("restore: SET_CHANNELS(5, 9) issued, streaming resumed")
+print(f"restore: SET_CHANNELS({wire_5}, {wire_9}) issued "
+      f"(decodes back to physical 5, 9), streaming resumed")
+
+print("-" * 70)
+
+# Restore for a channel channel_mapping.py marks unreachable via the
+# friendly path (physical 29) must go through raw REG_WRITE16 instead of
+# SET_CHANNELS — a single SET_CHANNELS call would silently overwrite
+# whichever of the pair *was* friendly-reachable back to the wrong value.
+out, reader = run_get_settings(orig_ch_a=29, orig_ch_b=9)
+assert out.get("kind") == "finished" and out["result"].ok, out
+assert reader.set_channels_calls == [], \
+    f"restore must not use SET_CHANNELS when either channel is raw-only: {reader.set_channels_calls}"
+raw_29 = M.physical_to_raw(29)
+raw_9_direct = M.physical_to_raw(9)
+assert reader.regs[D.REG_CH_A] == raw_29, hex(reader.regs[D.REG_CH_A])
+assert reader.regs[D.REG_CH_B] == raw_9_direct, hex(reader.regs[D.REG_CH_B])
+assert reader.streaming
+print(f"restore (raw path): REG_CH_A=0x{raw_29:02X}, REG_CH_B=0x{raw_9_direct:02X} "
+      f"written directly, streaming resumed, SET_CHANNELS never called")
 
 print("-" * 70)
 # Negative: a dropped write must be retried, not fatal.

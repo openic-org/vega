@@ -15,6 +15,7 @@ from PyQt6.QtWidgets import QApplication
 
 sys.path.insert(0, str(Path(__file__).parent))
 from main_window import MainWindow
+import channel_mapping as M
 
 
 def make_window() -> MainWindow:
@@ -68,12 +69,16 @@ print("matching readback: verified_readback(3, 5) — OK")
 print("-" * 70)
 
 # Mismatch path: the FPGA readback disagrees with what was requested — the
-# stored value must be what the FPGA actually reported, not the request.
+# stored value must be what the FPGA actually reported (decoded back to a
+# physical channel), not the request. Echo a different, but still
+# cleanly-decodable, wire pair.
 win = make_window()
+mismatch_wire = (10, 15)
+expect_phys = tuple(M.wire_to_physical(w) for w in mismatch_wire)
 win._reader.send_stop_streaming = lambda: (
     QTimer.singleShot(1, lambda: win._reader.stop_streaming_ack.emit(True)), True)[1]
 win._reader.send_set_channels = lambda a, b: (
-    QTimer.singleShot(1, lambda: win._reader.channels_readback.emit(99, 98)), True)[1]
+    QTimer.singleShot(1, lambda: win._reader.channels_readback.emit(*mismatch_wire)), True)[1]
 win._reader.send_start_streaming = lambda: (
     QTimer.singleShot(1, lambda: win._reader.start_streaming_ack.emit(True)), True)[1]
 
@@ -82,10 +87,36 @@ win._spin_ch_b.setValue(5)
 win._apply_channels()
 ok = run_until(app, lambda: win._channels_state.get("provenance") == "verified_readback")
 assert ok, win._channels_state
-assert win._channels_state == {"ch_a": 99, "ch_b": 98, "provenance": "verified_readback"}, \
-    f"mismatch must still store the FPGA's real value: {win._channels_state}"
+assert win._channels_state == {
+    "ch_a": expect_phys[0], "ch_b": expect_phys[1], "provenance": "verified_readback",
+}, f"mismatch must still store the FPGA's real (decoded) value: {win._channels_state}"
 assert "Mismatch" in win._lbl_verify.text()
-print("mismatched readback: stores FPGA's actual (99, 98), not the request — OK")
+print(f"mismatched readback: stores FPGA's actual physical {expect_phys}, not the request — OK")
+
+print("-" * 70)
+
+# Unexpected/corrupted readback: a wire value channel_mapping.py's own
+# compensation never produces (module-relative remainder 2, e.g. wire=2)
+# must not be silently decoded into a fabricated out-of-range "channel" —
+# _channels_state must NOT be corrupted with it.
+win = make_window()
+win._reader.send_stop_streaming = lambda: (
+    QTimer.singleShot(1, lambda: win._reader.stop_streaming_ack.emit(True)), True)[1]
+win._reader.send_set_channels = lambda a, b: (
+    QTimer.singleShot(1, lambda: win._reader.channels_readback.emit(2, 8)), True)[1]
+win._reader.send_start_streaming = lambda: (
+    QTimer.singleShot(1, lambda: win._reader.start_streaming_ack.emit(True)), True)[1]
+
+win._spin_ch_a.setValue(3)
+win._spin_ch_b.setValue(5)
+win._apply_channels()
+state_before = dict(win._channels_state)
+assert state_before["provenance"] == "unverified_requested"
+run_until(app, lambda: "Unexpected readback" in win._lbl_verify.text(), timeout_ms=1000)
+assert "Unexpected readback" in win._lbl_verify.text(), win._lbl_verify.text()
+assert win._channels_state == state_before, \
+    f"a corrupted readback must not overwrite _channels_state: {win._channels_state}"
+print("corrupted/unexpected readback (wire=2): rejected, state left untouched — OK")
 
 print("-" * 70)
 
@@ -108,6 +139,46 @@ run_until(app, lambda: "unsuccessful" in win._lbl_verify.text(), timeout_ms=1000
 assert win._channels_state == {"ch_a": 7, "ch_b": 11, "provenance": "unverified_requested"}, \
     win._channels_state
 print("no readback: stays unverified_requested(7, 11) — OK")
+
+print("-" * 70)
+
+# Raw path: physical channel 29 (channel_mapping's dead zone) must go
+# through RawChannelSetter (REG_WRITE16 on REG_CH_A/REG_CH_B), never
+# SET_CHANNELS — driving the real Apply -> RawChannelSetter -> MainWindow
+# wiring end to end, not just channel_mapping.py's own math.
+win = make_window()
+set_channels_calls = []
+reg_writes = []
+win._reader.send_stop_streaming = lambda: (
+    QTimer.singleShot(1, lambda: win._reader.stop_streaming_ack.emit(True)), True)[1]
+win._reader.send_set_channels = lambda a, b: (set_channels_calls.append((a, b)), True)[1]
+
+
+def fake_reg_write(addr, value):
+    reg_writes.append((addr, value))
+    QTimer.singleShot(1, lambda: win._reader.reg_access_response.emit(4, addr, value))  # CMD_REG_WRITE16=4
+    return True
+
+
+win._reader.send_reg_write16 = fake_reg_write
+win._reader.send_start_streaming = lambda: (
+    QTimer.singleShot(1, lambda: win._reader.start_streaming_ack.emit(True)), True)[1]
+
+win._spin_ch_a.setValue(29)
+win._spin_ch_b.setValue(5)
+win._apply_channels()
+ok = run_until(app, lambda: win._channels_state.get("provenance") == "verified_readback")
+assert ok, (win._channels_state, win._lbl_verify.text())
+assert win._channels_state == {"ch_a": 29, "ch_b": 5, "provenance": "verified_readback"}, \
+    win._channels_state
+assert set_channels_calls == [], f"raw path must never call SET_CHANNELS: {set_channels_calls}"
+assert [addr for addr, _ in reg_writes] == [196, 197], \
+    f"expected REG_CH_A then REG_CH_B: {reg_writes}"
+assert reg_writes[0][1] == M.physical_to_raw(29)
+assert reg_writes[1][1] == M.physical_to_raw(5)
+assert "raw" in win._lbl_verify.text().lower()
+print(f"raw path (physical channel 29): REG_WRITE16 only, "
+      f"{[hex(v) for _, v in reg_writes]}, SET_CHANNELS never called — OK")
 
 print("-" * 70)
 

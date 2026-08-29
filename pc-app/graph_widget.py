@@ -66,6 +66,15 @@ class GraphWidget(QWidget):
             self._curves.append(curve)
             layout.addWidget(plot)
 
+    def set_channel_titles(self, title_a: str, title_b: str) -> None:
+        """Retitle the two panes — MainWindow drives this from its own
+        channel-selection provenance (docs/interfaces/recording-format.md
+        §2.1) so the graph always shows which physical RHD channel it's
+        displaying, not a static 'CH0'/'CH1' that only names the packet's
+        stream position."""
+        self._plots[0].setTitle(title_a)
+        self._plots[1].setTitle(title_b)
+
     def add_batch(self, timestamps_us: np.ndarray, ch0: np.ndarray, ch1: np.ndarray):
         # Drop FPGA FIFO underrun sentinels — see packet_parser.is_fifo_underrun
         # for the rule and its current known limitation against real data.

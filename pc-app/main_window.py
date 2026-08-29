@@ -10,18 +10,27 @@ from PyQt6.QtCore import Qt, QTimer
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QComboBox, QGroupBox, QGridLayout,
-    QFileDialog, QStatusBar, QSpinBox,
+    QFileDialog, QStatusBar, QSpinBox, QFrame,
 )
-from PyQt6.QtGui import QFont
+from PyQt6.QtGui import QFont, QPixmap
 
 from serial_reader import SerialReader
 from graph_widget  import GraphWidget
 from csv_recorder  import CsvRecorder, MAX_DURATION_STR
-from diagnostics   import RUNGS, RungRunner, FilterSettingsReader
+from diagnostics   import RUNGS, RungRunner, FilterSettingsReader, RawChannelSetter
+import channel_mapping
 import rhd2164_units
 
 RECORDINGS_DIR = Path(__file__).parent / "recordings"
 BENCH_DIR      = Path(__file__).parent / "bench"
+LOGO_PATH      = Path(__file__).parent / "assets" / "openic_logo.png"
+DEFAULT_PORT   = "/dev/ttyACM1"
+
+# The real chip/module split (docs/interfaces/channel-selection-control-plane.md
+# §1a) is 4-way (0-31/32-63/64-95/96-127, module A/B within each chip), but
+# the Intan datasheet numbers each chip's 64 channels as one block and the
+# operator doesn't need the module split — 2026-08-28 decision.
+CHIP_RANGE_TEXT = "Chip 0: channels 0-63   •   Chip 1: channels 64-127"
 
 # Measured at ~4 500 SPS with current CI (~13 ms). Update when CI is tightened to 7.5 ms.
 DELIVERED_SPS = 5_000
@@ -123,6 +132,15 @@ class MainWindow(QMainWindow):
         self._filter_settings_reader.progress.connect(self._on_get_settings_progress)
         self._filter_settings_reader.finished.connect(self._on_get_settings_finished)
         self._filter_settings_reader.failed.connect(self._on_get_settings_failed)
+        self._get_settings_orig: tuple[int, int] | None = None
+
+        # channel_mapping.py's offset compensation (docs/interfaces/
+        # channel-selection-control-plane.md §1a-addendum) — 4 of 128
+        # physical channels can't be expressed via SET_CHANNELS's friendly
+        # index and need a direct REG_WRITE16 on REG_CH_A/REG_CH_B instead.
+        self._raw_channel_setter = RawChannelSetter(self._reader, self)
+        self._raw_channel_setter.finished.connect(self._on_raw_channels_set)
+        self._raw_channel_setter.failed.connect(self._on_raw_channels_failed)
 
         # GPIO bench logging — opened on BLE connect, closed on disconnect
         self._bench_log: "csv.writer | None" = None
@@ -131,6 +149,7 @@ class MainWindow(QMainWindow):
         self._bench_path = ""
 
         self._build_ui()
+        self._update_graph_titles()   # "Channel —" initial state, replacing the static "CH0"/"CH1" default
         self._connect_signals()
 
         # Rate + recording update timer
@@ -187,7 +206,22 @@ class MainWindow(QMainWindow):
         self._lbl_rec_path.setStyleSheet("color: #B71C1C; font-size: 11px;")
         row.addWidget(self._lbl_rec_path, stretch=1)
 
+        row.addWidget(self._build_logo_label())
+
         return row
+
+    def _build_logo_label(self) -> QLabel:
+        """openIC wordmark, top-right. Full-color on transparency (navy/red/
+        grey, pixel-verified), so unlike the previous icon-only mark it
+        reads fine directly against this app's light background — no
+        backdrop needed, just scaled to a fixed height."""
+        label = QLabel()
+        logo = QPixmap(str(LOGO_PATH))
+        if not logo.isNull():
+            logo = logo.scaledToHeight(
+                28, Qt.TransformationMode.SmoothTransformation)
+            label.setPixmap(logo)
+        return label
 
     def _build_channel_controls(self) -> QHBoxLayout:
         """Minimal channel selection — two friendly-index (0-127) spinboxes +
@@ -200,12 +234,14 @@ class MainWindow(QMainWindow):
         self._spin_ch_a = QSpinBox()
         self._spin_ch_a.setRange(0, 127)
         self._spin_ch_a.setValue(0)
+        self._spin_ch_a.setToolTip(CHIP_RANGE_TEXT)
         row.addWidget(self._spin_ch_a)
 
         row.addWidget(QLabel("Ch B:"))
         self._spin_ch_b = QSpinBox()
         self._spin_ch_b.setRange(0, 127)
         self._spin_ch_b.setValue(1)
+        self._spin_ch_b.setToolTip(CHIP_RANGE_TEXT)
         row.addWidget(self._spin_ch_b)
 
         self._btn_apply_channels = QPushButton("Apply")
@@ -216,6 +252,17 @@ class MainWindow(QMainWindow):
         self._lbl_verify = QLabel("")
         self._lbl_verify.setStyleSheet("font-size: 11px;")
         row.addWidget(self._lbl_verify)
+
+        # Extra fixed spacing on both sides of the divider — the default
+        # layout spacing alone (row.setSpacing(6)) looked lopsided next to
+        # _lbl_verify's variable-width text, so the gap is padded out
+        # explicitly instead of relying on a label's width to provide it.
+        row.addSpacing(12)
+        divider = QFrame()
+        divider.setFrameShape(QFrame.Shape.VLine)
+        divider.setFrameShadow(QFrame.Shadow.Sunken)
+        row.addWidget(divider)
+        row.addSpacing(12)
 
         # "Get Settings" — docs/interfaces/recording-format.md §2.1/§2.1a.
         # Reads the RHD2164 filter/bandwidth registers for the sidecar.
@@ -334,9 +381,7 @@ class MainWindow(QMainWindow):
     def _build_debug_panel(self) -> QGroupBox:
         box = QGroupBox("Debug Info")
         box.setMaximumHeight(90)
-        grid = QGridLayout(box)
-        grid.setHorizontalSpacing(24)
-        grid.setVerticalSpacing(2)
+        outer = QHBoxLayout(box)
 
         def lbl(text, bold=False):
             l = QLabel(text)
@@ -344,6 +389,26 @@ class MainWindow(QMainWindow):
                 f = l.font(); f.setBold(True); l.setFont(f)
             l.setStyleSheet("font-size: 11px;")
             return l
+
+        # Channel map — which chip each channel range belongs to. Its own
+        # column, to the left of the rate/status grid, inside the same
+        # Debug Info box.
+        chan_col = QVBoxLayout()
+        chan_col.setSpacing(2)
+        chan_col.addWidget(lbl("Chip 0: channels 0-63"))
+        chan_col.addWidget(lbl("Chip 1: channels 64-127"))
+        chan_col.addStretch(1)
+        outer.addLayout(chan_col)
+
+        divider = QFrame()
+        divider.setFrameShape(QFrame.Shape.VLine)
+        divider.setFrameShadow(QFrame.Shadow.Sunken)
+        outer.addWidget(divider)
+
+        grid = QGridLayout()
+        grid.setHorizontalSpacing(24)
+        grid.setVerticalSpacing(2)
+        outer.addLayout(grid, stretch=1)
 
         # Left column
         grid.addWidget(lbl("Status:"),   0, 0)
@@ -394,6 +459,8 @@ class MainWindow(QMainWindow):
         self._port_combo.addItems(ports)
         if current in ports:
             self._port_combo.setCurrentText(current)
+        elif DEFAULT_PORT in ports:
+            self._port_combo.setCurrentText(DEFAULT_PORT)
 
     def _toggle_connection(self, checked: bool):
         if checked:
@@ -510,11 +577,13 @@ class MainWindow(QMainWindow):
             self._lbl_verify.setText("")
             self._lbl_settings.setText("")
             self._filter_settings_reader.abort("disconnected")
+            self._raw_channel_setter.abort("disconnected")
             # A different device (or the same one power-cycled) may be on
             # the other end of the next connect — last-known state doesn't
             # carry over, same reasoning as _pending_channels above.
             self._channels_state = {"ch_a": None, "ch_b": None, "provenance": "unknown"}
             self._filter_settings_state = {"registers": None, "provenance": "unknown"}
+            self._update_graph_titles()
             if self._recorder.info.is_recording:
                 self._btn_rec.setChecked(False)
                 self._toggle_recording(False)
@@ -525,6 +594,22 @@ class MainWindow(QMainWindow):
                 self.statusBar().showMessage(f"Disconnected  — bench log: {self._bench_path}")
             else:
                 self.statusBar().showMessage("Disconnected")
+
+    def _update_graph_titles(self) -> None:
+        """Graph pane titles show which PHYSICAL channel is live, replacing
+        the old static 'CH0'/'CH1' — resolves the ChA/ChB-vs-CH0/CH1 naming
+        confusion by making the graph state the one live fact instead of
+        aliasing two naming schemes. Driven by _channels_state, same
+        mutation points as the sidecar provenance (spec §2.1)."""
+        prov = self._channels_state["provenance"]
+        ch_a, ch_b = self._channels_state["ch_a"], self._channels_state["ch_b"]
+        if prov == "unknown":
+            self._graph.set_channel_titles("Channel —", "Channel —")
+        elif prov == "unverified_requested":
+            self._graph.set_channel_titles(
+                f"Channel {ch_a}  (pending)", f"Channel {ch_b}  (pending)")
+        else:  # verified_readback
+            self._graph.set_channel_titles(f"Channel {ch_a}", f"Channel {ch_b}")
 
     def _apply_channels(self):
         """SET_CHANNELS now requires streaming to already be stopped (see
@@ -557,6 +642,7 @@ class MainWindow(QMainWindow):
             "ch_a": self._apply_ch_a, "ch_b": self._apply_ch_b,
             "provenance": "unverified_requested",
         }
+        self._update_graph_titles()
         self._awaiting_stop_ack = True
         self._stop_ack_timer.start()
 
@@ -583,10 +669,33 @@ class MainWindow(QMainWindow):
         QTimer.singleShot(COMMAND_GAP_MS, self._apply_channels_send_set)
 
     def _apply_channels_send_set(self):
+        """Sends the operator's PHYSICAL channels (channel_mapping.py),
+        compensating for the RHD2164 pipeline offset the firmware doesn't
+        (docs/interfaces/channel-selection-control-plane.md §1a-addendum).
+        124 of 128 channels go through the normal friendly SET_CHANNELS
+        path with an adjusted index; the other 4 (one per 32-channel
+        module) need a direct raw REG_WRITE16 on REG_CH_A/REG_CH_B instead,
+        since the friendly encoding can't express their raw code."""
         ch_a, ch_b = self._apply_ch_a, self._apply_ch_b
-        if self._reader.send_set_channels(ch_a, ch_b):
+        wire_a, raw_a = channel_mapping.physical_to_wire(ch_a)
+        wire_b, raw_b = channel_mapping.physical_to_wire(ch_b)
+
+        if raw_a or raw_b:
+            if not self._raw_channel_setter.run(
+                    channel_mapping.physical_to_raw(ch_a),
+                    channel_mapping.physical_to_raw(ch_b)):
+                self.statusBar().showMessage("Channel write busy — try again", 3000)
+                self._resume_streaming()
+                return
+            self.statusBar().showMessage(
+                f"Writing raw channel registers  ch_a={ch_a}  ch_b={ch_b}", 3000)
+            self._lbl_verify.setText("… writing (raw)")
+            self._lbl_verify.setStyleSheet("font-size: 11px; color: gray;")
+            return
+
+        if self._reader.send_set_channels(wire_a, wire_b):
             self.statusBar().showMessage(f"SET_CHANNELS  ch_a={ch_a}  ch_b={ch_b}  sent", 3000)
-            self._pending_channels = (ch_a, ch_b)
+            self._pending_channels = (wire_a, wire_b)   # wire-space, matches the readback below
             self._lbl_verify.setText("… verifying")
             self._lbl_verify.setStyleSheet("font-size: 11px; color: gray;")
             self._verify_timer.start()
@@ -598,15 +707,37 @@ class MainWindow(QMainWindow):
     def _on_channels_readback(self, ch_a: int, ch_b: int):
         """SET_CHANNELS readback arrived on 0xFFF3 — see
         docs/interfaces/channel-selection-control-plane.md section 4.
+        ch_a/ch_b here are wire/friendly-space values, same as everything
+        else on this signal (the raw REG_WRITE16 path never fires it —
+        see _on_raw_channels_set below).
 
         Always a real hardware confirmation regardless of what triggered it
         (an Apply click below, or Get Settings restoring the operator's
         channels after reading filter registers) — sidecar provenance
         (spec §2.1) is updated unconditionally, using what the FPGA
-        actually reports rather than what was requested."""
+        actually reports rather than what was requested, converted back to
+        the physical channel number (channel_mapping.py) so the sidecar
+        and UI never carry the wire-compensated value.
+
+        wire_to_physical() can raise for a wire value physical_to_wire()
+        never produces — this pc-app never sends one, so seeing one back
+        means a corrupted/unexpected response, not a real channel; handled
+        as its own failure state rather than storing a fabricated >127
+        "channel number" into the sidecar (see channel_mapping.py)."""
+        try:
+            phys_a = channel_mapping.wire_to_physical(ch_a)
+            phys_b = channel_mapping.wire_to_physical(ch_b)
+        except ValueError as e:
+            self._verify_timer.stop()
+            self._pending_channels = None
+            self._lbl_verify.setText(f"✗ Unexpected readback (ch_a={ch_a}, ch_b={ch_b}): {e}")
+            self._lbl_verify.setStyleSheet("font-size: 11px; color: #B71C1C; font-weight: bold;")
+            self._resume_streaming()
+            return
         self._channels_state = {
-            "ch_a": ch_a, "ch_b": ch_b, "provenance": "verified_readback",
+            "ch_a": phys_a, "ch_b": phys_b, "provenance": "verified_readback",
         }
+        self._update_graph_titles()
         self._verify_timer.stop()
         if self._pending_channels is None:
             return  # stale/unsolicited — already timed out or nothing was applied
@@ -616,8 +747,27 @@ class MainWindow(QMainWindow):
             self._lbl_verify.setText("✓ Verified")
             self._lbl_verify.setStyleSheet("font-size: 11px; color: green; font-weight: bold;")
         else:
-            self._lbl_verify.setText(f"✗ Mismatch (FPGA has {ch_a}/{ch_b})")
+            self._lbl_verify.setText(f"✗ Mismatch (FPGA has channel {phys_a}/{phys_b})")
             self._lbl_verify.setStyleSheet("font-size: 11px; color: #B71C1C; font-weight: bold;")
+        self._resume_streaming()
+
+    def _on_raw_channels_set(self) -> None:
+        """RawChannelSetter finished — the raw-path equivalent of a
+        confirmed channels_readback (channel_mapping.py's 4 special
+        channels). The write is already ack-gated/verified by
+        RawChannelSetter itself, so finishing at all is the confirmation."""
+        self._channels_state = {
+            "ch_a": self._apply_ch_a, "ch_b": self._apply_ch_b,
+            "provenance": "verified_readback",
+        }
+        self._update_graph_titles()
+        self._lbl_verify.setText("✓ Verified (raw)")
+        self._lbl_verify.setStyleSheet("font-size: 11px; color: green; font-weight: bold;")
+        self._resume_streaming()
+
+    def _on_raw_channels_failed(self, reason: str) -> None:
+        self._lbl_verify.setText(f"✗ Channel write failed: {reason}")
+        self._lbl_verify.setStyleSheet("font-size: 11px; color: #B71C1C; font-weight: bold;")
         self._resume_streaming()
 
     def _on_verify_timeout(self):
@@ -680,6 +830,7 @@ class MainWindow(QMainWindow):
             else self._spin_ch_b.value()
         if not self._filter_settings_reader.run(orig_ch_a, orig_ch_b):
             return
+        self._get_settings_orig = (orig_ch_a, orig_ch_b)
         self._btn_get_settings.setEnabled(False)
         self._btn_apply_channels.setEnabled(False)
         self._btn_run_rung.setEnabled(False)
@@ -696,6 +847,19 @@ class MainWindow(QMainWindow):
         self._filter_settings_state = {
             "registers": result.registers, "provenance": "verified_readback",
         }
+        # FilterSettingsReader's restore is ack-gated and verified (either
+        # via SET_CHANNELS's own readback or a raw REG_WRITE16 — see
+        # diagnostics.py), so a successful finish is itself the confirmation
+        # that the channels are back to _get_settings_orig; the raw-restore
+        # path never fires channels_readback, so this can't rely on that
+        # signal the way the friendly path does.
+        if self._get_settings_orig is not None:
+            ch_a, ch_b = self._get_settings_orig
+            self._channels_state = {
+                "ch_a": ch_a, "ch_b": ch_b, "provenance": "verified_readback",
+            }
+            self._update_graph_titles()
+            self._get_settings_orig = None
         self._lbl_settings.setText(f"✓ {len(result.registers)} registers read")
         self._lbl_settings.setStyleSheet("font-size: 11px; color: green; font-weight: bold;")
 
@@ -703,6 +867,7 @@ class MainWindow(QMainWindow):
         self._btn_get_settings.setEnabled(self._is_connected)
         self._btn_apply_channels.setEnabled(self._is_connected)
         self._btn_run_rung.setEnabled(True)
+        self._get_settings_orig = None
         self._lbl_settings.setText(f"✗ Get Settings failed: {reason}")
         self._lbl_settings.setStyleSheet("font-size: 11px; color: #B71C1C; font-weight: bold;")
 
