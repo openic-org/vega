@@ -1,26 +1,23 @@
 # Recording format — interface spec
 
-**Status: AGREED 2026-08-27, not yet implemented.** Written before
-touching `csv_recorder.py`, per PLAN.md's standing rule (working
-principle 5: "interface specs outrank subsystem specs") and A.6.5's
-explicit instruction. Every open design question (JSON sidecar format
-§1; CSV format versioning §1a; device state read-once-at-connect with a
-provenance tag §2.1; `sample_rate` as a config-named object, not a bare
-scalar, §3; `firmware_version`/`bitstream_version` tracked as new Phase B
-RTL/firmware work rather than a permanent placeholder, §5) is resolved
-and confirmed by Manuel.
+**Status: AGREED 2026-08-27, IMPLEMENTED 2026-08-28** (`csv_recorder.py`,
+`main_window.py`, `analyze_recording.py`). Written before touching
+`csv_recorder.py`, per PLAN.md's standing rule (working principle 5:
+"interface specs outrank subsystem specs") and A.6.5's explicit
+instruction. Every open design question (JSON sidecar format §1; CSV
+format versioning §1a; device state provenance tag §2.1; `sample_rate` as
+a config-named object, not a bare scalar, §3; `firmware_version`/
+`bitstream_version` tracked as new Phase B RTL/firmware work rather than a
+permanent placeholder, §5) is resolved and confirmed by Manuel.
 
-**Implementation is still deliberately deferred**, independent of the
-above: `csv_recorder.py` and `main_window.py`'s connect flow are both on
-the bench-session path (PLAN.md A.6's handoff note), and §3's exact
-`sample_rate` numbers depend on Manuel's in-progress PLL retune and
-oscilloscope verification (PLAN.md B.5 "SPS overshoot", updated
-2026-08-27) — implementing against the current ~29,348 SPS figure now
-would need revisiting the moment the PLL changes. **Do not start
-implementation until Manuel confirms both the bench session has run and
-the PLL retune/verification is done**, so the sidecar's first real values
-are correct from the start rather than needing an immediate follow-up
-fix.
+Both prior implementation gates (the bench session and the PLL retune)
+cleared 2026-08-27; PLAN.md confirmed A.6.5 unblocked 2026-08-28. One
+design change made during implementation, against Manuel's explicit
+instruction that session: **`filter_settings` is read by an
+operator-triggered "Get Settings" button, not automatically at connect**
+— see §2.1a. Two additions the original spec didn't fully specify are
+filled in below: the `filter_settings.registers` JSON shape (§2.1a) and
+the stop()-time sidecar fields (§2.2).
 
 **Purpose:** define a metadata sidecar for `vega_*.csv` recordings, so a
 recording can be interpreted correctly (units, channel identity, sample
@@ -101,7 +98,11 @@ doesn't necessarily change what the sidecar records, and vice versa.
   "csv_filename": "vega_20260827_101500.csv",
   "recording_started_utc": "2026-08-27T10:15:00Z",
 
-  "sample_rate": "STILL UNDER DISCUSSION -- see section 3, not yet implemented",
+  "sample_rate": {
+    "config": "2ch_v1",
+    "channel_hz": 29999.97,
+    "source": "docs/interfaces/stream-packet-format.md §1.1 -- 2026-08-27 PLL retune. Will be revised after PLAN.md A.7 step 3 sets the rate margin; the actual streaming rate is expected to land below this figure deliberately."
+  },
 
   "gain": {
     "amplifier_uv_per_lsb": 0.195,
@@ -124,7 +125,12 @@ doesn't necessarily change what the sidecar records, and vice versa.
 }
 ```
 
-### 2.1 Device state (`channels`, `filter_settings`) — read once at connect, not per recording
+`channels`/`filter_settings` above show the state before Apply/Get
+Settings has ever run this session (`"unknown"`) — see §2.1a for what
+`filter_settings.registers` looks like once populated, and §3 for how
+`sample_rate.channel_hz` was resolved.
+
+### 2.1 Device state (`channels`, `filter_settings`)
 
 **Design agreed with Manuel 2026-08-27, generalizing a gap this spec
 found while looking at `channels` alone.** Two related fields, one
@@ -152,32 +158,42 @@ never an omitted field.
   tables (pages 25–26) and decoding is a separable fast-follow, not a
   blocker to recording the ground-truth values.
 
-**Both are read once when the device connects, not re-read at every
-recording start** (Manuel, 2026-08-27) — the same way `channels`
-already behaves via `SET_CHANNELS`/readback, and the same future path
-applies to `filter_settings`: **the operator can change these settings
-later, the same way channels are changed today** (an `Apply`-style
-flow doesn't exist yet for filter settings — this spec doesn't build
-it, only anticipates it). Each device-state field therefore needs:
+**`channels` is read/refreshed via the existing `SET_CHANNELS`/readback
+flow (Apply), cached in `main_window.py`.** `filter_settings` is
+**deliberately not** auto-read at connect — changed during
+implementation, 2026-08-28, from this section's original framing.
+Reason: the only way any RHD2164 SPI response reaches the host is by
+pointing the live streamed channel at the FPGA's command slot (§2.1a),
+which means reading filter registers unavoidably touches `REG_CH_A`
+transiently, even though it's restored before returning. Doing that
+silently on every connect was ruled out (Manuel) in favor of an explicit
+**"Get Settings" button** (§2.1a) — an operator-triggered action with the
+same STOP → act → restore → START shape as Apply, not something that
+happens without the operator asking for it. Each device-state field
+therefore needs:
 
-1. A connect-time read sequence (STOP if not already stopped → read the
-   relevant registers/regbank words → resume streaming state), cached in
-   `main_window.py`.
-2. A **provenance tag**, not a bare value — because "read at connect"
-   and "confirmed after a later change" are different levels of
+1. A read sequence (STOP if not already stopped → read the relevant
+   registers/regbank words → restore/resume) — for `channels`, this is
+   Apply; for `filter_settings`, this is Get Settings (§2.1a).
+2. A **provenance tag**, not a bare value — because "confirmed by the
+   FPGA" and "requested but never confirmed" are different levels of
    confidence, exactly like the existing `channels`/`✓ Verified` /
    `✗ Mismatch` distinction:
 
    | State | Value | `provenance` |
    |---|---|---|
-   | Read/verified at least once (connect, or after a later apply) | the read/verified value | `"verified_readback"` |
-   | Requested (e.g. spinbox for channels) but never confirmed | the requested value | `"unverified_requested"` |
-   | Never connected, or read never attempted | `null` | `"unknown"` |
+   | Confirmed by the FPGA at least once (Apply's readback, or a Get Settings run) | the confirmed value | `"verified_readback"` |
+   | Requested (e.g. spinbox for channels) but never confirmed, or a confirmation attempt timed out | the requested value | `"unverified_requested"` |
+   | Never connected, or never attempted | `null` | `"unknown"` |
 
 3. Invalidation/refresh whenever the underlying setting is changed —
-   `channels` already has the mechanism (`_on_channels_readback`);
-   `filter_settings` needs the equivalent once a settings-apply UI
-   exists (not built here).
+   `channels` has the mechanism in `_apply_channels`/`_on_channels_readback`
+   (downgrade to `unverified_requested` the instant Apply is clicked,
+   upgrade to `verified_readback` on the FPGA's actual reply, whether or
+   not it matches what was requested); `filter_settings` doesn't need an
+   equivalent invalidation path since nothing changes it other than a
+   fresh Get Settings run, which always overwrites the cached value
+   directly.
 
 **`channels`, specifically — the gap that motivated this design.**
 Checked `main_window.py`'s channel-apply flow
@@ -194,13 +210,81 @@ changing a spinbox). `_btn_rec` is enabled purely on `connected`,
 independent of channel-apply state (`main_window.py:404`), so a
 recording can start with channels in any of the three states above.
 
-**Implementation of both connect-time reads is deferred until after
-today's bench session** — `main_window.py`'s connect flow is on the
-bench path (PLAN.md A.6's working constraint), and this is a real
-behavior change to what happens on every connect, not something to land
-before the session runs.
+## 2.1a. `filter_settings` — "Get Settings" button, and the `registers` shape
 
-## 3. `sample_rate` — STILL UNDER DISCUSSION, not yet designed
+**Implemented 2026-08-28** as `diagnostics.FilterSettingsReader`, a
+sibling of the A.1.1 verification ladder's `RungRunner` (same
+register-console primitives: `rhd_read`, `slot_word`, `ch_code`, the
+ack-gated queue with retries), triggered by a new "Get Settings" button
+next to the channel controls in `main_window.py`. Mutually exclusive with
+Apply and the diagnostics ladder — all three drive the same live FPGA
+channel-selection/streaming state.
+
+Sequence: STOP → for each register in `[4, 8, 9, 10, 11, 12, 13]`, write
+`READ(reg)` into the dedicated command slot (regbank word 80, "slot 32")
+→ point `REG_CH_A` at slot 32 → START → collect ~64 samples → majority-
+vote decode → STOP → put slot 32 back to its normal-operation value
+(`READ(63)`, the chip-ID read) → **restore the operator's original
+channels** → START. During the read loop itself, only regbank word 80
+(slot 32) and `REG_CH_A` are ever written — `REG_CH_B` and sampling-table
+slots 0–31 are untouched, the constraint Manuel gave when this button was
+scoped, 2026-08-28.
+
+**Restore updated 2026-08-29** to use the same offset-compensated
+dual-path logic as Apply (`docs/interfaces/channel-selection-control-plane.md`
+§1a-addendum, `pc-app/channel_mapping.py`): most channel pairs restore via
+`SET_CHANNELS` (verified the same way Apply's readback is); the 4 physical
+channels per chip pair the friendly encoding can't express restore via a
+direct `REG_WRITE16` on `REG_CH_A`/`REG_CH_B` instead — and if *either*
+original channel needs that, both do, since one `SET_CHANNELS` call sets
+both registers together. `REG_CH_B` is written only during this restore
+step, never during the read loop above.
+
+`filter_settings.registers` shape, not fully specified when §2 was
+written — one key per register number, decimal string (JSON object keys
+are always strings), value is the register's raw content (the low byte of
+the RHD2164's `{8'h00, D}` response, per `rhd_read`'s contract — not
+decoded Hz, per this section's original scope note):
+
+```json
+"filter_settings": {
+  "registers": {"4": 31, "8": 80, "9": 81, "10": 82, "11": 83, "12": 10, "13": 11},
+  "provenance": "verified_readback"
+}
+```
+
+Tested offline against a fake register-console model
+(`test_filter_settings.py`, mirrors `test_diagnostics.py`'s `FakeReader`
+pattern) — proves the queue sequencing, the retry/timeout handling, that
+only slot 32 and `REG_CH_A` are ever touched during the read loop, and
+(2026-08-29) that the restore step picks the raw path instead of
+`SET_CHANNELS` whenever either original channel needs it. **Not yet
+verified against real hardware** — needs a bench run confirming the
+decoded register values are plausible and that the streamed
+channels/graph are byte-for-byte unaffected after a run.
+
+## 2.2. Written at `stop()`
+
+Not specified when §2 was written — §1 only says the stop-time rewrite
+exists ("everything in §2 is known at `start()`... losing only the final
+duration, measured rate, stop reason"), not its field names. Implemented
+2026-08-28 as an update merged into the same sidecar file (same atomic
+write as §1), on top of every §2 field:
+
+```json
+"recording_stopped_utc": "2026-08-28T10:22:31Z",
+"duration_sec": 123.4,
+"rows_written": 3600000,
+"auto_stopped": false,
+"auto_stop_reason": null
+```
+
+`auto_stop_reason` is `"max_duration" | "low_disk" | null` (`null` for an
+operator-initiated stop) — distinguishes `csv_recorder.py`'s two
+`write_batch()` auto-stop call sites, which previously both collapsed
+into the same `auto_stopped: bool`.
+
+## 3. `sample_rate` — RESOLVED 2026-08-28
 
 **FPGA-driven rate, derived from RTL 2026-08-27 (Manuel: "look at the
 code again to see what is the actual rate").** Cycle-counted from the
@@ -328,9 +412,28 @@ underrun padding, which is the same kind of "looks fine, silently
 isn't" failure this plan has already flagged twice (A.6.4's sentinel
 ambiguity; the REG13 bug before it).
 
-**Not resolved. Discussion continues from here with Manuel** before
-anything in this section is implemented or the `sample_rate` field's
-shape is finalized.
+**Resolved 2026-08-28**, in the same session that agreed the
+`stream-packet-format.md` spec: the config-named-object shape (this
+section's own proposal) is exactly what absorbed the resolution.
+`stream-packet-format.md` §1.1 records the 2026-08-27 PLL retune moving
+production from 29,348 to 29,999.97 SPS/ch — this is the value
+implemented into every sidecar's `sample_rate.channel_hz`:
+
+```json
+"sample_rate": {
+  "config": "2ch_v1",
+  "channel_hz": 29999.97,
+  "source": "docs/interfaces/stream-packet-format.md §1.1 — 2026-08-27 PLL retune. Will be revised after PLAN.md A.7 step 3 sets the rate margin; the actual streaming rate is expected to land below this figure deliberately."
+}
+```
+
+**This is not the final number.** PLAN.md A.7 step 3 (loss accounting —
+still open as of this writing) is expected to set the real streaming rate
+λ *below* 29,999.97 deliberately, per `stream-packet-format.md`'s
+lossless-by-margin design (production must stay below measured transport
+capacity). When that lands, only `channel_hz`'s *value* changes — the
+schema doesn't, which is exactly what this section argued for before it
+was implemented.
 
 ## 4. `format_version`
 
@@ -380,24 +483,30 @@ consumer should treat that.
 ## Open items
 
 - [x] Design agreement (Manuel, 2026-08-27) — all of §1/§1a/§2.1/§3/§5.
-- [ ] **Blocking implementation:** Manuel's PLL retune to hit exactly
-      30,000 SPS + oscilloscope verification (PLAN.md B.5, "SPS
-      overshoot"). `sample_rate`'s `channel_hz` value depends on the
-      result — implementing against today's ~29,348 figure now would need
-      an immediate follow-up fix.
-- [ ] **Blocking implementation:** today's bench session — `csv_recorder.py`
-      and `main_window.py`'s connect flow are both on that path.
-- [ ] `main_window.py`: connect-time read + cache for `channels` and
-      `filter_settings`, with the provenance model (§2.1).
-- [ ] `csv_recorder.py`: write the sidecar at `start()`/`stop()` per §§2-3,
-      atomically (§1); write the `# vega-recording-format-version: 1`
-      comment line (§1a).
-- [ ] `analyze_recording.py` / `compare_recordings.py`: dynamic
-      `skiprows` detection for the new CSV comment line (§1a).
-- [ ] `csv_recorder.py`: `stop()` gains an `auto_stop_reason` parameter
-      distinguishing `max_duration` from `low_disk` at its two call sites,
-      rather than collapsing both into the existing `auto_stopped: bool`.
+- [x] **Blocking implementation:** PLL retune — landed 2026-08-27
+      (`CLKOP_FREQ_ACTUAL = 45.539955 MHz`), moving production to
+      29,999.97 SPS/ch. `sample_rate.channel_hz` resolved (§3) — will take
+      one more *value* update after PLAN.md A.7 step 3 sets the rate
+      margin, not a schema change.
+- [x] **Blocking implementation:** bench session — ran 2026-08-27.
+- [x] `main_window.py`: `channels` provenance via the existing
+      `SET_CHANNELS`/readback flow (§2.1); `filter_settings` via the new
+      "Get Settings" button, not a connect-time read (§2.1a — changed
+      from this item's original framing, 2026-08-28).
+- [x] `csv_recorder.py`: sidecar at `start()`/`stop()` per §§2-2.2,
+      atomically (§1); `# vega-recording-format-version: 1` comment line
+      (§1a).
+- [x] `analyze_recording.py`: dynamic `skiprows` detection for the new CSV
+      comment line (§1a) — `compare_recordings.py` needed no direct
+      change, it only calls `analyze_recording.compute_stats()`.
+- [x] `csv_recorder.py`: `stop()` gained `auto_stop_reason`
+      (`"max_duration" | "low_disk" | None`) distinguishing its two
+      `write_batch()` auto-stop call sites (§2.2).
 - [ ] FPGA: new read-only regbank word for `bitstream_version`
       (PLAN.md B.5).
 - [ ] MCU: version constant + a way to read it, for `firmware_version`
       (PLAN.md B.6).
+- [ ] **Needs a bench run** (not done this session, no hardware access):
+      confirm "Get Settings" returns plausible RHD2164 filter-register
+      values, and that `REG_CH_A`/`REG_CH_B`/the streamed channels come
+      back byte-for-byte unchanged after a run (§2.1a).

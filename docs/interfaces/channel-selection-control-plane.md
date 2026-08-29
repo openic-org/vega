@@ -229,6 +229,67 @@ default. A phase slip would have flipped the delta to −1000 (65 536 − 1000).
 A register write also does not pop the FIFO for that transfer — negligible,
 momentary effect on drain rate.
 
+### 1a-addendum. The SLOT_OFFSET gap — pc-app-side compensation, 2026-08-28
+
+**This section's `channel_to_raw()` formula and `FPGA_SPI_ChannelToRaw()`
+(`fpga_spi.c:325-328`, unchanged since) send the friendly index's low bits
+straight through with zero correction — and that's wrong.** Written
+2026-08-05, **before** A.1.1e later confirmed on hardware (2026-08-11,
+`pc-app/diagnostics.py`'s `SLOT_OFFSET = 3`) that the RHD2164's 2-command
+response pipeline plus one more cycle of latch timing means the raw code
+that must be written to *observe* sampling slot `k`'s answer is
+`(k + 3) mod 33`, not `k` itself. The two facts were never reconciled: this
+section describes the encoding as originally specified, but as actually
+built and still running, requesting friendly channel `n` captures physical
+RHD channel `(n - 3) mod 32` within its module — not `n`.
+
+**Compensated in `pc-app/channel_mapping.py`, not firmware — 2026-08-28
+decision.** `physical_to_wire(n)` takes the *physical* channel the operator
+actually wants (0-127, what the recording sidecar records — see
+`docs/interfaces/recording-format.md` §2.1) and returns the friendly index
+to send so the *physical* result comes out right:
+
+```python
+source, idx = divmod(n, 32)
+corrected = (idx + 3) % 33
+```
+
+For `corrected < 32` (124 of 128 physical channels), `source*32 + corrected`
+is a valid friendly index and this section's `SET_CHANNELS` path is used
+unmodified — the MCU firmware needs no change, and every existing
+validation/range-check still applies.
+
+**The remaining 4 — one per 32-channel module, physical index 29 — are
+structurally unreachable via any friendly index.** `corrected` lands on 32,
+the FPGA's reserved command slot (§1a above), and `FPGA_SPI_ChannelToRaw()`
+can never produce a raw code with that bit set for *any* friendly input (its
+output's bit 5 is always clear — the formula inserts a literal zero there).
+These 4 physical channels (29, 61, 93, 125) instead go through a direct
+`REG_WRITE16` on `REG_CH_A`/`REG_CH_B` (words 196/197 — same addresses this
+section already documents, reached via the register console of
+`docs/interfaces/fpga-diagnostic-access.md` rather than `SET_CHANNELS`),
+writing the true raw code `(source << 6) | 32` verbatim. Because a single
+`SET_CHANNELS` call sets both registers together, if *either* requested
+channel needs the raw path, **both** go through it — mixing would let a
+friendly-path write silently clobber the raw one back to the wrong value.
+
+Implemented in `pc-app/main_window.py`'s Apply flow and
+`pc-app/diagnostics.py`'s `FilterSettingsReader` restore step (its own use
+of `SET_CHANNELS`/raw writes to put the operator's channels back after
+reading filter registers — `docs/interfaces/recording-format.md` §2.1a).
+Tested offline against both `diagnostics.py`'s hardware-confirmed
+`ch_code()` and a verbatim copy of the real firmware formula
+(`pc-app/test_channel_mapping.py`) — not yet bench-verified that the
+compensated selection lands on the intended physical channel; only real
+hardware can prove that.
+
+**Not fixed here because the decision was explicit: fix it in pc-app, not
+firmware.** A firmware fix to `FPGA_SPI_ChannelToRaw()` remains the more
+complete answer (it would close the 4-channel gap with no dead spots and no
+distinction between two hardware paths) and should be considered as
+Phase B cleanup; this addendum documents the interim compensation, not a
+replacement for that.
+
 ## 2. BLE 0xFFF1 command protocol (bridge/phone ↔ Kuntur MCU)
 
 **Where implemented:** `stream.h`/`stream.c` (GATT plumbing, new event
