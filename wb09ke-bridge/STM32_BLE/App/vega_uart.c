@@ -20,6 +20,7 @@
 #include "vega_bridge_app.h"
 #include "stm32wb0x.h"
 #include "stm32wb0x_ll_usart.h"
+#include "stm32wb0x_hal.h"   /* HAL_GetTick() — RX_FRAME_TIMEOUT_MS below */
 
 #define BUF_MASK  (VEGA_UART_TX_BUF_SIZE - 1U)
 
@@ -109,8 +110,33 @@ static uint8_t   s_rx_buf[VEGA_UART_CMD_MAX_PAYLOAD];
 static uint8_t   s_rx_len;
 static uint8_t   s_rx_idx;
 
+/* Timeout backstop for a stuck partial frame — see vega_uart.h's comment on
+ * VEGA_UART_RxReset(). At 2 Mbaud a legitimately-continuous frame's byte
+ * gap is ~5 us; 5 ms is ~1000x that margin, so any real transmission never
+ * trips this, while a desynced parser can't wait longer than 5 ms for a
+ * byte that isn't coming. Still far short of the pc-app's ~2000 ms
+ * ACK_TIMEOUT_MS retry gap, so a retry always finds the parser at RX_IDLE
+ * — it never lands on a still-stuck frame. */
+#define RX_FRAME_TIMEOUT_MS  5U
+static uint32_t s_rx_last_byte_tick;
+
+void VEGA_UART_RxReset(void)
+{
+    s_rx_state = RX_IDLE;
+}
+
 uint8_t VEGA_UART_RxByte(uint8_t byte)
 {
+    uint32_t now = HAL_GetTick();
+    if (s_rx_state != RX_IDLE && (now - s_rx_last_byte_tick) > RX_FRAME_TIMEOUT_MS)
+    {
+        /* Stale partial frame — abandon it so `byte` below is evaluated
+         * fresh against RX_IDLE instead of being consumed as data for a
+         * frame that's already missing one. */
+        s_rx_state = RX_IDLE;
+    }
+    s_rx_last_byte_tick = now;
+
     switch (s_rx_state)
     {
     case RX_IDLE:

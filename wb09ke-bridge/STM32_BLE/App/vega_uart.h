@@ -41,6 +41,18 @@ uint8_t VEGA_UART_TxBytePop(uint8_t *byte);
 
 uint8_t VEGA_UART_RxByte(uint8_t byte);
 
+/* Forces the command-frame parser back to RX_IDLE, abandoning whatever
+ * partial frame is in progress. Two callers:
+ *   - stm32wb0x_it.c's USART1 ORE handler, immediately after clearing the
+ *     overrun — an overrun means at least one byte was lost, so the parser
+ *     can no longer trust its position within the current frame. Found
+ *     2026-08-31: an ORE mid-payload let a *later* frame's 0xCC 0x33 magic
+ *     get consumed as data instead of recognized as a new frame, corrupting
+ *     a REG_WRITE16's staged high byte on the FPGA regbank.
+ *   - VEGA_UART_RxByte() itself, as a timeout backstop (RX_FRAME_TIMEOUT_MS)
+ *     for any other desync source an ORE doesn't cover. */
+void VEGA_UART_RxReset(void);
+
 /* ── TX-ring truncation counters ─────────────────────────────────────────────
  * VEGA_UART_Write() drops the remainder of a write when the ring is full.
  * That puts a TRUNCATED frame on the wire: the pc-app resynchronises on the
