@@ -112,27 +112,47 @@ only. That loses the simultaneous reference comparison, not the test.
 
 | ID | Milestone | Status |
 |---|---|---|
-| **A1** | Real RHD2164 signal on the bench, end-to-end to the pc-app (injected) | **All but declared** — 2026-08-27 injected 8 mVpp/1 kHz read back at 8.294 mV (3.7%) through the real chain, both chips streaming varying data, clean 60 Hz on floating inputs. Remaining: A.1.1f + the ladder bench run |
+| **A1** | Real RHD2164 signal on the bench, end-to-end to the pc-app (injected) | **DONE 2026-08-31.** Full A.1.1 ladder (`L`,`O`,`a`,`b`,`c`,`d`,`f`) passed clean on real hardware, including `A.1.1f`'s VDD/2 analog reading (≈3.27 V @ 3.3V rail). See A.1.1's closing note and the 2026-08-31 critical-path entries below for the (unrelated) chip0 regression this bench session also had to work through first. |
 | **A2** | Dual-path validated — Kuntur wireless and Intan controller agree, bench | Blocked on A.4 (LVDS tunnel) and A.3 (injection rig) |
 | **A3** | **In-vivo animal recording** | |
 
-### Current critical path — ordered, 2026-08-28
+### Current critical path — ordered, 2026-08-31
 
 Sections below are not in execution order (A.6 and A.7 run parallel to
 A.3–A.5). This is the order that actually matters:
 
-1. **A.7 steps 1–3** — make loss visible, then measurable, then set λ.
-   Cheap, non-breaking, and everything recorded at the animal test depends
-   on it. *(Manuel: step 1 RTL. Claude: step 2 firmware/app.)*
-2. **A.1.1f + ladder bench run** — closes out A1. *(Manuel)*
-3. **A.4 interface spec** — writable now, does not wait on the companion
+1. ~~A.7 steps 1–3~~ — **not started**; still the long pole for the animal
+   test, carried forward unchanged. *(Manuel: step 1 RTL. Claude: step 2
+   firmware/app.)*
+2. ~~A.1.1f + ladder bench run~~ — **done 2026-08-31**, closes out A1.
+3. **kuntur chip0/SCK-MOSI board-level regression — found 2026-08-31, NOT
+   fixed.** Real root cause identified (asymmetric board trace length on
+   the shared SCK/MOSI/CSB bus reaching the two RHD2164s — see the new
+   entry under A.1.1's closing note and B.5's known-open issues). A same-day
+   fix attempt regressed further by removing the whole-design placement
+   pinning; reverted instead of continuing. **Next attempt must add any
+   deskew constraint alongside `mregion0`-`mregion7`, never by removing
+   them** — that pinning has now been the load-bearing fix twice
+   (2026-08-24, 2026-08-27). *(Manuel, RTL)*
+4. **kuntur is on a session branch (`session-2026-08-31-checkpoint`,
+   `e89671d`), not `main`.** `main` still sits at `e2bac25`, untouched.
+   Needs a decision — fast-forward `main` to the checkpoint once the
+   SCK/MOSI fix is redone safely, or reconcile some other way. See the new
+   "2026-08-31 checkpoint revert" entry below for exactly what's on the
+   branch vs. what's still only in `stash@{0}` vs. what's on `main` and not
+   yet on the branch.
+5. **A.4 interface spec** — writable now, does not wait on the companion
    FPGA hardware arriving, and it is the long pole for both A2 and A3.
    *(Joint)*
-4. **A.3 attenuation network** — independent of everything above, and the
+6. **A.3 attenuation network** — independent of everything above, and the
    noise-floor headline number cannot be measured without it. *(Manuel)*
-5. ~~A.6.5 sidecar implementation~~ — **done 2026-08-28**, not yet
-   bench-verified. *(Claude)*
-6. A.4 RTL (both ends) → A.3 dual-endpoint capture → A.5 arbitration → **A2**.
+7. ~~A.6.5 sidecar implementation~~ — **done 2026-08-28, bench-verified
+   2026-08-31** (channels/sample_rate/duration/rows_written all correct on
+   a real 22.8-minute recording; `filter_settings` mechanism separately
+   confirmed working via Get Settings, just not captured in the same
+   recording — run Get Settings before Start next time to close that out
+   fully).
+8. A.4 RTL (both ends) → A.3 dual-endpoint capture → A.5 arbitration → **A2**.
 
 **Live external gate:** A.0's animal-protocol amendment, in progress with
 the collaborator since 2026-08-05, **revisit 2026-09-05**.
@@ -373,7 +393,7 @@ Ordered tasks, each with a numeric pass/fail.
       offset, §1.3's `CONVERT(k)`-at-slot-`k` sampling-table defaults, and
       §1.4's deletions (`rhd2164_sampling_cmd0-3`, `regbank_addr0`,
       `ch_is_16`/`dout_en_16`) — one pass over `ch_sel`, not four.
-- [ ] **A.1.1f — ADC path.** Enable VDD sense, convert channel 48 on module A,
+- [x] **A.1.1f — ADC path.** Enable VDD sense, convert channel 48 on module A,
       expect ≈44,100 at 3.3 V. First real analog value end to end.
       **Implemented 2026-08-31** (`pc-app/diagnostics.py` `RUNG_F`,
       spec `fpga-diagnostic-access.md` §5.6) — no RTL change needed after
@@ -381,7 +401,11 @@ Ordered tasks, each with a numeric pass/fail.
       RHD_REG1)`, which since A.1.1g is an ordinary regbank word, so it is
       set the same command-injection way rungs (a)-(d) already inject
       `READ`s. Offline-verified against a `FakeReader` extended to model
-      `WRITE`'s echo response; **not yet run against real hardware.**
+      `WRITE`'s echo response. **Bench-verified 2026-08-31**: WRITE(1) echo
+      exact (`0xFF42`/`0x0004` chip-ID companion), analog reading
+      `0xAACF` = 43,727 → `VDD = 0.0000748 × 43,727 ≈ 3.27 V` against a
+      3.3 V rail — real, sane, first analog value this project has ever
+      streamed end to end.
 
 **Status 2026-08-11 — the driver for (a)–(d) is built; the RTL it drives is
 not.** Everything below the RTL line now exists and is tested as far as it can
@@ -478,9 +502,12 @@ be without hardware:
       for an unverified one with no test coverage behind it (Phase A has no
       simulation). Do them in Phase B alongside the testbench that can catch a
       slip.
-- [ ] **Bench run** — fold into the same session as the A.2 re-test, per the
-      sequencing note under A.2. **Phase A is bench-only** (decided
-      2026-08-11); see B.1 for the simulation half.
+- [x] **Bench run** — **done 2026-08-31**: full ladder (`L`,`O`,`a`,`b`,`c`,`d`,`f`)
+      run against real hardware, all passed. Ran on the `session-2026-08-31-checkpoint`
+      branch (`kuntur` `e89671d`) after reverting a same-day chip0/SCK-MOSI
+      regression — see the critical-path entry above and the new
+      "2026-08-31 checkpoint revert" note near B.5. **Phase A is bench-only**
+      (decided 2026-08-11); see B.1 for the simulation half.
 
 **Response-delay offset is 3, not 2 — found 2026-08-11 while writing the RTL
 change list, unconfirmed on hardware.** The RHD's own pipeline is 2 commands,
@@ -1471,7 +1498,7 @@ of it.**
       the sentinel rate was a proxy for. Implementation follows the spec's §9 order,
       not this item.
 
-### A.6.5 — Recording metadata sidecar  *(DECISION 3 — spec first)*  — ✅ **DONE 2026-08-28, not yet hardware-verified**
+### A.6.5 — Recording metadata sidecar  *(DECISION 3 — spec first)*  — ✅ **DONE 2026-08-28, bench-verified 2026-08-31**
 
 - [x] Minimum content: sample rate, gain / µV-per-LSB, channel map, filter
       settings, firmware + bitstream versions.
@@ -1577,8 +1604,14 @@ of it.**
       write literally `"unknown"`, per this section's own instruction not
       to infer a value from git state. Full narrative: `log/2026-08-28.md`
       (third session). Both interface specs updated to as-built.
-      **Not yet bench-verified** — Get Settings' register reads need a
-      real device.
+      **Bench-verified 2026-08-31**: a 22.8-minute recording produced a
+      correct sidecar (`ch_a`/`ch_b` verified-readback, `duration_sec`,
+      `rows_written` all right), and Get Settings separately confirmed
+      working (after the bridge UART fix below — it hung twice before
+      that) with "7 registers read." Not yet done in the *same* recording
+      — Get Settings needs to run before Start to land `filter_settings`
+      in the sidecar rather than staying `null`/`unknown` — small,
+      mechanical, do next time.
 
 ## A.7 — Loss accounting & rate margin  *(moved into Phase A 2026-08-28)*
 
@@ -2004,6 +2037,23 @@ Design the **seams**; file layout follows.
       directly. Re-derive the number from that counter rather than investigating the
       old one — and note the old figure is uninterpretable against real data anyway,
       per A.6.4.
+
+      **New data point, 2026-08-31**: a 22.8-minute real-signal recording
+      (`vega_20260831_123301.csv`, 40,258,709 samples, 5 Hz injected +
+      floating-channel hum, pre-PLL-retune rate ~29,466 SPS) measured
+      **0.4% underrun** (160,837 samples) — directly confirmed as genuine
+      FIFO-empty events, not analog saturation misread as the sentinel:
+      `ch0==-32768`, `ch1==-32768`, and both-together counts are all
+      *exactly* 160,837, an exact 1:1:1 correspondence across 40M+ rows
+      that rules out two independent real channels coincidentally railing
+      at the same value. Spread fairly evenly through the whole recording
+      (flat ~0.4-0.5% band), not one big event. Zero packet-level loss the
+      same recording (`seq_num`: 0 resync points, 0 packets lost) — the
+      loss is specifically FIFO-side, not transport-side. Feeds directly
+      into A.7's rate-margin work: even at the *lower*, pre-retune target
+      rate, where historically (2026-08-27) delivery "comfortably matched
+      or exceeded production," there's a real non-zero baseline loss —
+      worth having before A.7 step 3 picks λ and m.
 - [ ] **SPS overshoot — reframed 2026-08-27, in progress.** Raised while
       designing A.6.5's `sample_rate` sidecar field
       (`docs/interfaces/recording-format.md` §3). Cycle-counted the
@@ -2251,9 +2301,17 @@ Design the **seams**; file layout follows.
       silently (B.1 enforcement-ratchet philosophy). Both repos have a
       full day of uncommitted work sitting in the tree — worth a
       checkpoint commit before anything else changes.
-- [ ] **`SET_CHANNELS` has always selected the wrong physical RHD2164
+- [x] **`SET_CHANNELS` has always selected the wrong physical RHD2164
       channel — found 2026-08-29, compensated in pc-app, firmware still
-      wrong.** `docs/interfaces/channel-selection-control-plane.md` §1a's
+      wrong.** **Bench-verified 2026-08-31**: `ChA=3`/`ChB=4` (the wire
+      values `physical_to_wire()` computes for physical channels 0/1)
+      showed a clean known 5 Hz injected signal on physical channel 0 and
+      60 Hz floating-input hum on physical channel 1 — the dynamic
+      channel-title UI correctly labelled them "Channel 0"/"Channel 1".
+      Confirms the fix with a real known signal, not just the wire-capture
+      print. Run on `kuntur` `e89671d` (the 2026-08-31 checkpoint, see
+      below), so this also stands as an independent reconfirmation that
+      checkpoint's hardware health. `docs/interfaces/channel-selection-control-plane.md` §1a's
       friendly-index formula (written 2026-08-05) and its verbatim
       firmware implementation (`FPGA_SPI_ChannelToRaw()`,
       `fpga_spi.c:325-328`) apply **zero** correction — but A.1.1e later
@@ -2278,9 +2336,7 @@ Design the **seams**; file layout follows.
       direct `REG_WRITE16` fallback (`RawChannelSetter`) instead.
 
       Full derivation: `docs/interfaces/channel-selection-control-plane.md`
-      §1a-addendum; narrative: `log/2026-08-29.md`. **Not yet
-      bench-verified** — does requesting physical channel N actually
-      capture RHD channel N now? A firmware fix to
+      §1a-addendum; narrative: `log/2026-08-29.md`. A firmware fix to
       `FPGA_SPI_ChannelToRaw()` remains the more complete answer (closes
       the 4-channel dead zone entirely, one code path instead of two);
       noted as Phase B cleanup, not chased this session by explicit
@@ -2520,6 +2576,103 @@ Design the **seams**; file layout follows.
       runs per frame rather than per drop. Alternative: give ISR-context tracing its
       own single-byte path that touches only a reserved slot. Not urgent while the
       flag is `0`; worth fixing before anyone debugs with it.
+- [ ] **kuntur chip0/SCK-MOSI board-level regression — found 2026-08-31, real
+      root cause identified, NOT fixed.** Bench session started with chip0
+      unresponsive again on reload of the (then-uncommitted) pre-retune
+      bitstream. Traced, with a detour through a `TIMING_MARGIN_RATIO`
+      period-scaling experiment (see below) and a `set_clock_uncertainty`
+      margin attempt, to the real cause: **`spi1_sck`/`spi1_mosi`/`spi1_csb`
+      are a single FPGA pad each, fanning out on the board to *both*
+      RHD2164 chips — a shared, multi-drop bus. If the physical trace
+      length from the FPGA to chip0 differs from the trace to chip1, one
+      chip's setup/hold margin is worse than the other's, and nothing
+      FPGA-internal can differentially compensate a shared signal.**
+
+      A same-day fix attempt (deliberate MOSI deskew via a new placement
+      region, `region0`/`group0`) made things *worse*: it required removing
+      the whole-design placement pinning (`mregion0`-`mregion7`), which
+      reintroduced the exact regression class `e89671d` (2026-08-27) exists
+      to fix — the diagnostics ladder went flat/wrong on every rung
+      regardless of slot or chip, and the baseline signal degraded too.
+      Reverted rather than continue mid-regression — see the checkpoint
+      note immediately below.
+
+      **Lesson, load-bearing, not optional**: `mregion0`-`mregion7` has now
+      been the fix for this exact failure class twice (2026-08-24,
+      2026-08-27) and the cause of a third regression when removed
+      (2026-08-31). Any future SCK/MOSI deskew attempt (a Lattice
+      `DELAYF`/`DELAYG` primitive was the leading idea, not yet tried) must
+      add its constraint **alongside** `mregion0`-`mregion7`, never by
+      removing them.
+
+      **2026-08-31 checkpoint revert — what's where.** `kuntur` is on
+      branch `session-2026-08-31-checkpoint` at `e89671d` (2026-08-27,
+      the last hardware-verified state: 0 timing violations all 3 corners,
+      98.2% coverage, both chips streaming real data) — **not** on `main`,
+      which still sits untouched at `e2bac25`. `vega` moved forward to
+      `main` normally (nothing there caused or was affected by the
+      regression). Three things are worth naming explicitly rather than
+      leaving implicit in a stash:
+      - **Safe to fast-forward onto the checkpoint whenever, zero risk**:
+        the three 2026-08-28 comment-only commits sitting on old `main`
+        ahead of `e89671d` (`ec8b8d6` bus-label AHB fix, `834b888` dead
+        enum removal, `5d50981` `fifo0` sizing comment fix) — all
+        confirmed comment/dead-code-only, rebuilds byte-identical at
+        173,348 B text each time.
+      - **Real, wanted, still uncommitted** (parked in the checkpoint
+        branch's `stash@{0}`): the 2026-08-27 PLL retune (44.55→45.54 MHz,
+        exact 30,000 SPS) — verified on hardware that day but never
+        actually committed to git, a gap that predates today and that
+        today's revert accidentally surfaced — including one real mistake
+        along the way (Claude briefly "corrected" `impl_1.sdc`'s `clk`
+        period back to the stale *pre*-retune 44.55 MHz value, on the
+        wrong belief the retuned figure was stale; Manuel caught and fixed
+        it before it went anywhere). Independent of the SCK/MOSI work; no
+        reason it needs to wait.
+      - **Correctly abandoned, not "lost"**: the SCK/MOSI deskew attempt
+        itself (`region0`/`group0`, the removed `mregion` pins, the
+        `TIMING_MARGIN_RATIO`/`CLK_SETUP_MARGIN_NS` margin experiments) —
+        this caused the regression and should not be blindly redone as-is;
+        see the lesson above for how to retry it safely.
+      Today's bench work (full A.1.1 ladder pass, A.1.1f VDD confirmation,
+      the offset-fix confirmation, the 22.8-min recording) all ran
+      *against* the checkpoint branch, not old `main` — so it validates
+      `e89671d`, which is one reason to consider fast-forwarding `main` to
+      it once the SCK/MOSI fix is redone safely, rather than reconciling
+      two divergent histories later.
+- [x] **Bridge command-frame parser desyncs on a USART1 overrun — found and
+      fixed 2026-08-31.** A different mechanism from the single-producer
+      item above (this one is unconditional, not gated behind
+      `CFG_DEBUG_APP_TRACE`), found chasing a real bench symptom: two
+      diagnostics-ladder rungs and one Get Settings run corrupted a
+      `REG_WRITE16`'s staged high byte on the FPGA regbank (`0xCC`
+      appearing where it shouldn't — the first byte of `CMD_MAGIC`), and
+      Get Settings twice hung hard enough to need a bridge reset.
+
+      Root cause: the 2026-08-06 USART1 ORE fix only clears the overrun
+      flag so RX doesn't die *permanently* — it never told
+      `VEGA_UART_RxByte()`'s command-frame parser that the byte which
+      triggered the overrun was lost. An ORE mid-payload leaves the parser
+      misaligned with what the pc-app actually sent, with no way to detect
+      it, so the *next* frame's `0xCC 0x33` magic gets consumed as payload
+      data instead of recognized as a new frame — exactly how a
+      `REG_WRITE16`'s staged high byte ends up as `0xCC`.
+
+      Fixed (`wb09ke-bridge`, commit `0836caf`): `VEGA_UART_RxReset()`
+      resets the parser to `RX_IDLE`, called from the ORE handler right
+      after clearing the overrun; plus a 5 ms RX timeout backstop inside
+      `VEGA_UART_RxByte()` itself for any other desync source (at 2 Mbaud
+      a real frame's byte gap is ~5 µs, so this never trips on legitimate
+      traffic, and it's ~1000x shorter than the pc-app's ~2000 ms
+      `ACK_TIMEOUT_MS` retry gap, so a retry now always finds the parser
+      at `RX_IDLE`). Bench-verified: rung `L` and Get Settings both
+      re-run afterward with multiple retries firing on the still-lossy
+      transport, all recovering cleanly — no corrupted writes, no hangs.
+      **Does not reduce how often USART1 drops a byte** (still the
+      2026-08-06 ISR-priority cause, unaddressed), only how cleanly
+      recovery happens when it does — the retry *frequency* is still
+      elevated and is its own, separate, lower-priority item if it's ever
+      worth chasing.
 - [ ] **ST support ticket** — `BLE_STACK_Tick()` ~10–22 ms block. Evidence assembled
       in `project_st_support_ticket_ble_stack.md`; never filed. External response
       time — file early.
