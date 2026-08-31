@@ -50,6 +50,14 @@ def rhd_convert(channel: int) -> int:
     return (channel & 0x3F) << 8
 
 
+def rhd_write(reg: int, data: int) -> int:
+    """RHD2164 WRITE(R, D) — {2'b10, R[5:0], D[7:0]}. Response echoes
+    {8'hFF, D[7:0]} (intan.vh's WRITE comment) — the echo IS the
+    verification, same idiom as the 0xFFF1 control plane's REG_WRITE16
+    ack carrying the regbank's own readback."""
+    return 0x8000 | ((reg & 0x3F) << 8) | (data & 0xFF)
+
+
 # ── Slot→ch_a mapping, as built ─────────────────────────────────────────────
 # The RHD returns a command's result two commands later, and ch_sel sees it one
 # slot later still (data_rx_* are held registers loaded at the SPI master's
@@ -387,9 +395,90 @@ RUNG_D = Rung(
     },
 )
 
+# ── Rung (f) — VDD/2 ADC path, the first real analog value ─────────────────
+# Spec §5.6: "fits this same script shape" — a table entry, not RTL, once
+# (a)-(d) pass. VDD_SENSE_ENABLE (RHD2164 register 1, bit 6) is a chip
+# register, not a regbank word, so it is set the same way every other rung
+# injects a command: WRITE instead of READ, at a borrowed slot. Slots 29/30
+# are used instead of the usual placeholder (32) so that 32 stays at its
+# untouched default READ(63) -> 0x0004 (chip ID) — a live, known-good
+# companion value for the WRITE-echo observation below, rather than two
+# selectors probing the identical slot.
+#
+# The WRITE's own echo (Rspnd: 8'hFF, D[7:0] — intan.vh) doubles as
+# verification that the RHD actually accepted the command, the same
+# "ack doubles as verification" idiom used by the 0xFFF1 control plane
+# (CLAUDE.md). Observed first, as a real pass/fail. The analog reading is
+# observed second and is informational — there is no fixed value to assert
+# an ADC code against, only a formula to sanity-check by eye against the
+# bench supply.
+#
+# RESTORE CAVEAT, read before running: the regbank-side restore (sampling
+# table, ch_a/ch_b) is exact, as every other rung's. What it CANNOT undo is
+# the RHD2164's own internal register 1 — VDD_SENSE_ENABLE stays latched
+# inside the chip after this rung finishes, because clearing it needs a
+# WRITE to actually reach the chip, which needs its own start/stop/start
+# pass that the flat writes-then-one-start restore shape (spec §5.5) cannot
+# express. Judged harmless and left alone: channel 48 is not a neural
+# channel, so leaving VDD sense wired to it changes nothing else for the
+# rest of a session, and the bit clears on the next FPGA reset/reflash like
+# every other regbank default.
+RHD_REG1_DEFAULT = 0x02        # VDD_SENSE_ENABLE=0, ADC_BUFFER_BIAS=2 (regbank.v's own "0x8102" comment)
+RHD_REG1_VDD_SENSE = 0x42      # VDD_SENSE_ENABLE=1, same ADC_BUFFER_BIAS
+
+VDD_SENSE_CHANNEL = 48
+VDD_SCALE_V_PER_LSB = 0.0000748    # RHD2164 datasheet
+VDD_EXPECTED_LSB_AT_3V3 = 44100    # PLAN.md A.1.1 known-value table
+
+RUNG_F = Rung(
+    key="f",
+    title="A.1.1f — VDD/2 ADC path (first real analog value)",
+    note=(
+        "Enables VDD_SENSE_ENABLE (RHD2164 register 1, bit 6) via command "
+        "injection at slot 29 — WRITE instead of the usual READ — then "
+        f"converts channel {VDD_SENSE_CHANNEL} at slot 30 (module A only; "
+        "aux/temp/supply sensors are not wired on module B). Slot 32 is "
+        "left untouched at its default READ(63), giving the first "
+        "observation a known-good companion value.\n"
+        "First observation is a real pass/fail: the WRITE's own echo "
+        "(0xFF42) proves the RHD accepted the command, paired against "
+        "slot 32's unchanged chip-ID readback (0x0004) as a link sanity "
+        "check. Second observation is informational — an ADC code, not a "
+        f"fixed value — read VDD = {VDD_SCALE_V_PER_LSB} x result and "
+        "sanity-check against the bench supply (expect ~3.3 V).\n"
+        "RESTORE CAVEAT: VDD_SENSE_ENABLE stays latched in the RHD after "
+        "this rung — harmless (channel 48 isn't a neural channel), cleared "
+        "by the next FPGA reset/reflash. See the comment above RUNG_F in "
+        "diagnostics.py."
+    ),
+    setup=_ASSERT_REAL + [
+        (slot_word(29), rhd_write(1, RHD_REG1_VDD_SENSE)),
+        (slot_word(30), rhd_convert(VDD_SENSE_CHANNEL)),
+    ],
+    observations=[
+        Observation(ch_code(PRIMARY_SRC, 29), ch_code(PRIMARY_SRC, 32),
+                    0xFF42, 0x0004,
+                    "WRITE(1) echo (0xFF42) + chip-ID companion (0x0004)"),
+        Observation(ch_code(PRIMARY_SRC, 30), ch_code(PRIMARY_SRC, 30),
+                    VDD_EXPECTED_LSB_AT_3V3, VDD_EXPECTED_LSB_AT_3V3,
+                    f"channel {VDD_SENSE_CHANNEL} = VDD/2 (expect ~{VDD_EXPECTED_LSB_AT_3V3} "
+                    f"@ 3.3V; VDD = {VDD_SCALE_V_PER_LSB} x result)",
+                    info=True),
+    ],
+    restore=_DEFAULT_RESTORE,
+    diagnosis={
+        "ch0 != 0xFF42": "WRITE not accepted — link problem (run rung L first) or wrong slot",
+        "ch1 != 0x0004": "slot 32 disturbed, or the link degraded since rung L/O passed",
+        "stable value far from ~44,100": "VDD_SENSE_ENABLE bit not set, or channel 48 is not the VDD/2 mux code on this chip revision — re-check against the datasheet",
+        "spread > 1 on the analog observation": "expected — real analog data with noise, unlike every prior rung's fixed digital markers",
+    },
+)
+
 # Order matters and is the running order: L isolates the link with no offset
 # dependence, O measures the offset, and only then are (a)-(d) interpretable.
-RUNGS = {r.key: r for r in (RUNG_LINK, RUNG_OFFSET, RUNG_A, RUNG_B, RUNG_C, RUNG_D)}
+# (f) is last — it needs a working link and offset, and it is the only rung
+# that leaves a chip-internal side effect behind (see its restore caveat).
+RUNGS = {r.key: r for r in (RUNG_LINK, RUNG_OFFSET, RUNG_A, RUNG_B, RUNG_C, RUNG_D, RUNG_F)}
 
 
 # ── Runner ──────────────────────────────────────────────────────────────────

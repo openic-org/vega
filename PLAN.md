@@ -375,6 +375,13 @@ Ordered tasks, each with a numeric pass/fail.
       `ch_is_16`/`dout_en_16`) — one pass over `ch_sel`, not four.
 - [ ] **A.1.1f — ADC path.** Enable VDD sense, convert channel 48 on module A,
       expect ≈44,100 at 3.3 V. First real analog value end to end.
+      **Implemented 2026-08-31** (`pc-app/diagnostics.py` `RUNG_F`,
+      spec `fpga-diagnostic-access.md` §5.6) — no RTL change needed after
+      all: `RHD_VDD_SENSE_ENABLE` only reaches the chip via `WRITE(1,
+      RHD_REG1)`, which since A.1.1g is an ordinary regbank word, so it is
+      set the same command-injection way rungs (a)-(d) already inject
+      `READ`s. Offline-verified against a `FakeReader` extended to model
+      `WRITE`'s echo response; **not yet run against real hardware.**
 
 **Status 2026-08-11 — the driver for (a)–(d) is built; the RTL it drives is
 not.** Everything below the RTL line now exists and is tested as far as it can
@@ -2278,6 +2285,48 @@ Design the **seams**; file layout follows.
       the 4-channel dead zone entirely, one code path instead of two);
       noted as Phase B cleanup, not chased this session by explicit
       choice.
+
+      **Scope, corrected 2026-08-31 (Manuel):** the bench session verifies
+      that the pc-app **sends the correct command** — not that an RHD2164
+      channel's output is "correct," which would need assuming the chip
+      itself works and having selective per-channel access, neither of
+      which this bug is about. Two consequences:
+      - Current PCB only exposes physical channels 0 and 1 (chip0 module
+        A), one at a time. `physical_to_wire()` gives friendly wire values
+        3 and 4 respectively — checked at the bench by reading the
+        command, per "Verification method" below, not by inspecting the
+        analog signal.
+      - **The 4-channel raw path (29/61/93/125) needs no bench/hardware
+        session at all under this framing, and is off the checklist
+        entirely** — not deferred, just verified somewhere else in the
+        chain already. `test_channel_mapping.py` reads
+        `physical_to_wire()`/`physical_to_raw()`'s output for all 128
+        channels including these 4, offline, cross-checked against both
+        `diagnostics.ch_code()` and a verbatim copy of the real firmware
+        formula. That already proves the pc-app computes (and would send)
+        the correct raw `REG_WRITE16` values — hardware adds nothing to
+        that claim, since there is no physical channel to check it
+        against anyway.
+
+      **Verification method, 2026-08-31:** since this is a pure pc-app
+      software fix, Manuel proposed confirming it by capturing the actual
+      command bytes rather than (or in addition to) reading the analog
+      signal. Checked against source: the WB09KE bridge is a **transparent
+      relay** (`vega_bridge_app.c`'s `vega_bridge_relay_command()` — "no
+      interpretation of the payload beyond framing"), so whatever leaves
+      the pc-app on the wire is byte-for-byte what reaches the kuntur-mcu's
+      0xFFF1. Capturing on the *bridge* side instead would mean enabling
+      `DT_INFO_MSG`/`CFG_DEBUG_APP_TRACE`, which — per the 2026-08-28
+      finding above — shares USART1 with the live command/data stream and
+      is a known, deliberately-unfixed corruption risk; not worth enabling
+      just to watch a value the pc-app already knows. Added a console print
+      at the Apply send site (`main_window.py:_apply_channels_send_set`)
+      showing physical→wire mapping and the literal outbound frame bytes,
+      so the value can be read directly against `channel_mapping.py`'s
+      arithmetic. Paired with the existing FPGA regbank readback
+      (`_on_channels_readback`'s "✓ Verified" / "✗ Mismatch"), which already
+      round-trips through the real kuntur-mcu regbank — between the two,
+      no bridge instrumentation is needed to confirm the fix end to end.
 - [ ] **Bridge UART TX ring-buffer silent drop** — noticed 2026-08-06 while
       diagnosing the RX overrun; not yet confirmed to actually occur.
       `VEGA_UART_Write()` drops bytes that don't fit when the ring is full

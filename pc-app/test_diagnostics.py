@@ -85,6 +85,8 @@ class FakeReader(QObject):
             if reg == 59:                    # A/B marker is per-module
                 return 0x3A if src in (1, 3) else 0x35
             return rom.get(reg, 0x0000)
+        if (cmd >> 14) == 0b10:              # RHD WRITE(R,D) -> {8'hFF, D}
+            return 0xFF00 | (cmd & 0xFF)
         return 0x1000 + slot                 # CONVERT result stand-in
 
 
@@ -178,7 +180,7 @@ def _run_rung_checks():
     print(f"rung O: sweep localises the offset to ch_a={_want_cha} "
           f"(= SLOT_OFFSET {D.SLOT_OFFSET})")
 
-    for key in "abcd":
+    for key in "abcdf":
         out, reader = run_rung(key)
         kind = out.get("kind")
         if kind == "finished":
@@ -189,6 +191,18 @@ def _run_rung_checks():
         else:
             print(f"rung {key}: {kind}  {out.get('reason')}")
             raise SystemExit(f"rung {key} unexpectedly aborted")
+
+    # Rung f specifically: the echo observation must be a real verdict, the
+    # analog reading must not be — the FakeReader has no electronics behind
+    # channel 48, so a verdict there would fail every offline run.
+    out, _ = run_rung("f")
+    echo_obs, analog_obs = out["results"]
+    assert not echo_obs.info and echo_obs.ok, echo_obs
+    assert echo_obs.got_ch0 == 0xFF42 and echo_obs.got_ch1 == 0x0004, echo_obs
+    assert analog_obs.info, "the VDD/2 reading must be informational, not a verdict"
+    print(f"rung f: WRITE echo verified (0x{echo_obs.got_ch0:04X}), "
+          f"chip-ID companion intact (0x{echo_obs.got_ch1:04X}), "
+          f"analog reading correctly excluded from pass/fail")
 
     print("-" * 70)
     # Negative: FPGA reports a different value than was written -> abort, named word.

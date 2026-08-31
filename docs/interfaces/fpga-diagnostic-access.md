@@ -668,11 +668,58 @@ if a restore itself fails.
 
 ### 5.6 Rungs (e) and (f)
 
-Out of scope here. (e) *is* §1.1 — once the mux lands there is no separate rung
-to run. (f) — VDD sense on channel 48 — needs `` `RHD_VDD_SENSE_ENABLE ``
-(`intan.vh:87`, currently `1'b0`) and is the first rung whose expected value is
-analog (≈44,100 at 3.3 V); it fits this same script shape and should be added
-once (a)–(d) pass.
+(e) *is* §1.1 — once the mux lands there is no separate rung to run.
+
+**(f) — implemented 2026-08-31, `pc-app/diagnostics.py` `RUNG_F`, not yet
+bench-verified.** The `` `RHD_VDD_SENSE_ENABLE `` this task originally named
+(`intan.vh:87`, now `rhd2164_defs.vh:93`) is a *synthesis-time* default baked
+into `RHD_REG1` — but `RHD_REG1`'s value only ever reaches the chip via
+`WRITE(1, RHD_REG1)`, which since A.1.1g is just another regbank word
+(`regbank.v`'s config-table word 3, `RB_CONFIG_BASE+3`). No RTL change is
+needed: the same command-injection mechanism rungs (a)-(d) use for `READ`
+works identically for `WRITE`, at any spare sampling-table slot — not
+`` `define ``-gated, live-toggleable over the console.
+
+Mechanism, differing from (a)-(d) only in using two borrowed slots instead of
+one, and injecting `WRITE` instead of `READ`:
+
+- Slot 29 ← `WRITE(1, 0x42)` — register 1 with `VDD_SENSE_ENABLE=1`,
+  `ADC_BUFFER_BIAS` unchanged from its `0x02` default (so `RHD_REG1_DEFAULT
+  = 0x02`, `RHD_REG1_VDD_SENSE = 0x42`).
+- Slot 30 ← `CONVERT(48)` — module A only; aux/temp/supply sensors are not
+  wired on module B (§ table in `PLAN.md` A.1.1).
+- Slot 32 is left untouched at its default `READ(63)` (chip ID, `0x0004`) —
+  deliberately, so the first observation has a live known-good companion
+  value instead of two selectors probing the same slot.
+
+Two observations, not one, because they carry different semantics that the
+existing `Observation.info` flag cannot mix within a single entry:
+
+1. **A real pass/fail.** The `WRITE`'s own echo (`Rspnd: 8'hFF, D[7:0]` —
+   `rhd2164_defs.vh`'s `WRITE` comment) proves the RHD accepted the command,
+   paired against slot 32's untouched chip-ID readback as a link sanity
+   check. Expect `(0xFF42, 0x0004)`.
+2. **Informational**, like rung (O)'s sweep. `VDD = 0.0000748 × result`
+   (RHD2164 datasheet), expect ≈44,100 at 3.3 V. An ADC code varies with
+   noise like every other analog signal in this project; there is nothing
+   to assert exactly, only a formula to read the result against by eye.
+
+**Restore caveat, load-bearing.** §5.5's restore list is exact on the
+regbank side (the sampling table and `ch_a`/`ch_b` go back to precisely what
+they were), but it cannot clear `VDD_SENSE_ENABLE` inside the RHD itself —
+that needs its own `WRITE` to actually reach the chip, which needs a further
+start/stop/start pass the flat writes-then-one-start restore shape has no
+way to express. Judged harmless and left alone: channel 48 is not a neural
+channel, nothing else changes for the rest of a session, and the bit clears
+on the next FPGA reset/reflash like every other regbank default. If a future
+rung needs the chip left byte-for-byte as found, the restore model itself
+needs extending first — noted here rather than worked around silently.
+
+Offline-verified (`pc-app/test_diagnostics.py`): the `WRITE` echo path
+against a `FakeReader` extended to model `WRITE`'s response shape, and that
+the analog observation is correctly excluded from `all_passed`. **Not yet
+run against real hardware** — first bench-verification item alongside the
+channel-offset fix and the raw-channel path (see `PLAN.md`'s critical path).
 
 ---
 

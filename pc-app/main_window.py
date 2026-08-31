@@ -680,6 +680,27 @@ class MainWindow(QMainWindow):
         wire_a, raw_a = channel_mapping.physical_to_wire(ch_a)
         wire_b, raw_b = channel_mapping.physical_to_wire(ch_b)
 
+        # Printed, not just logged internally: this is the exact byte value
+        # about to leave the pc-app on the wire. The WB09KE bridge is a
+        # transparent relay (vega_bridge_app.c's vega_bridge_relay_command()
+        # — "no interpretation of the payload beyond framing"), so what's
+        # printed here is byte-for-byte what reaches the kuntur-mcu's 0xFFF1
+        # characteristic; capturing it on the bridge itself would need
+        # DT_INFO_MSG on CFG_DEBUG_APP_TRACE, which shares USART1 with the
+        # live command/data stream and is a known, deliberately-unfixed
+        # corruption risk (PLAN.md B.5) — not worth enabling just to watch
+        # a value this print already shows for free.
+        if raw_a or raw_b:
+            frame_desc = (f"raw REG_WRITE16(196, 0x{channel_mapping.physical_to_raw(ch_a):02X}) "
+                          f"REG_WRITE16(197, 0x{channel_mapping.physical_to_raw(ch_b):02X})")
+        else:
+            frame_desc = (f"cc 33 03 01 {wire_a:02x} {wire_b:02x}  "
+                          f"(SET_CHANNELS friendly ch_a=0x{wire_a:02X}, ch_b=0x{wire_b:02X})")
+        print(f"Apply: physical ch_a={ch_a} -> wire 0x{wire_a:02X}"
+              f"{' (raw path)' if raw_a else ''}, "
+              f"physical ch_b={ch_b} -> wire 0x{wire_b:02X}"
+              f"{' (raw path)' if raw_b else ''}  |  {frame_desc}")
+
         if raw_a or raw_b:
             if not self._raw_channel_setter.run(
                     channel_mapping.physical_to_raw(ch_a),
