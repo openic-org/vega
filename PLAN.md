@@ -125,22 +125,27 @@ A.3–A.5). This is the order that actually matters:
    test, carried forward unchanged. *(Manuel: step 1 RTL. Claude: step 2
    firmware/app.)*
 2. ~~A.1.1f + ladder bench run~~ — **done 2026-08-31**, closes out A1.
-3. **kuntur chip0/SCK-MOSI board-level regression — found 2026-08-31, NOT
-   fixed.** Real root cause identified (asymmetric board trace length on
-   the shared SCK/MOSI/CSB bus reaching the two RHD2164s — see the new
-   entry under A.1.1's closing note and B.5's known-open issues). A same-day
-   fix attempt regressed further by removing the whole-design placement
-   pinning; reverted instead of continuing. **Next attempt must add any
-   deskew constraint alongside `mregion0`-`mregion7`, never by removing
-   them** — that pinning has now been the load-bearing fix twice
-   (2026-08-24, 2026-08-27). *(Manuel, RTL)*
+3. ~~kuntur chip0/SCK-MOSI board-level regression~~ — **closed 2026-08-31
+   without a working fix.** Real root cause identified (asymmetric board
+   trace length on the shared SCK/MOSI/CSB bus reaching the two RHD2164s).
+   Two fix attempts tried same day, both unsuccessful on hardware (region
+   pinning removal regressed further; a `clk90`-phase-shifted MOSI deskew
+   was STA-clean but didn't work on real hardware across four phase
+   variants) — reverted to a working passthrough, deskew infrastructure
+   kept for a future, ideally measurement-informed attempt. **Next attempt
+   must (a) add any deskew constraint alongside `mregion0`-`mregion7`,
+   never by removing them, and (b) either measure the real board asymmetry
+   or check for Lattice Dynamic Phase Shift before guessing a phase again.**
+   See B.5's known-open issues for the full derivation. *(Manuel, RTL,
+   whenever it's picked back up — not currently blocking anything.)*
 4. **kuntur is on a session branch (`session-2026-08-31-checkpoint`,
-   `e89671d`), not `main`.** `main` still sits at `e2bac25`, untouched.
-   Needs a decision — fast-forward `main` to the checkpoint once the
-   SCK/MOSI fix is redone safely, or reconcile some other way. See the new
-   "2026-08-31 checkpoint revert" entry below for exactly what's on the
-   branch vs. what's still only in `stash@{0}` vs. what's on `main` and not
-   yet on the branch.
+   now `324a21c`), not `main`.** `main` still sits at `e2bac25`, untouched
+   — deliberately, held there until the SCK/MOSI question is fully settled
+   rather than fast-forwarded now. The 2026-08-27 PLL retune is genuinely
+   committed as of `324a21c` (was uncommitted since the day it was made).
+   See the "2026-08-31 checkpoint state" entry below for exactly what's on
+   the branch vs. what's still only on old `main` (three harmless
+   comment-only commits, safe to fast-forward onto whenever).
 5. **A.4 interface spec** — writable now, does not wait on the companion
    FPGA hardware arriving, and it is the long pole for both A2 and A3.
    *(Joint)*
@@ -2576,17 +2581,18 @@ Design the **seams**; file layout follows.
       runs per frame rather than per drop. Alternative: give ISR-context tracing its
       own single-byte path that touches only a reserved slot. Not urgent while the
       flag is `0`; worth fixing before anyone debugs with it.
-- [ ] **kuntur chip0/SCK-MOSI board-level regression — found 2026-08-31, real
-      root cause identified, NOT fixed.** Bench session started with chip0
-      unresponsive again on reload of the (then-uncommitted) pre-retune
-      bitstream. Traced, with a detour through a `TIMING_MARGIN_RATIO`
-      period-scaling experiment (see below) and a `set_clock_uncertainty`
-      margin attempt, to the real cause: **`spi1_sck`/`spi1_mosi`/`spi1_csb`
-      are a single FPGA pad each, fanning out on the board to *both*
-      RHD2164 chips — a shared, multi-drop bus. If the physical trace
-      length from the FPGA to chip0 differs from the trace to chip1, one
-      chip's setup/hold margin is worse than the other's, and nothing
-      FPGA-internal can differentially compensate a shared signal.**
+- [x] **kuntur chip0/SCK-MOSI board-level regression — found 2026-08-31, real
+      root cause identified, closed for now without a working fix.** Bench
+      session started with chip0 unresponsive again on reload of the (then-
+      uncommitted) pre-retune bitstream. Traced, with a detour through a
+      `TIMING_MARGIN_RATIO` period-scaling experiment (see below) and a
+      `set_clock_uncertainty` margin attempt, to the real cause:
+      **`spi1_sck`/`spi1_mosi`/`spi1_csb` are a single FPGA pad each,
+      fanning out on the board to *both* RHD2164 chips — a shared,
+      multi-drop bus. If the physical trace length from the FPGA to chip0
+      differs from the trace to chip1, one chip's setup/hold margin is
+      worse than the other's, and nothing FPGA-internal can differentially
+      compensate a shared signal.**
 
       A same-day fix attempt (deliberate MOSI deskew via a new placement
       region, `region0`/`group0`) made things *worse*: it required removing
@@ -2594,52 +2600,86 @@ Design the **seams**; file layout follows.
       reintroduced the exact regression class `e89671d` (2026-08-27) exists
       to fix — the diagnostics ladder went flat/wrong on every rung
       regardless of slot or chip, and the baseline signal degraded too.
-      Reverted rather than continue mid-regression — see the checkpoint
-      note immediately below.
+      Reverted to the checkpoint rather than continue mid-regression — see
+      the checkpoint note immediately below.
 
       **Lesson, load-bearing, not optional**: `mregion0`-`mregion7` has now
       been the fix for this exact failure class twice (2026-08-24,
       2026-08-27) and the cause of a third regression when removed
-      (2026-08-31). Any future SCK/MOSI deskew attempt (a Lattice
-      `DELAYF`/`DELAYG` primitive was the leading idea, not yet tried) must
-      add its constraint **alongside** `mregion0`-`mregion7`, never by
-      removing them.
+      (2026-08-31). Any future SCK/MOSI deskew attempt must add its
+      constraint **alongside** `mregion0`-`mregion7`, never by removing
+      them.
 
-      **2026-08-31 checkpoint revert — what's where.** `kuntur` is on
-      branch `session-2026-08-31-checkpoint` at `e89671d` (2026-08-27,
-      the last hardware-verified state: 0 timing violations all 3 corners,
-      98.2% coverage, both chips streaming real data) — **not** on `main`,
-      which still sits untouched at `e2bac25`. `vega` moved forward to
+      **Second attempt, same day, on top of the checkpoint (not the
+      region-pinning-removed state): a real deskew via a phase-shifted PLL
+      clock.** Added `clk90` (PLL `CLKOS`, +90° from `clk` — 5.4897 ns at
+      the retuned 45.539955 MHz) and re-launched `spi1_mosi` off a new
+      `mosi_reg` clocked by `clk90`, with `spi1_sck` itself registered
+      (`sck_reg`, mirroring `csb_reg`'s existing 2026-08-24 pattern,
+      previously combinational). **STA fully verified this structurally**
+      — 0 negative slack all 3 corners, 98.2% coverage, `spi1_mosi`'s own
+      margin *improved* to 4.939 ns (real, traced through `Source Clock:
+      clk90` → `Destination Clock: spi1_sck` in the `.twr`, not assumed) —
+      confirming the phase direction was at least not actively harmful.
+      **Did not work on real hardware anyway.** Tried four `mosi_reg`
+      clock relationships (`clk`, `clk90`, `negedge clk`, `negedge clk90`)
+      — none got both chips responding. Root cause of the miss: 90° was
+      picked from a rough ns estimate of the needed deskew, never a
+      measurement of the actual board trace-length asymmetry — STA proving
+      the *internal* timing is clean says nothing about whether 90° is the
+      right *amount* of deskew for an unmeasured physical asymmetry.
+      Two paths for whoever revisits this: (a) check whether this PLL
+      block supports Lattice's Dynamic Phase Shift, which would allow a
+      live phase sweep on real hardware without a resynthesize-reflash
+      cycle per attempt; (b) failing that, a systematic discrete-phase
+      sweep (0°, 45°, 90°, ... bracketing the full range) via resynthesis.
+
+      **Closed for now (Manuel's call)**: reverted `sck_reg`/`mosi_reg` to
+      plain passthrough assigns rather than deleting the infrastructure —
+      `clk90`, the PLL routing, and the register declarations all stay in
+      the RTL (commented out where they'd conflict), so a future attempt,
+      ideally informed by an actual board measurement, doesn't have to
+      redo the PLL/RTL plumbing from scratch. Bench-confirmed both chips
+      responding again on this exact build. Committed `kuntur` `324a21c`
+      on `session-2026-08-31-checkpoint`, pushed.
+
+      **2026-08-31 checkpoint state — what's where.** `kuntur` is on
+      branch `session-2026-08-31-checkpoint`, now at `324a21c` (one commit
+      ahead of `e89671d`) — **not** on `main`, which still sits untouched
+      at `e2bac25`; held there deliberately (not fast-forwarded) until this
+      whole SCK/MOSI question is fully settled. `vega` moved forward to
       `main` normally (nothing there caused or was affected by the
-      regression). Three things are worth naming explicitly rather than
-      leaving implicit in a stash:
-      - **Safe to fast-forward onto the checkpoint whenever, zero risk**:
-        the three 2026-08-28 comment-only commits sitting on old `main`
-        ahead of `e89671d` (`ec8b8d6` bus-label AHB fix, `834b888` dead
-        enum removal, `5d50981` `fifo0` sizing comment fix) — all
-        confirmed comment/dead-code-only, rebuilds byte-identical at
+      regression).
+      - **Safe to fast-forward onto the checkpoint whenever, zero risk,
+        still not done**: the three 2026-08-28 comment-only commits sitting
+        on old `main` ahead of `e89671d` (`ec8b8d6` bus-label AHB fix,
+        `834b888` dead enum removal, `5d50981` `fifo0` sizing comment fix)
+        — all confirmed comment/dead-code-only, rebuilds byte-identical at
         173,348 B text each time.
-      - **Real, wanted, still uncommitted** (parked in the checkpoint
-        branch's `stash@{0}`): the 2026-08-27 PLL retune (44.55→45.54 MHz,
-        exact 30,000 SPS) — verified on hardware that day but never
-        actually committed to git, a gap that predates today and that
-        today's revert accidentally surfaced — including one real mistake
-        along the way (Claude briefly "corrected" `impl_1.sdc`'s `clk`
-        period back to the stale *pre*-retune 44.55 MHz value, on the
-        wrong belief the retuned figure was stale; Manuel caught and fixed
-        it before it went anywhere). Independent of the SCK/MOSI work; no
-        reason it needs to wait.
-      - **Correctly abandoned, not "lost"**: the SCK/MOSI deskew attempt
-        itself (`region0`/`group0`, the removed `mregion` pins, the
+      - **Real, wanted, and now actually committed** (was the gap this
+        whole revert originally surfaced): the 2026-08-27 PLL retune
+        (44.55→45.54 MHz, exact 30,000 SPS) — verified on hardware that
+        day but never committed until `324a21c` landed it for real, three
+        sessions of drift closed. One real mistake happened along the way
+        before that: Claude briefly "corrected" `impl_1.sdc`'s `clk` period
+        back to the stale *pre*-retune 44.55 MHz value, on the wrong belief
+        the retuned figure was stale; Manuel caught and fixed it before it
+        went anywhere.
+      - **Correctly abandoned, not "lost"**: the *first* SCK/MOSI attempt
+        (`region0`/`group0`, the removed `mregion` pins, the
         `TIMING_MARGIN_RATIO`/`CLK_SETUP_MARGIN_NS` margin experiments) —
-        this caused the regression and should not be blindly redone as-is;
-        see the lesson above for how to retry it safely.
+        caused the regression, not blindly redoable as-is. The *second*
+        attempt (`clk90`, the two new registers) is kept as real,
+        STA-verified-but-hardware-unproven infrastructure, per the
+        "closed for now" note above — a different disposition from the
+        first attempt, worth keeping distinct.
       Today's bench work (full A.1.1 ladder pass, A.1.1f VDD confirmation,
-      the offset-fix confirmation, the 22.8-min recording) all ran
-      *against* the checkpoint branch, not old `main` — so it validates
-      `e89671d`, which is one reason to consider fast-forwarding `main` to
-      it once the SCK/MOSI fix is redone safely, rather than reconciling
-      two divergent histories later.
+      the offset-fix confirmation, the 22.8-min recording) ran against
+      `e89671d` before `324a21c` landed — so it validates the checkpoint
+      lineage generally, not the exact retuned+clk90-infrastructure build
+      specifically. Worth a quick re-confirmation (ladder + a short
+      recording) before fully trusting `324a21c` as the new baseline to
+      fast-forward `main` to.
 - [x] **Bridge command-frame parser desyncs on a USART1 overrun — found and
       fixed 2026-08-31.** A different mechanism from the single-producer
       item above (this one is unconditional, not gated behind
