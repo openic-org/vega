@@ -68,6 +68,14 @@ void USART1_IRQHandler(void)
      * self-heal; the log line confirms whether this is actually the cause. */
     if (LL_USART_IsActiveFlag_ORE(USART1)) {
         LL_USART_ClearFlag_ORE(USART1);
+        /* An overrun means the byte that triggered it was lost — if that
+         * happened mid-command-frame, VEGA_UART_RxByte()'s parser is now
+         * misaligned with what the pc-app actually sent and has no way to
+         * know it. Found 2026-08-31: this let a later frame's 0xCC 0x33
+         * magic get consumed as payload data, corrupting a REG_WRITE16's
+         * staged high byte on the FPGA regbank. Reset the parser so the
+         * next magic pair starts a clean frame instead. */
+        VEGA_UART_RxReset();
         DT_INFO_MSG("USART1: RX overrun (ORE) cleared\r\n");
     }
 }
