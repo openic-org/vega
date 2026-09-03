@@ -193,8 +193,8 @@ A.3–A.5). This is the order that actually matters:
    masters driving the real chip: the RHD2164 bus is already **100%
    subscribed** by Kuntur's own frame (989,999 of 989,999 transactions/s)
    and `sck` sits at 22.77 MHz against the chip's 24 MHz ceiling.
-   Nine open items (O1–O8) carry the remaining work; **O2 is closed**.
-   *(Joint)*
+   Nine open items (O1–O8) carry the remaining work; **O1 and O2 are
+   both closed**, so nothing desk-side now gates A.4 RTL. *(Joint)*
 6. **A.3 attenuation network** — independent of everything above, and the
    noise-floor headline number cannot be measured without it. *(Manuel)*
 7. ~~A.6.5 sidecar implementation~~ — **done 2026-08-28, bench-verified
@@ -211,8 +211,12 @@ the collaborator since 2026-08-05, **revisit 2026-09-05**.
 **Schedule risk, CLOSED 2026-09-02:** the LIFCL-40-EVN and IAM FMC
 breakout — ordered ~2026-08-05, unconfirmed through every session since —
 **have arrived.** A.4 RTL bring-up is no longer gated on hardware; it is
-gated on `docs/interfaces/lvds-tunnel.md`'s open item **O1** (FMC LA pair →
-LIFCL-40 ball mapping, not yet recorded anywhere), a documentation lookup.
+**fully unblocked as of 2026-09-03**: O1 (the FMC LA pair → LIFCL-40 ball
+mapping) is resolved in `docs/interfaces/lvds-tunnel.md` §1.5, from the
+eval-board user guide joined against an authoritative Radiant pad report
+for `LIFCL-40-9BG400C`. `TUN_CLK` on `FMC_LA02` (H7/H8 → Y2/Y3 →
+`PB8A/B`, `PCLKT5_1` + `LLC_GPLL0T_IN`), `TUN_DATA` on `FMC_LA04`
+(H10/H11 → V1/W1 → `PB6A/B`), both bank 5 at a fixed 1.8 V.
 **O2 closed the same day** — `ODDRX5`/`IDDRX5` are hardened 10:1 gearing,
 so 8b/10b needs no fabric gearbox, and the tunnel's `ECLK`/`SCLK` come off
 `pll0`'s existing VCO on integer dividers (/21, /105) alongside `clk`'s /35
