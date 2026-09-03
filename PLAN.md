@@ -23,6 +23,43 @@ Assembled 2026-08-04. Restructured into **Phase A** (road to the animal test) an
 - Subjects: animals first; human research (IRB) subsequently
 - Deliverable: **open hardware + firmware + software**
 
+**Operating modes (agreed 2026-09-03, full table in
+`docs/interfaces/stream-packet-format.md` §5.3):** every mode shares one
+aggregate budget and one packet rate (474.6–476.7 pkt/s, a 0.45% spread),
+so `μ_low` measured once covers all of them. `mode_id` 0 stays reserved
+for *unknown*; modes are numbered **1–10**. **Mode 1 alone is needed for
+the animal test; Modes 1–5 for public release; 6–10 are future versions.**
+
+| Mode | N | F | k | SPS/ch | bits | needed for |
+|---|---|---|---|---|---|---|
+| **1** | 2 | 28k | 1 | **28,000** | 16 | **animal test** |
+| 2 | 4 | 28k | 2 | 14,000 | 16 | public release |
+| 3 | 8 | 28k | 4 | 7,000 | 16 | public release |
+| 4 | 16 | 28k | 8 | 3,500 | 16 | public release |
+| 5 | 32 | 28k | 16 | 1,750 | 16 | public release |
+| 6 | 3 | 25k | 1 | 25,000 | 12 | future |
+| 7 | 6 | 25k | 2 | 12,500 | 12 | future |
+| 8 | 12 | 25k | 4 | 6,250 | 12 | future |
+| 9 | 72 | 25k | 24 | 1,041.67 | 12 | future |
+| 10 | 128 | — | — | spike times only | — | future, needs spike-detection RTL |
+
+**Two frame rates, and no third clock anywhere in the system.** The
+16-bit family runs off F = 28,000 (`clk` = 42.504 MHz, A.7 step 3a) with a
+power-of-two decimation counter, k = 1…16; the 12-bit family off
+F = 25,000 (`clk` = 37.95 MHz — an *exact* PLL solution, already specified
+as the A.4 wired-mode bring-up rate). Because the RHD2164 pair converts
+all 128 channels every frame, **k must be an integer** or samples are
+non-uniformly spaced; that constraint plus the aggregate budget is what
+picks these two rates. The 16-bit family extends free to 64 ch @ 875 SPS
+and 128 ch @ 437.5 SPS.
+
+Modes 3–5 are **corrected** from the first proposal (7,500 / 3,750 /
+1,875): those sat at a 60,000 aggregate — the pre-A.7 budget — giving
+`m` = −1.78%, numerically the same ρ > 1 failure A.7 step 3a just fixed.
+Runtime switching between the two families needs the spare PLL (1 of 2
+used) and the DCS (0 of 1 used); Modes 1–5 all share F = 28,000, so no
+switching is needed until Mode 6.
+
 **Out (documented explicitly as unsupported):**
 
 - Stimulation (RHS2116 / `stim16ch`) — later version
@@ -1794,7 +1831,59 @@ version handshake.
       part is the bridge connection sequence, which has a history of
       fragility — bring it up against an already-streaming headstage so a
       telemetry failure is unambiguous.
-- [ ] **Step 3 — measure, then set λ.** *(Joint)* `μ_low` from a direct
+- [x] **Step 3a — μ measured, λ set.** ✅ **2026-09-03.** Done *ahead of*
+      steps 1–2 rather than after them, because the existing 22.8-minute
+      recording turned out to measure both rates at once: the MCU always
+      sends a full 59-pair packet (padding with the `0x8000` sentinel), so
+      delivered rows ÷ duration = **μ** and rows−underruns ÷ duration =
+      **λ**. See `docs/interfaces/stream-packet-format.md` §1.5.
+      - **μ = 499.420 pkt/s (29,465.8 SPS)** mean, 499.00 at p1, over
+        682,351 packets with **zero `seq_num` gaps**. The 2026-05-15
+        figure of 512 pkt/s is **superseded and was 2.5% optimistic**.
+      - λ recovered as **29,348.04 SPS**, reproducing the spec's stated
+        pre-retune figure exactly — an independent check on the method.
+      - **The shipped 30,000 SPS puts ρ = 1.018.** `fifo0` saturates in
+        **7.7 s** (11.5 s including the MCU ring) and then discards
+        **1.78% of every sample, silently and uncounted**, forever.
+      - **Worst stall is ~116 ms, not the ~22 ms** B.5/§1.2 assume — five
+        such events in 22.8 min, 60 s minimum spacing. Buffers survive it,
+        but at 1.8× margin rather than ~9×. Stall duty cycle **0.316%**.
+      - **λ = 28,000 SPS/ch chosen** (Manuel — *"we should work with the
+        highest data rate"*). `m` = 5.23%, **16.6×** the stall duty cycle;
+        a 116 ms stall recovers in 2.2 s against 60 s observed spacing.
+        Preferred over 28,500 because μ is a *bench* number and in vivo it
+        can only get worse (tissue absorbs 2.4 GHz, surgical-suite RF,
+        antenna orientation, retransmissions): 28,000 tolerates μ being
+        5.2% worse, 28,500 only 3.4%. **PLL: set `CLKOP` target to
+        42.504 MHz** (= 28,000 × 1518 `clk`/frame), expected
+        42.5040118 MHz → 28,000.01 SPS, +0.28 ppm.
+        *(Manuel, RTL — not yet applied.)*
+      - **25,000 SPS as a wired-mode bring-up step**, not the target: it
+        lands exactly on an Intan-selectable rate (`clk` = 37.95 MHz,
+        +0.00 ppm), collapsing A.4 §9.5's systematic offset to crystal
+        tolerance so the first dual-path work has no rate artifact to
+        confuse a link bug with. Production stays 28,000, where the Intan
+        side sees 6.67% and A2's comparison needs resampling.
+- [x] **fH lowered 20 kHz → 7.5 kHz.** ✅ **2026-09-03**, applied to
+      `rhd2164_defs.vh` (`RH1 22/0`, `RH2 23/0` — the datasheet's literal
+      7.5 kHz row). Found while choosing λ: fH was at the chip's
+      **maximum**, whose Nyquist is 40 kSPS, so at any rate this project
+      has ever used the 14–20 kHz band folded straight back into the
+      signal — and the RHD's 3rd-order Butterworth rolls off only *above*
+      fH, leaving that band essentially passband. **Every recording this
+      project has made was aliased.** At 28 kSPS, Nyquist (14 kHz) now
+      sits well above the corner. Not a noise fix — the datasheet says
+      `vni` varies < 15% with bandwidth — so A.3's noise-floor number
+      should not be expected to move much. **Needs an FPGA rebuild +
+      reflash**; do it in the same rebuild as the PLL retune above.
+- [x] ~~`RL_DAC1/2/3 = 35/17/0` match no datasheet row~~ — **FALSE ALARM,
+      retracted 2026-09-03.** 35/17/0 is the datasheet's literal
+      **fL = 0.50 Hz** row (p.26); the flag came from a table extraction
+      that truncated below 1.5 Hz. fL is unchanged and correct.
+      - **Does not establish losslessness.** FPGA overflow is invisible
+        downstream, so step 1's counter is still required to *confirm*
+        what this analysis merely *sets*.
+- [ ] **Step 3b — confirm, once steps 1–2 land.** *(Joint)* `μ_low` from a direct
       re-measurement of the MCU packet-rate ceiling — the cheapest way to
       separate an mblock-margin question from a per-packet-cost regression,
       and the thing the 2026-05-15 figure of 512 pkt/s can no longer answer.

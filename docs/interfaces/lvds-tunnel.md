@@ -769,9 +769,9 @@ would be reached for if a line code ever returns.
 
 | Clock | Source | Frequency | Role |
 |---|---|---|---|
-| `clk` | `pll0` `CLKOP`, `FVCO`/35 | 45.5399554 MHz | existing sampling domain, **unchanged** |
-| **`ECLK`** | **`clk`** | **45.5399554 MHz** | tunnel edge clock; DDR → **91.079911 Mbps** on `TUN_DATA` |
-| **`SCLK`** | **`ECLKDIV`, `ECLK_DIV=4`** | **11.3849888 MHz** | word clock — one byte per cycle; also what is forwarded on `TUN_CLK` |
+| `clk` | `pll0` `CLKOP` | **42.5040118 MHz** | sampling domain — retuned for λ = 28,000 (A.7) |
+| **`ECLK`** | **`clk`** | **42.5040118 MHz** | tunnel edge clock; DDR → **85.008024 Mbps** on `TUN_DATA` |
+| **`SCLK`** | **`ECLKDIV`, `ECLK_DIV=4`** | **10.6260030 MHz** | word clock — one byte per cycle; also what is forwarded on `TUN_CLK` |
 
 **`ECLK` is `clk` itself.** No new PLL output is required at all — the
 second PLL stays free *and* `pll0`'s four spare outputs stay spare. This
@@ -795,12 +795,25 @@ FIFO, and no CDC exception in the `.sdc`.
 ### 6.5 Rate — the arithmetic
 
 ```
-payload      128 ch x 29,999.97 SPS x 16 bit                 = 61.44 Mbit/s
+payload      128 ch x 28,000.01 SPS x 16 bit                 = 57.34 Mbit/s
 frame        4 preamble + 8 header + 256 payload + 4 CRC     = 272 byte
-required     272 B x 29,999.97 Hz x 8                        = 65.28 Mbit/s
-delivered    2 x ECLK  (no line code, so line rate = data)   = 91.08 Mbit/s
+required     272 B x 28,000.01 Hz x 8                        = 60.93 Mbit/s
+delivered    2 x ECLK  (no line code, so line rate = data)   = 85.01 Mbit/s
 headroom                                                     = 1.40x
 ```
+
+At the **25,000 SPS wired-mode bring-up rate** (`stream-packet-format.md`
+§1.5.5) the same table reads: payload 51.20, required 54.40, delivered
+**75.90 Mbit/s**, `ECLK` = `clk` = 37.95 MHz exactly, `SCLK` = 9.4875 MHz
+— **headroom still 1.40×**.
+
+**Rescaled 2026-09-03** for A.7's λ = 28,000 SPS decision
+(`stream-packet-format.md` §1.5.2), which retunes `clk` from 45.539955 MHz
+to **42.504012 MHz**. Note the **headroom ratio is unchanged at 1.40×**:
+`ECLK` = `clk` and the payload both scale with `clk`, so every ratio in
+this spec is invariant under a λ change and only the absolute frequencies
+move. The byte-slot budget (379.5 per frame, 272 used) is likewise a pure
+`clk` ratio and does not move at all.
 
 Per sampling frame there are `SCLK`/29,999.97 = **379.5 byte slots**, of
 which 272 carry the frame and **107.5 are spare (28%)** for `CONFIG`,
@@ -1039,7 +1052,47 @@ not in anything the companion reports, so A.6.5's sidecar takes it
 directly from the same source that feeds the `CONFIG` frame. One source of
 truth, two consumers.
 
-### 9.5 Rate slip — bounded, and counted
+### 9.5 Rate slip — a systematic offset at production λ
+
+**Changed 2026-09-03 by A.7's λ decision** (`stream-packet-format.md`
+§1.5.2). This section was written assuming both sides run ≈30 kSPS and
+differ only by crystal tolerance. That is no longer true.
+
+Kuntur produces **28,000.01 SPS** in production. The Intan controller's
+sample rate comes from a fixed selectable list that does not include
+28 kSPS — its nearest choices are 30 kSPS or 25 kSPS. So the two sides
+differ by a **systematic 6.67%**, not by ±100 ppm.
+
+That changes the character of the problem: at ±100 ppm the mismatch was
+~1 frame every 5.6 s and "slip" was the right word. At 6.67% it is **one
+frame in fifteen**, which is resampling, not slip.
+
+**Bring-up escape hatch.** At the 25,000 SPS wired-mode bring-up rate
+(§1.5.5 of the rate spec) Kuntur matches Intan's 25 kSPS **exactly**, and
+the mismatch returns to crystal tolerance alone. Bring the link up there,
+where any discrepancy is a link bug rather than a rate artifact, then move
+to 28,000 once the transport is trusted.
+
+Consequences:
+
+- **For the Intan controller as a visualiser** — the use Manuel specified
+  — this is acceptable. The waveform is correct; roughly every 19th
+  sample is held. Nothing about placement or live monitoring is harmed.
+- **For A2's sample-for-sample comparison it is not.** A 5.3% systematic
+  offset must be resampled out before the two recordings can be compared,
+  which makes §10's shared ZCHECK marker load-bearing rather than
+  corroborating: it supplies the common time origin that a 5.3% rate
+  ratio otherwise destroys.
+- **The counters below still apply**, and matter more, because slip is now
+  continuous rather than occasional.
+
+Open, and belonging to A2's methodology rather than this wire contract:
+at production λ = 28,000, whether to run the Intan side at 30 kSPS (6.67%
+fast, repeat 1 in 15) or 25 kSPS (12.0% slow, emulator decimates). Neither
+is obviously right; both need a resampling step. The 25,000 bring-up rate
+sidesteps it entirely and is the right place to start.
+
+### 9.5a The mechanism — bounded, and counted
 
 Kuntur produces frames at 29,999.97 Hz; the Intan controller consumes at
 its own rate. The companion holds the most recent complete `SAMPLE` frame
