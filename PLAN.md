@@ -29,6 +29,19 @@ Assembled 2026-08-04. Restructured into **Phase A** (road to the animal test) an
 - Android app — archived
 - Coin-cell operation — later; likely a different operating mode
 - >2 channel modes (4ch@15k, 8ch@7.5k, …) — roadmap; architecture must not preclude
+- **Transparent SPI bridge to the Intan controller** (Intan as sole SPI master,
+  Kuntur relaying the RHD2164 bus over LVDS) — **roadmap, deferred 2026-09-03 on
+  scope grounds, not technical ones.** It is feasible: one master means no bus
+  contention, and the round trip (~0.3–0.7 µs) fits inside the RHD2164's
+  2-command pipeline budget (~1.3 µs). But it belongs to a *different product
+  configuration* — a wired-only headstage with no wireless mode. Building it
+  here would mean creating a second architecture in order to verify the first.
+  Manuel: *"It is definitely worth doing but not as part of this project: it
+  adds complexity for a goal that is different than the verification that it
+  needs to be."* Full consequence analysis in
+  `docs/interfaces/lvds-tunnel.md` §2.1 Case B — notably that it would make
+  cable loss fatal to the wireless recording and put commands on a path too
+  tight for a store-and-forward CRC.
 - **Multiple simultaneous Kuntur devices in the pc-app** — roadmap; discuss when it
   comes up. Raised 2026-08-05 during the A.2 command-relay spec work: likely one
   WB09KE bridge per device (own USB serial port each), not one bridge multiplexing
@@ -146,8 +159,41 @@ A.3–A.5). This is the order that actually matters:
    See the "2026-08-31 checkpoint state" entry below for exactly what's on
    the branch vs. what's still only on old `main` (three harmless
    comment-only commits, safe to fast-forward onto whenever).
-5. **A.4 interface spec** — writable now, does not wait on the companion
-   FPGA hardware arriving, and it is the long pole for both A2 and A3.
+5. ~~A.4 interface spec~~ — **DRAFTED 2026-09-02**,
+   `docs/interfaces/lvds-tunnel.md`. Three architecture decisions taken
+   (Manuel): Kuntur owns AFE configuration exclusively and replicates it
+   downstream, the Intan controller being a visualiser only; free-running
+   clocks with sync markers rather than loop timing; all 128 channels
+   cross. One constraint settled the topology before any of them — a
+   transparent SPI bridge is **arithmetically impossible** (RHD2164
+   `tMISO` = 12 ns against a ≈8 µs tunnel round trip), so the companion
+   FPGA must be an RHD2164 emulator answering from a replicated buffer,
+   not a bridge. Notable side effect: this **discharges A.5** by
+   construction — with no path from the Intan controller to the RHD2164
+   registers, the "two masters" problem does not exist to be arbitrated.
+   **A fourth decision, 2026-09-03: the link is unidirectional and
+   source-synchronous** — one pair Data, one pair forwarded Clock. Since
+   the Intan controller is only a visualiser used to verify the wireless
+   path, nothing functional needs to travel upstream, and spending the
+   second pair on a clock rather than a return channel **removes the line
+   code entirely**: no 8b/10b, no CDR, no comma alignment, no running
+   disparity. `ECLK` = `clk` (no new PLL output at all), `SCLK` =
+   `ECLKDIV ÷4` = 11.385 MHz, `ODDRX4` 8:1 gearing at one byte per word,
+   **91.08 Mbps** line rate against a 65.28 Mbit/s framed requirement
+   (1.40×). Also retires the "swap the pairs before the pigtail is
+   soldered" item — both ports were already outputs, so the only Kuntur
+   change is `IO_TYPE=LVDS` in the `.pdc`.
+   **A true SPI bridge (Intan sole master, Kuntur relaying) is feasible
+   and deferred, not impossible** — it belongs to a wired-only headstage
+   with no wireless mode, a different product. An earlier claim that it
+   was physically impossible rested on a wrong argument (`tMISO` is an AC
+   parameter, not protocol latency; the RHD2164 pipeline is 2 commands
+   deep, so the budget is ~1.3 µs against a ~0.3–0.7 µs round trip) and
+   has been corrected in the spec. What *is* ruled out by physics is both
+   masters driving the real chip: the RHD2164 bus is already **100%
+   subscribed** by Kuntur's own frame (989,999 of 989,999 transactions/s)
+   and `sck` sits at 22.77 MHz against the chip's 24 MHz ceiling.
+   Nine open items (O1–O8) carry the remaining work; **O2 is closed**.
    *(Joint)*
 6. **A.3 attenuation network** — independent of everything above, and the
    noise-floor headline number cannot be measured without it. *(Manuel)*
@@ -162,9 +208,15 @@ A.3–A.5). This is the order that actually matters:
 **Live external gate:** A.0's animal-protocol amendment, in progress with
 the collaborator since 2026-08-05, **revisit 2026-09-05**.
 
-**Schedule risk, unconfirmed:** the LIFCL-40-EVN and IAM FMC breakout were
-ordered ~2026-08-05 and no session since records them arriving. The A.4
-spec proceeds without them; A.4 RTL bring-up does not.
+**Schedule risk, CLOSED 2026-09-02:** the LIFCL-40-EVN and IAM FMC
+breakout — ordered ~2026-08-05, unconfirmed through every session since —
+**have arrived.** A.4 RTL bring-up is no longer gated on hardware; it is
+gated on `docs/interfaces/lvds-tunnel.md`'s open item **O1** (FMC LA pair →
+LIFCL-40 ball mapping, not yet recorded anywhere), a documentation lookup.
+**O2 closed the same day** — `ODDRX5`/`IDDRX5` are hardened 10:1 gearing,
+so 8b/10b needs no fabric gearbox, and the tunnel's `ECLK`/`SCLK` come off
+`pll0`'s existing VCO on integer dividers (/21, /105) alongside `clk`'s /35
+— no second PLL and no clock-domain crossing into the sampling domain.
 
 ## A.0 — Start this week (pure lead time / minutes of work)
 
@@ -1255,21 +1307,91 @@ RHD2164 ×2 → Kuntur FPGA ├─→ ch_sel → FIFO → MCU → BLE → bridge
                          └─→ LVDS ser/des ⇄ uHDMI ⇄ companion FPGA → SPI → Intan controller
 ```
 
-- [ ] **Interface spec, written before implementation** — framing, clocking,
-      link-loss detection, latency budget, **CRC**. A corrupted RHD2164 *command*
-      during surgery silently changes what the operator sees. This is where the
-      interface-spec discipline starts: two documents, not seven.
-- [ ] Kuntur-side serialiser/deserialiser
+- [x] **Interface spec, written before implementation** — framing, clocking,
+      link-loss detection, latency budget, **CRC**. ✅ **DRAFTED 2026-09-02**:
+      `docs/interfaces/lvds-tunnel.md`. Every physical-layer number in it is
+      read out of the shipped PCB (`kuntur144-ecl.kicad_pcb`,
+      `kuntur144-omnetics.kicad_pcb`) and a real Radiant build
+      (`kuntur_fpga_impl_1.pad`/`.mrp`), not from datasheet recollection.
+      Headline findings:
+      - **Only two differential pairs reach the uHDMI** — `FPGA_LVDS1`
+        (G9/F9 = `PB18A/B`) and `FPGA_LVDS2` (E9/E8 = `PB16A/B`). HDMI's
+        third pair (`D0±`, J1 pads 9/11) is present on the connector but
+        **unrouted on this board**. So there is no spare clock pair: one
+        pair per direction, each self-timed, and the receiver recovers
+        timing from the data. Every framing/coding decision follows from
+        this one fact.
+      - Both pairs are **bottom-bank (bank 5)**, and true `LVDS_OUT` there
+        is *demonstrated* rather than inferred — `spi2_csb` (G5, `PB30A`)
+        and `spi2_sck` (F7, `PB26A`) already build as `LVDS_OUT` with
+        `DIFFDRIVE:3.5` on this exact device, package and speed grade.
+      - **The TX/RX pair assignment must swap.** G9/F9 is the primary-clock
+        input pair (`PCLKT5_0`/`PCLKC5_0`); today's `TEST ONLY` passthrough
+        puts TX on it and RX on the pair that has no clock capability —
+        backwards. Costs nothing (the pigtail is hand-made, so no PCB
+        change), but must happen **before the pigtail is soldered**.
+      - Resource headroom confirmed: **1 of 2 PLLs free**, 0 of 102
+        IDDR/ODDR primitives used, 4% logic — but **PIOs at 31/39**, going
+        to 33/39 once both pairs are promoted to differential.
+      - Rate: 128 ch × 29,999.97 SPS × 16 bit = **61.44 Mbit/s**; with
+        framing and CRC-32, 64.32 Mbit/s; 8b/10b → 80.4 Mbit/s minimum
+        line rate. Recommended `clk`/2 = **227.7 Mbps** (759 symbol slots
+        per sampling frame exactly, 35% utilisation), `clk`/3 as fallback.
+        `clk`/4 is disqualified structurally: 1518 = 2·3·11·23, so it
+        cannot give a whole number of symbol slots per frame.
+      - The 29,999.97 Hz frame rate is re-derived here independently
+        (45,539,955 / 1518 clk, where 1518 = 33 slots × 46 clk) and agrees
+        exactly with A.6.5's recorded `sample_rate.channel_hz`.
+- [ ] Kuntur-side serialiser/deserialiser — unblocked (boards arrived).
+      **Spec item O2 resolved 2026-09-02** against the installed Radiant
+      2025.2.1 LIFCL primitive library: `ODDRX5`/`IDDRX5` are **hardened
+      10:1** gearing (`D0..D9`, `SCLK` = `ECLK`/5), so one 8b/10b symbol
+      maps to exactly one word and one `SCLK` cycle — no fabric gearbox,
+      no 8→10 rate conversion. `IDDRX5.ALIGNWD` does comma alignment as a
+      hardware barrel shift. The line rate lands on **exact integer
+      dividers off `pll0`'s existing VCO** (`FVCO` = 1593.898438 MHz):
+      `clk` = /35, `ECLK` = /21 (75.8999256 MHz, DDR → 151.799851 Mbps),
+      `SCLK` = /105 (15.1799851 MHz) — a 3:5:1 ratio, all legal against
+      the PLL IP's own `PARAM_RANGE` (`O_DIV` ≤ 128, `FVCO` 800–1600,
+      `FOUT_F` ≤ 800), using two of `pll0`'s four spare outputs. So the
+      second PLL stays free and there is **no clock-domain crossing**
+      between the sampling and tunnel domains.
+      **Superseded 2026-09-03 by decision 4** — see below. The rate
+      question (227.7 → 151.8 Mbps, argued on switching noise beside a
+      µV-scale AFE) is moot: with the line code gone the link runs at
+      **91.08 Mbps**, `ECLK` = `clk` itself, and 10:1 gearing is replaced
+      by `ODDRX4`'s 8:1, one byte per word. Remaining gate is O1 only.
 - [ ] Companion FPGA RTL: deserialise, reassemble SPI, drive the Intan controller
 
-## A.5 — RHD2164 bus arbitration  *(joint design)*
+## A.5 — RHD2164 bus arbitration  *(joint design)*  — ✅ **DISCHARGED BY CONSTRUCTION 2026-09-02**
 
 Two masters want the AFE. If the Intan controller reconfigures gain/bandwidth
 mid-session, **the BLE recording silently changes meaning and the file has no record
 of it.**
 
-- [ ] Explicit ownership model
-- [ ] Live RHD2164 register state captured into the recording metadata
+**Resolved by A.4's ownership decision (Manuel, 2026-09-02), not by building
+an arbiter.** The Intan controller is a *visualiser of the data the Kuntur
+FPGA gets*; Kuntur owns AFE configuration exclusively and replicates its real
+register state downstream, so the Intan controller's reads return live truth
+rather than an echo of its own writes. See `docs/interfaces/lvds-tunnel.md`
+§2.3, §4.4, §9.
+
+- [x] Explicit ownership model — Kuntur owns, always, unconditionally. There
+      is no arbiter, no handover, and no mode in which ownership is ambiguous,
+      because there is no path at all from the Intan controller to the RHD2164
+      registers. Writes from the Intan host are absorbed with a
+      datasheet-correct ack (so its protocol never stalls), not applied, and
+      reported upstream as `HOST_EVENT` frames.
+- [ ] Live RHD2164 register state captured into the recording metadata — the
+      `CONFIG` frame's contents are exactly this; feed the same source into
+      A.6.5's sidecar `filter_settings.registers` for wired sessions. One
+      source of truth, three consumers (Intan reads, sidecar, telemetry).
+- [ ] **Runbook consequence** (spec open item O6): the operator configures via
+      Vega, **not** via the Intan software. A `READ` after a host `WRITE`
+      returns Kuntur's real value, not the written one — intended, and the
+      whole point, but it looks like a fault to anyone who does not know.
+      Must be written into the bench procedure and the animal-test runbook,
+      not discovered on the day.
 
 ## A.6 — pc-app readiness for real signals  *(Claude)*
 
