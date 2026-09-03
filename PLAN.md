@@ -163,101 +163,88 @@ only. That loses the simultaneous reference comparison, not the test.
 | ID | Milestone | Status |
 |---|---|---|
 | **A1** | Real RHD2164 signal on the bench, end-to-end to the pc-app (injected) | **DONE 2026-08-31.** Full A.1.1 ladder (`L`,`O`,`a`,`b`,`c`,`d`,`f`) passed clean on real hardware, including `A.1.1f`'s VDD/2 analog reading (≈3.27 V @ 3.3V rail). See A.1.1's closing note and the 2026-08-31 critical-path entries below for the (unrelated) chip0 regression this bench session also had to work through first. |
-| **A2** | Dual-path validated — Kuntur wireless and Intan controller agree, bench | Blocked on A.4 (LVDS tunnel) and A.3 (injection rig) |
+| **A2** | Dual-path validated — Kuntur wireless and Intan controller agree, bench | Blocked on A.4 RTL and A.3 (injection rig). **A.4's spec is complete and all its desk-side gates closed 2026-09-03** — the boards have arrived, the pinout is resolved both ends, and the remaining work is RTL and a pigtail. |
 | **A3** | **In-vivo animal recording** | |
 
-### Current critical path — ordered, 2026-08-31
+### Current critical path — ordered, 2026-09-03
 
 Sections below are not in execution order (A.6 and A.7 run parallel to
 A.3–A.5). This is the order that actually matters:
 
-1. ~~A.7 steps 1–3~~ — **not started**; still the long pole for the animal
-   test, carried forward unchanged. *(Manuel: step 1 RTL. Claude: step 2
-   firmware/app.)*
-2. ~~A.1.1f + ladder bench run~~ — **done 2026-08-31**, closes out A1.
-3. ~~kuntur chip0/SCK-MOSI board-level regression~~ — **closed 2026-08-31
-   without a working fix.** Real root cause identified (asymmetric board
-   trace length on the shared SCK/MOSI/CSB bus reaching the two RHD2164s).
-   Two fix attempts tried same day, both unsuccessful on hardware (region
-   pinning removal regressed further; a `clk90`-phase-shifted MOSI deskew
-   was STA-clean but didn't work on real hardware across four phase
-   variants) — reverted to a working passthrough, deskew infrastructure
-   kept for a future, ideally measurement-informed attempt. **Next attempt
-   must (a) add any deskew constraint alongside `mregion0`-`mregion7`,
-   never by removing them, and (b) either measure the real board asymmetry
-   or check for Lattice Dynamic Phase Shift before guessing a phase again.**
-   See B.5's known-open issues for the full derivation. *(Manuel, RTL,
-   whenever it's picked back up — not currently blocking anything.)*
-4. **kuntur is on a session branch (`session-2026-08-31-checkpoint`,
-   now `324a21c`), not `main`.** `main` still sits at `e2bac25`, untouched
-   — deliberately, held there until the SCK/MOSI question is fully settled
-   rather than fast-forwarded now. The 2026-08-27 PLL retune is genuinely
-   committed as of `324a21c` (was uncommitted since the day it was made).
-   See the "2026-08-31 checkpoint state" entry below for exactly what's on
-   the branch vs. what's still only on old `main` (three harmless
-   comment-only commits, safe to fast-forward onto whenever).
-5. ~~A.4 interface spec~~ — **DRAFTED 2026-09-02**,
-   `docs/interfaces/lvds-tunnel.md`. Three architecture decisions taken
-   (Manuel): Kuntur owns AFE configuration exclusively and replicates it
-   downstream, the Intan controller being a visualiser only; free-running
-   clocks with sync markers rather than loop timing; all 128 channels
-   cross. One constraint settled the topology before any of them — a
-   transparent SPI bridge is **arithmetically impossible** (RHD2164
-   `tMISO` = 12 ns against a ≈8 µs tunnel round trip), so the companion
-   FPGA must be an RHD2164 emulator answering from a replicated buffer,
-   not a bridge. Notable side effect: this **discharges A.5** by
-   construction — with no path from the Intan controller to the RHD2164
-   registers, the "two masters" problem does not exist to be arbitrated.
-   **A fourth decision, 2026-09-03: the link is unidirectional and
-   source-synchronous** — one pair Data, one pair forwarded Clock. Since
-   the Intan controller is only a visualiser used to verify the wireless
-   path, nothing functional needs to travel upstream, and spending the
-   second pair on a clock rather than a return channel **removes the line
-   code entirely**: no 8b/10b, no CDR, no comma alignment, no running
-   disparity. `ECLK` = `clk` (no new PLL output at all), `SCLK` =
-   `ECLKDIV ÷4` = 11.385 MHz, `ODDRX4` 8:1 gearing at one byte per word,
-   **91.08 Mbps** line rate against a 65.28 Mbit/s framed requirement
-   (1.40×). Also retires the "swap the pairs before the pigtail is
-   soldered" item — both ports were already outputs, so the only Kuntur
-   change is `IO_TYPE=LVDS` in the `.pdc`.
-   **A true SPI bridge (Intan sole master, Kuntur relaying) is feasible
-   and deferred, not impossible** — it belongs to a wired-only headstage
-   with no wireless mode, a different product. An earlier claim that it
-   was physically impossible rested on a wrong argument (`tMISO` is an AC
-   parameter, not protocol latency; the RHD2164 pipeline is 2 commands
-   deep, so the budget is ~1.3 µs against a ~0.3–0.7 µs round trip) and
-   has been corrected in the spec. What *is* ruled out by physics is both
-   masters driving the real chip: the RHD2164 bus is already **100%
-   subscribed** by Kuntur's own frame (989,999 of 989,999 transactions/s)
-   and `sck` sits at 22.77 MHz against the chip's 24 MHz ceiling.
-   Nine open items (O1–O8) carry the remaining work; **O1 and O2 are
-   both closed**, so nothing desk-side now gates A.4 RTL. *(Joint)*
-6. **A.3 attenuation network** — independent of everything above, and the
+1. **One FPGA rebuild + reflash, carrying two committed-but-unapplied
+   changes.** *(Manuel, bench)* Both are specified, committed and
+   verified on paper; neither is on hardware. They are gated on the same
+   session, so do them together and validate both at once:
+   - **PLL retune to `CLKOP` = 42.504 MHz** → λ = 28,000.01 SPS/ch
+     (A.7 step 3a). Today's shipped 30,000 puts ρ = 1.018 and discards
+     **1.78% of every sample, silently**, after ~12 s of streaming.
+   - **fH 20 kHz → 7.5 kHz** (`kuntur` `6563edc`). fH sat at the chip
+     maximum, whose Nyquist is 40 kSPS — **every recording this project
+     has made was aliased**.
+   - Fold in the **`324a21c` re-confirmation** carried since 2026-08-31:
+     the ladder pass and 22.8-min recording ran against `e89671d`, not
+     the retuned + `clk90` build. A short ladder run plus a brief
+     recording settles it, and gates any `kuntur` `main` fast-forward.
+2. **A.7 step 1 — `fifo0` overflow counter + high-water mark as read-only
+   regbank words.** *(Manuel, RTL)* **Now the highest-value single item
+   in the plan.** A.7 step 3a set λ from measurement, but *cannot confirm
+   it*: FPGA-side overflow is invisible downstream, because discarded
+   samples never appear and real analog data gives no way to spot the
+   gap. This counter is the only thing that can turn "we believe it is
+   lossless" into evidence — which is exactly what a one-shot animal
+   recording needs. Smallest change in the plan, largest information
+   gain. Also retires T3.3's `cmd_is_00 = fifo_full` debug hijack.
+3. **A.7 step 2 — telemetry frame end to end.** *(Claude: MCU + bridge +
+   pc-app)* New `0xFFF4` notify characteristic, bridge discovery + CCCD,
+   `0xDD 0x22` re-framing with the bridge's own counters,
+   `serial_reader.py` decode, pc-app status line. Plus the MCU's
+   `ring_truncated_samples` and `stall_time_ms_total`. Riskiest part is
+   the bridge connection sequence — bring it up against an
+   already-streaming headstage so a telemetry failure is unambiguous.
+   **Ready to start; no dependency on 1 or 2.**
+4. **A.4 RTL — fully unblocked, nothing desk-side gates it.**
+   `docs/interfaces/lvds-tunnel.md` is complete on both ends of the cable;
+   O1 and O2 are closed. Order per its §12: `.pdc` `IO_TYPE=LVDS` + PAR
+   margin check (also O3's cheapest checkpoint) → pigtail → physical layer
+   alone at 85.008 Mbps → `SAMPLE` frames + CRC → link-loss behaviour →
+   emulator → Intan controller = **A2**. *(Manuel RTL both ends; Claude
+   available for O2a and the companion diagnostics console, O8.)*
+5. **A.3 attenuation network** — independent of everything above, and the
    noise-floor headline number cannot be measured without it. *(Manuel)*
-7. ~~A.6.5 sidecar implementation~~ — **done 2026-08-28, bench-verified
-   2026-08-31** (channels/sample_rate/duration/rows_written all correct on
-   a real 22.8-minute recording; `filter_settings` mechanism separately
-   confirmed working via Get Settings, just not captured in the same
-   recording — run Get Settings before Start next time to close that out
-   fully).
-8. A.4 RTL (both ends) → A.3 dual-endpoint capture → A.5 arbitration → **A2**.
+6. A.4 RTL (both ends) → A.3 dual-endpoint capture → **A2** → **A3**.
+
+**Closed 2026-09-03 and no longer on the critical path:** A.4's interface
+spec (item 5 of the 2026-08-31 list), its open items O1 and O2, A.5 (now
+discharged by construction — see below), and A.7 step 3's measurement
+half. The chip0/SCK-MOSI regression stays closed and is **not blocking
+anything**; the standing rule if it is reopened is (a) add any deskew
+constraint alongside `mregion0`-`mregion7`, never by removing them, and
+(b) measure the real board asymmetry or check for Lattice Dynamic Phase
+Shift rather than guessing a phase again.
+
+**Repo state.** `vega` `main` is current. **`kuntur` is on
+`session-2026-08-31-checkpoint` (now `7e1f8a5`), not `main`** — `main`
+remains deliberately parked at `e2bac25` until the SCK/MOSI question is
+settled, so today's fH change was merged to the checkpoint branch rather
+than fast-forwarding `main`. Three harmless comment-only commits sit on
+old `main`, safe to fast-forward onto whenever.
 
 **Live external gate:** A.0's animal-protocol amendment, in progress with
-the collaborator since 2026-08-05, **revisit 2026-09-05**.
+the collaborator since 2026-08-05, **revisit 2026-09-05** — two days out.
 
 **Schedule risk, CLOSED 2026-09-02:** the LIFCL-40-EVN and IAM FMC
-breakout — ordered ~2026-08-05, unconfirmed through every session since —
-**have arrived.** A.4 RTL bring-up is no longer gated on hardware; it is
-**fully unblocked as of 2026-09-03**: O1 (the FMC LA pair → LIFCL-40 ball
-mapping) is resolved in `docs/interfaces/lvds-tunnel.md` §1.5, from the
-eval-board user guide joined against an authoritative Radiant pad report
-for `LIFCL-40-9BG400C`. `TUN_CLK` on `FMC_LA02` (H7/H8 → Y2/Y3 →
-`PB8A/B`, `PCLKT5_1` + `LLC_GPLL0T_IN`), `TUN_DATA` on `FMC_LA04`
-(H10/H11 → V1/W1 → `PB6A/B`), both bank 5 at a fixed 1.8 V.
-**O2 closed the same day** — `ODDRX5`/`IDDRX5` are hardened 10:1 gearing,
-so 8b/10b needs no fabric gearbox, and the tunnel's `ECLK`/`SCLK` come off
-`pll0`'s existing VCO on integer dividers (/21, /105) alongside `clk`'s /35
-— no second PLL and no clock-domain crossing into the sampling domain.
+breakout **have arrived**, and as of 2026-09-03 nothing desk-side gates
+A.4 RTL — see item 4.
+
+**A documentation-structure weakness worth fixing (B.1).** Three times on
+2026-09-03 a figure that had been correct for months quietly stopped
+being correct, all descending from λ: the 60,000 aggregate in the mode
+proposal (which would have reintroduced ρ > 1 in Modes 3–5), the
+120,000 B/s / 512 pkt/s pair in `stream-packet-format.md` §3's header
+budget, and the 19.9 h `sample_index` wrap. None were flagged by
+anything, because nothing links a derived figure back to its input. Mark
+derived numbers with their source (e.g. *"= f(λ)"*) so a future λ change
+has a greppable blast radius.
 
 ## A.0 — Start this week (pure lead time / minutes of work)
 
