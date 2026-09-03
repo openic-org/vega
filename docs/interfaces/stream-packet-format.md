@@ -27,8 +27,12 @@ proposal, now closed:
   convention, which is this project's recurring failure shape.
 - **`mode_id` changes require streaming stopped** (§3.2), matching
   `SET_CHANNELS`, so no new enforcement mechanism exists to get wrong.
-- **`sample_index` stays `uint32`** (§3.1), accepting the 19.9 h wrap
-  with a modular-comparison requirement on receivers.
+- **`sample_index` stays `uint32`** (§3.1), accepting the wrap with a
+  modular-comparison requirement on receivers. *(The wrap was quoted as
+  19.9 h when this was decided; §3.1 now gives 21.3 h in the 16-bit modes
+  and **15.9 h** in the 12-bit ones. The decision stands — 15.9 h is still
+  past any realistic session — but it was taken against a figure that has
+  since moved, so it is worth re-checking if aggregate ever rises again.)*
 
 Two decisions from the same day's architecture discussion are taken as
 settled inputs and are not re-argued here:
@@ -82,7 +86,9 @@ guarantees loss.
 The 2026-08-27 PLL retune moved λ from 29,348 SPS/ch to 29,999.97 SPS/ch.
 Measured delivery afterwards was 29,482.9 SPS (499.7 pkt/s) with
 **underrun at 0%** — the read side never starved, so `fifo0` was
-*accumulating*, not draining. ρ ≥ 1.
+*accumulating*, not draining. ρ ≥ 1. **§1.5 confirms this quantitatively
+on a 22.8-minute recording: ρ = 1.018, `fifo0` saturating in 7.7 s and
+discarding 1.78% of all samples silently thereafter.**
 
 This is why the 2026-08-03 mblock-margin fix does not apply a second
 time. That was a variance fix for a variance problem, and it worked
@@ -140,11 +146,9 @@ Two consequences the project should adopt explicitly:
   it round; A.6.5's sidecar records the actual rate either way
   (`recording-format.md` §3). 28,500 SPS losslessly is worth more to
   every analysis than 30,000 SPS with 1.7% silent loss.
-- **`μ_low` and the stall duty cycle are both currently unmeasured.**
-  `μ` = 512 pkt/s is from 2026-05-15, under a different production rate
-  and before several RTL and PLL changes; delivery of 499.7 pkt/s on
-  2026-08-27 is inconsistent with it still holding. §6's telemetry is the
-  prerequisite for setting λ at all — see §9's implementation order.
+- ~~**`μ_low` and the stall duty cycle are both currently unmeasured.**~~
+  **Both measured 2026-09-03 — see §1.5.** `μ` = 512 pkt/s (2026-05-15) is
+  **superseded and was 2.5% optimistic**. λ is now set: **28,000 SPS/ch**.
 
 ### 1.4 What is foreclosed
 
@@ -155,6 +159,196 @@ a headstage-storage feature, not a tuning parameter** — it would require
 adding non-volatile storage to the headstage and is out of scope for v1.
 The margin is therefore the only free lever, which is what makes §1.3 an
 invariant rather than a preference.
+
+### 1.5 μ measured — 2026-09-03
+
+**Source:** `pc-app/recordings/vega_20260831_123301.csv` — 22.8 minutes,
+40,258,709 rows, **682,351 packets, zero `seq_num` gaps (no packet loss
+at all)**. Analysed by a streaming pass over the raw CSV; per-second bins,
+1365 full bins.
+
+**Why a recording measures both rates at once.** `StreamAssemblePacket`
+(`stream_app.c`) always fills all 59 pairs — ring first, then
+`FPGA_SPI_ReadSamples`, which returns the `0x8000` sentinel when `fifo0`
+is empty. The MCU therefore sends a full packet whether or not real data
+exists, so:
+
+- **delivered rows ÷ duration = μ**, the transport's sustained capacity,
+  independent of what the FPGA produced;
+- **(rows − underruns) ÷ duration = λ**, the FPGA's production rate.
+
+| | pkt/s | SPS/ch |
+|---|---|---|
+| **μ** — transport, mean over 22.8 min | **499.420** | 29,465.8 |
+| μ at p1 and p5 of 1-second bins | 499.00 | 29,441 |
+| μ standard deviation | 3.37 | 197 |
+| **λ** — production (pre-retune bitstream) | 497.424 | **29,348.0** |
+| margin `m` as recorded | | **0.401%** |
+| underrun | | 160,837 rows (0.400%) |
+
+λ = **29,348.04 SPS** reproduces §1.1's stated pre-retune figure of
+29,348 SPS **exactly**, from a completely independent derivation — which
+is the check that the method is sound.
+
+#### 1.5.1 The stall distribution is bimodal, and the worst stall is 5× the assumed figure
+
+99.2% of seconds sit within 2 packets of the peak (501 pkt/s). Then there
+are **exactly five outlier seconds**, each missing 56–58 packets:
+
+| t (s) | pkt/s | packets missing | stall |
+|---|---|---|---|
+| 112 | 443 | 58 | **116 ms** |
+| 232 | 444 | 57 | 114 ms |
+| 292, 1073, 1133 | 445 | 56 | 112 ms |
+
+**Minimum spacing between events: 60 s.** §1.2's buffer table is sized
+against "~22 ms worst measured stall" — **the real figure is ~116 ms**.
+The headstage's 208 ms of combined buffering does survive it (hence zero
+packet loss), but at **1.8× margin, not the ~9× the 22 ms figure implies**.
+That table's *conclusion* still holds; its safety factor does not.
+
+**Measured stall duty cycle: 0.316%** (2158 packets of 683,865 possible).
+That is the floor §1.3 requires `m` to clear.
+
+#### 1.5.2 λ = 28,000 SPS/ch — decided 2026-09-03
+
+| λ (SPS) | pkt/s | `m` vs μ_p1 | recovery from a 116 ms stall |
+|---|---|---|---|
+| 30,000 *(as shipped today)* | 508.47 | **−1.86%** | **never** |
+| 29,500 | 500.00 | −0.20% | **never** |
+| 29,348 *(pre-retune)* | 497.42 | +0.32% | 35.3 s |
+| 29,000 | 491.53 | +1.52% | 7.4 s |
+| 28,500 | 483.05 | +3.30% | 3.4 s |
+| **28,000** | **474.58** | **+5.15%** | **2.2 s** |
+
+**λ = 28,000 SPS/ch chosen** (Manuel, 2026-09-03) — *"we should work with
+the highest data rate."* `m` = 5.23% against mean μ, **16.6× the measured
+0.316% stall duty cycle**, and a worst-case 116 ms stall recovers in 2.2 s
+against the 60 s minimum observed spacing.
+
+28,000 was preferred over 28,500 for one reason: μ is a **bench**
+measurement, and in vivo it can only get worse — 2.4 GHz is absorbed by
+tissue, a surgical suite is RF-noisy, antenna orientation moves with the
+animal, and BLE retransmissions reduce effective μ directly. 28,000
+tolerates μ being **5.2% worse** than measured; 28,500 tolerates only
+3.4%. The 1.75% of samples that buys is free.
+
+#### 1.5.2a Sample rate is not the lever on signal quality — fH is
+
+Worth recording because it was checked while choosing the rate, and it
+changes what the choice is *about*.
+
+`rhd2164_defs.vh` sets `RH1_DAC1 = 8`, `RH1_DAC2 = 0`, `RH2_DAC1 = 4`,
+`RH2_DAC2 = 0` — an exact match for the RHD2000 datasheet's **fH = 20 kHz**
+row, the chip's *maximum* upper cutoff. Nyquist for 20 kHz is 40 kSPS.
+
+| λ | Nyquist | band folding back |
+|---|---|---|
+| 30,000 | 15.0 kHz | 15–20 kHz (5.0 kHz wide) |
+| 28,500 | 14.25 kHz | 14.25–20 kHz (5.75 kHz) |
+| **28,000** | **14.0 kHz** | **14–20 kHz (6.0 kHz)** |
+| 25,000 | 12.5 kHz | 12.5–20 kHz (7.5 kHz) |
+
+**Every candidate rate already aliases**, and the RHD's 3rd-order
+Butterworth rolls off only *above* fH, so 14–20 kHz is essentially
+passband today. 28,000 vs 28,500 differs by 250 Hz of folded band against
+~6 kHz already folding — which is why the rate decision was correctly made
+on transport margin alone.
+
+**The fix is fH, not λ. ✅ APPLIED 2026-09-03** (Manuel): fH changed from
+20 kHz to **7.5 kHz** — `RH1 DAC1=22/DAC2=0`, `RH2 DAC1=23/DAC2=0`, the
+datasheet's literal 7.5 kHz row — in
+`kuntur/.../afe/rhd2164/rhd2164_defs.vh`. At 28 kSPS, Nyquist (14 kHz)
+now sits well above the corner and the signal path is properly
+anti-aliased for the first time. 7.5 kHz is also Intan's standard choice
+for spike work and preserves spike waveform shape.
+
+**Do not expect a noise improvement from it.** The datasheet specifies
+`vni` = 2.4 µVrms typical and notes it *"varies slightly (< 15%) with
+amplifier bandwidth"* — so the naive √(bandwidth) reduction does not
+apply. This is an anti-aliasing fix, not a noise fix, and A.3's headline
+noise-floor number should not be expected to move much.
+
+**Requires an FPGA rebuild and reflash** — the values are baked into
+`regbank.v`'s power-up configuration table. Best done in the same rebuild
+as §1.5.3's PLL retune, since both are FPGA changes gated on the same
+bench session.
+
+**fL is unchanged at 0.5 Hz and was always correct.** `RL_DAC1 = 35`,
+`RL_DAC2 = 17`, `RL_DAC3 = 0` is the datasheet's literal **0.50 Hz** row
+(p.26). An earlier pass in this session flagged it as matching no row —
+**that was wrong**, caused by a table extraction that truncated below
+1.5 Hz. Recorded so the false alarm is not re-raised.
+
+#### 1.5.3 The PLL retune that produces it
+
+The sampling frame is a structural constant: **33 slots × 46 `clk` = 1518
+`clk`** (`rhd2164_controller`, `spi_master_controller`). So
+
+The PLL is fractional-N: `FVCO = 32 MHz × (N_int + FRAC_N/4096)`. That
+model reproduces today's `pll0.ldc` exactly — `32 × (49 + 3315/4096)` =
+1593.898438 MHz, ÷35 = 45.539955 MHz, ÷1518 = 29,999.97 SPS — so it can
+be trusted for the new target.
+
+```
+clk_target = 28,000 x 1518 = 42.504000 MHz
+```
+
+| | production | wired-mode bring-up (§1.5.5) |
+|---|---|---|
+| λ target | **28,000 SPS/ch** | 25,000 SPS/ch |
+| `CLKOP` target | **42.504 MHz** | 37.950 MHz |
+| Expected achieved | 42.5040118 MHz | **37.9500000 MHz** |
+| Resulting λ | **28,000.01** (+0.28 ppm) | **25,000.00** (+0.00 ppm) |
+| `FVCO` | 1572.648438 = 32×(49 + 595/4096), ÷37 | 948.75 = 32×(29 + 2656/4096), ÷25 |
+| Packet rate | 474.576 pkt/s | 423.729 pkt/s |
+| `m` vs measured μ | **5.23%** | 17.86% |
+
+The IP generator picks `FVCO` itself from the target frequency — the
+actionable input is the `CLKOP` target, and whatever `CLKOP_FREQ_ACTUAL`
+comes back is what A.6.5's sidecar records, exactly as 45.539955 →
+29,999.97 does today.
+
+#### 1.5.5 25,000 SPS as a wired-mode bring-up step
+
+**Decided 2026-09-03 (Manuel):** *"For initial work with wired mode, we
+can start with 25 kSPS, but the goal is to make it work with 28 kSPS."*
+
+25,000 SPS is the one candidate that lands **exactly** on a rate the Intan
+controller can select. That collapses `lvds-tunnel.md` §9.5's systematic
+offset to crystal tolerance alone (~100 ppm, ~1 frame every 5.6 s) and
+makes A2's comparison sample-for-sample with **no resampling step at
+all** — which is worth a great deal while bringing an unproven link up,
+because it removes one whole class of "is this a link bug or a rate
+artifact?" ambiguity.
+
+It is a **bring-up aid, not the target.** Production is 28,000, where the
+Intan side sees a 6.67% systematic offset (one frame in fifteen) and A2's
+comparison does need resampling. Both rates share `clk` as the tunnel's
+`ECLK`, and every ratio in the tunnel spec is invariant between them —
+only absolute frequencies move — so nothing in the A.4 contract changes
+when the rate does.
+
+Note 37.95 MHz is an **exact** PLL solution (+0.00 ppm), which is a small
+extra convenience for a bring-up reference.
+
+#### 1.5.4 What this does *not* establish
+
+**It cannot verify losslessness.** FPGA-side overflow is invisible
+downstream: discarded samples never appear, and against real analog data
+there is no way to detect the gap. This analysis *sets* λ; only A.7 step
+1's overflow counter can *confirm* it. Step 1 remains required, and is now
+the single most valuable item in A.7.
+
+Two further limits, stated rather than buried:
+
+- **One session, one RF environment.** μ is a 22.8-minute measurement from
+  a single recording. `m` = 3.39% is what buys tolerance against the next
+  environment being worse.
+- **μ was measured with λ < μ**, so the MCU periodically read an empty
+  `fifo0`. `FPGA_SPI_ReadSamples` costs the same either way (bit-banged,
+  fixed-length), so μ should be unchanged under λ > μ — but that is an
+  argument, not a measurement.
 
 ---
 
@@ -205,22 +399,36 @@ All fields little-endian, matching v0 and the rest of the project.
 | 6 | 1 | `flags` | `uint8` |
 | 7 | 1 | `reserved` | `uint8`, must be 0 |
 
-**The header stays at exactly 8 bytes, and that is a hard budget, not a
-coincidence.** With a 247-byte negotiated ATT MTU the notify value caps
-at 244 bytes (251 LL PDU − 4 L2CAP − 3 ATT), so payload `P = 244 − H`.
-At the 120,000 B/s aggregate budget:
+**The header stays at exactly 8 bytes**, and growing it is paid for in
+margin. With a 247-byte negotiated ATT MTU the notify value caps at
+244 bytes (251 LL PDU − 4 L2CAP − 3 ATT), so payload `P = 244 − H`. At
+§1.5.2's 112,000 B/s aggregate budget:
 
 ```
-packets/s = 120,000 / P
-H = 8  ->  P = 236  ->  508.5 pkt/s
-H = 9  ->  P = 235  ->  510.6 pkt/s
+packets/s = 112,000 / P
+H = 8  ->  P = 236  ->  474.58 pkt/s   m = 5.23%
+H = 9  ->  P = 235  ->  476.60 pkt/s   m = 4.79%
+H = 10 ->  P = 234  ->  478.63 pkt/s   m = 4.34%
 ```
 
-**Each header byte costs ~2.1 packets/s.** Against ~512 pkt/s of ceiling
-and 508.5 of demand there is roughly 3.5 pkt/s of slack — about a byte
-and a half. The header cannot grow without spending the margin §1 exists
-to buy. Any future field must displace an existing one or go in the
-telemetry frame (§6).
+**Each header byte costs ~2.0 packets/s, or ~0.45 percentage points of
+margin** against the measured μ = 499.42 pkt/s (§1.5).
+
+**Updated 2026-09-03.** This paragraph previously computed against a
+120,000 B/s aggregate and a 2026-05-15 ceiling of "~512 pkt/s", and
+concluded there was "roughly 3.5 pkt/s of slack — about a byte and a
+half… the header cannot grow." Both inputs are superseded by §1.5: the
+budget fell to 112,000 B/s when λ was set to 28,000, and the real measured
+ceiling is 499.42 pkt/s, not 512. **The header is no longer against a
+wall** — there is 24.8 pkt/s between demand and capacity, about twelve
+header bytes' worth.
+
+That is not licence to spend it. The 24.8 pkt/s *is* the margin §1.3
+requires, so a byte taken for the header is a byte taken from stall
+recovery; it is a trade with a known price, not free space. Any future
+field should still prefer displacing an existing one or moving to the
+telemetry frame (§6) — but the constraint is now quantified rather than
+absolute, and a genuinely necessary field can be paid for by lowering λ.
 
 ### 3.1 `sample_index` — absolute aggregate stream position
 
@@ -235,9 +443,14 @@ monotonicity clamp, and it makes loss exactly quantifiable (§7).
   the channel count of `mode_id`.
 - **Reset to 0** on `START_STREAMING`. Not reset by a flow-off stall,
   a reconnection within a session, or a telemetry frame.
-- **Wrap:** `2³² / 60,000 = 71,583 s ≈ 19.9 h` at the current aggregate
-  budget. Past the 10-minute recording cap and any realistic session, but
-  it shrinks if the aggregate budget rises. Receivers **must** treat
+- **Wrap:** `2³² / 56,000 = 76,696 s ≈ 21.3 h` in the 16-bit modes
+  (§5.3), and `2³² / 75,000 = 57,266 s ≈ 15.9 h` in the 12-bit ones —
+  **the wrap is mode-dependent, and 15.9 h is the binding figure.**
+  *(Updated 2026-09-03; previously stated as 19.9 h against the
+  superseded 60,000 aggregate.)* Still past the recording cap and any
+  realistic session, but the margin is smaller than the original decision
+  assumed, and it shrinks further if aggregate rises. Receivers **must**
+  treat
   `sample_index` as wrapping (unsigned modular comparison), not as
   monotonic forever. **Decided 2026-08-28: `uint32` accepted**, with that
   modular-comparison requirement as the price. Revisit only if the
@@ -270,7 +483,8 @@ aggregate rate allows:
 
 | Aggregate rate | Time to fill 236 B |
 |---|---|
-| 60,000 samples/s | 1.97 ms |
+| 75,000 samples/s (12-bit modes, §5.3) | 1.57 ms |
+| 56,000 samples/s (16-bit modes, §5.3) | 2.11 ms |
 | 20,000 samples/s | 5.90 ms |
 | 6,000 samples/s | 19.7 ms |
 
@@ -376,14 +590,11 @@ Under §4 the waste disappears entirely. Payload is always 236 B, so:
 packets/s = aggregate_bytes_per_second / 236     — for every mode
 ```
 
-| `mode_id` | Name | N | SPS/ch (target) | Aggregate | Frame | pkt/s |
-|---|---|---|---|---|---|---|
-| 0 | *reserved / unknown* | — | — | — | — | — |
-| 1 | `2ch_30k` | 2 | 30,000 | 60,000 | 4 B | 508.5 |
-| 2 | `4ch_15k` | 4 | 15,000 | 60,000 | 8 B | 508.5 |
-| 3 | `8ch_7k5` | 8 | 7,500 | 60,000 | 16 B | 508.5 |
+*(The three-row table that stood here, `2ch_30k` / `4ch_15k` / `8ch_7k5`
+at a 60,000 aggregate, is superseded by §5.3 — the aggregate came down to
+56,000 when §1.5.2 set λ = 28,000.)*
 
-**Per-channel rates in this table are targets, not commitments.** §1.3's
+**Per-channel rates in any mode table are targets, not commitments.** §1.3's
 invariant sets the actual aggregate rate from measurement, and the real
 FPGA-derived per-channel rate — cycle-counted from RTL and
 oscilloscope-confirmed, per `recording-format.md` §3 — is what a sidecar
@@ -401,7 +612,138 @@ Packet rate becomes a pure function of aggregate data rate, so:
   presents the transport with the same packet rate and the same packet
   size. This is the largest practical payoff of the change.
 
+### 5.3 The mode roadmap — agreed 2026-09-03
+
+Proposed by Manuel and corrected in review the same day. **Mode 1 alone is
+needed for the animal test; Modes 1–5 for public release; 6–10 are future
+versions.** Recorded here because this table is what `mode_id` (§3.2)
+indexes, and because fixing the partition early is what keeps §5.2's "one
+budget for the whole system" property true.
+
+**`mode_id` 0 stays reserved** for *unknown*, per §3.2: a receiver seeing
+it "must refuse to decode rather than assume 2 channels". That is the
+load-bearing reason — without a reserved value a receiver has to guess,
+and the natural guess is the legacy 2-channel mode, which mis-decodes an
+N-channel stream into plausible-looking waveforms with every sample
+attributed to the wrong channel. A secondary benefit: all-zeros is the
+most likely corruption value, and the bridge→PC UART hop has no CRC yet
+(§3.5 defers it to B.2) on a link known to drop bytes — so a zeroed header
+failing on both `mode_id` and `payload_samples` is worth having. Modes are
+therefore numbered **1–10** on the wire and in prose.
+
+#### 5.3.1 The budget every mode must fit
+
+From §1.5, `μ` = 499.42 pkt/s = 117,863 B/s. Because §4 makes payload
+always 236 B, `pkt/s = aggregate_B_per_s / 236` in **every** mode, so a
+mode is legal iff its aggregate byte rate fits with margin.
+
+#### 5.3.2 The table
+
+| `mode_id` | Name | N | F | k | SPS/ch | bits | aggregate | B/s | pkt/s | `m` | needed for |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| 0 | *reserved / unknown* | — | — | — | — | — | — | — | — | — | — |
+| **1** | `2ch_28k` | 2 | 28k | 1 | **28,000** | 16 | 56,000 | 112,000 | 474.58 | +5.23% | **animal test** |
+| **2** | `4ch_14k` | 4 | 28k | 2 | 14,000 | 16 | 56,000 | 112,000 | 474.58 | +5.23% | public release |
+| **3** | `8ch_7k` | 8 | 28k | 4 | **7,000** | 16 | 56,000 | 112,000 | 474.58 | +5.23% | public release |
+| **4** | `16ch_3k5` | 16 | 28k | 8 | **3,500** | 16 | 56,000 | 112,000 | 474.58 | +5.23% | public release |
+| **5** | `32ch_1k75` | 32 | 28k | 16 | **1,750** | 16 | 56,000 | 112,000 | 474.58 | +5.23% | public release |
+| 6 | `3ch_25k_12b` | 3 | 25k | 1 | 25,000 | 12 | 75,000 | 112,500 | 476.69 | +4.77% | future |
+| 7 | `6ch_12k5_12b` | 6 | 25k | 2 | 12,500 | 12 | 75,000 | 112,500 | 476.69 | +4.77% | future |
+| 8 | `12ch_6k25_12b` | 12 | 25k | 4 | 6,250 | 12 | 75,000 | 112,500 | 476.69 | +4.77% | future |
+| 9 | `72ch_1k04_12b` | 72 | 25k | 24 | **1,041.67** | 12 | 75,000 | 112,500 | 476.69 | +4.77% | future |
+| 10 | `spikes_128ch` | 128 | — | — | event stream | — | data-dependent | §5.3.4 | | | future |
+
+**Modes 3–5 are corrected from the original proposal** (7,500 / 3,750 /
+1,875, all at a 60,000 aggregate). That figure was the pre-A.7 budget,
+correct at λ = 30,000 and not at λ = 28,000: it put those modes at 107.1%
+of budget and `m` = **−1.78%** — numerically the identical ρ > 1 failure
+§1.5.3's retune exists to escape. 7,000 / 3,500 / 1,750 fixes it.
+
+**Mode 9's per-channel rate is 1,041.67**, not the proposed 1,040 — k = 24
+on the 25 kHz frame gives exactly 75,000 aggregate, matching Modes 6–8.
+
+Packet rate across the whole table spans **474.58 – 476.69 pkt/s, a 0.45%
+spread**, so §5.2's claim — one `μ_low` measurement covers every mode —
+holds despite the two frame rates.
+
+#### 5.3.3 Two frame rates, integer decimation
+
+The RHD2164 pair converts **all 128 channels every frame**. A mode is
+therefore "pick N of the 128, deliver each every k-th frame", per-channel
+rate F/k — and **k must be an integer**, or delivered samples are
+non-uniformly spaced, which no downstream analysis can undo.
+
+That constraint, plus the aggregate budget, is satisfied by exactly two
+frame rates:
+
+| Family | F | `clk` | k values | aggregate | `m` |
+|---|---|---|---|---|---|
+| **16-bit** (Modes 1–5) | 28,000 | 42.504 MHz | 1, 2, 4, 8, 16 | 56,000 smp/s | +5.23% |
+| **12-bit** (Modes 6–9) | 25,000 | 37.950 MHz | 1, 2, 4, 24 | 75,000 smp/s | +4.77% |
+
+Both `clk` values are already derived: 42.504 MHz is §1.5.3's production
+retune, and **37.95 MHz is an exact PLL solution** (+0.00 ppm) that
+§1.5.5 already specifies as the wired-mode bring-up rate. **No third
+clock is needed anywhere in the system.**
+
+The 16-bit family costs one power-of-two decimation counter and extends
+**free** to channel counts the proposal did not reach:
+
+| N | k | SPS/ch | aggregate |
+|---|---|---|---|
+| 64 | 32 | 875.0 | 56,000 |
+| 128 | 64 | 437.5 | 56,000 |
+
+**Runtime switching between the two frame rates** needs a second clock
+source and a glitch-free mux. The hardware has exactly that spare: the
+`.mrp` reports **PLLs 1 of 2 used** and **DCSs 0 of 1 used** — one free
+PLL to generate 37.95 MHz and one dynamic clock-select primitive, which is
+precisely what DCS exists for. Without it the alternative is a bitstream
+reload to change families, which is acceptable for v1 (Modes 1–5 all share
+F = 28,000, so no switching is needed until Mode 6 ships).
+
+#### 5.3.4 Mode 10 — spike times only. Specified as a placeholder, not designed.
+
+**Not a sample stream.** Mode 10 emits spike time-locations for up to 128
+channels after spike-detection RTL exists. Recorded now so the mode space
+and its consequences are reserved; the design is future work.
+
+Three things it breaks that every other mode obeys, all of which must be
+resolved before it is built:
+
+1. **§4's payload contract does not apply.** `sample_index` and
+   `payload_samples` are meaningless for an event stream. Mode 10 needs
+   its own `frame_type`, not just a `mode_id`.
+2. **Its bandwidth is data-dependent** — it scales with the firing rate,
+   not with a configured sample rate. This is the significant one:
+   **§1.3's λ < μ stops being a static check**, because λ is no longer a
+   design constant. Mode 10 needs either a worst-case firing-rate
+   assumption with the arithmetic written down, or an explicit rate
+   limiter with documented overflow behaviour. Silent loss under a
+   burst — a seizure, a stimulation artifact — is exactly the failure this
+   whole spec exists to prevent.
+3. **It has no per-sample timestamp to inherit.** Event times need their
+   own encoding and their own resolution decision, tied to the frame
+   clock rather than to a sample index.
+
+#### 5.3.5 Implementation notes carried by this table
+
+- **12-bit packing needs a §4 amendment.** 236 B = 1888 bits = 157.33
+  samples at 12 bit. Either 157 samples fit with 4 bits spare (0.2% waste,
+  preserves §4 rule 1's "never split a sample") or samples straddle
+  packets at bit level (breaks it). **Take the former**, and amend §4
+  before any 12-bit mode ships. Not needed for Modes 1–5.
+- **`ch_sel` must be restructured for N > 2.** It has a 4-way mux serving
+  2 channels today. Modes 2–5 are the natural forcing function for PLAN.md
+  B.3's already-flagged decoupling of `ch_sel` into a generic
+  `{channel, sample, valid}` source.
+- **`SET_CHANNELS` currently carries two channel indices**
+  (`channel-selection-control-plane.md` §1a). Modes 2–5 need it to carry
+  N of them, or to be replaced by a channel-set descriptor. That is a
+  control-plane change, and it belongs in that spec rather than this one.
+
 ---
+
 
 ## 6. Telemetry and time anchor — the `0xDD 0x22` frame
 
@@ -498,7 +840,7 @@ alone.
   and never reset by a report.** A lost telemetry frame then costs
   resolution, not information: the receiver diffs against the last one it
   actually received.
-- **Cadence ~1 Hz.** At 508.5 pkt/s of data traffic one extra frame per
+- **Cadence ~1 Hz.** At 474.6 pkt/s of data traffic one extra frame per
   second is negligible; it does not need to be exact and must not be
   emitted from the hot send path.
 - A receiver **must not** infer that "no telemetry frame yet" means "no
@@ -668,7 +1010,9 @@ block at the top for the decisions and their reasoning):
 3. ~~Should `mode_id` changes require streaming stopped?~~ **Yes**,
    matching `SET_CHANNELS`; §3.2.
 4. ~~`sample_index` 32-bit wrap at 19.9 h?~~ **Accepted**, with a
-   modular-comparison requirement on receivers; §3.1.
+   modular-comparison requirement on receivers; §3.1. *(The 19.9 h figure
+   was against the superseded 60,000 aggregate; the real worst case is
+   **15.9 h**, in the 12-bit modes of §5.3. Decision unchanged.)*
 5. ~~Where the logical→physical channel map lives.~~ **Sidecar**, via
    `SET_CHANNELS` — settled by decision 3: channels cannot change
    mid-stream, so the map is constant for a recording and does not belong
