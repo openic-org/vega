@@ -1264,10 +1264,24 @@ recollection:
   the same day's earlier evidence had supported.
 - It **drifts on a timescale of hours** in a powered, idle system.
 
-**Hypothesis, well-supported but not yet measured: temperature.** The only
-variable known to change over hours of idle powered operation is the
-board warming. It matches Manuel's own independent impression that cold
-and warm days differ. *Not established:* there are no logged temperatures,
+**Hypothesis, well-supported but not yet measured: temperature — and
+more likely the board's own than the room's.** The only variable known to
+change over hours of idle powered operation is the board warming. It
+matches Manuel's own independent impression that cold and warm days
+differ.
+
+*Refined 2026-09-04 evening, once the test environment was described:* the
+room's single thermostat is **cool-mode only** and sits on the floor
+above, so on a hot day the room is plausibly coldest in the afternoon,
+when the AC works hardest — the opposite of the naive reading, and a poor
+fit for a 11:09 failure followed by a 15:50 pass. **Board self-heating
+fits both observations better than room ambient**: at 11:09 the board had
+just been powered for the first time that day; by 15:50 it had run for
+hours. See `log/chip0-temperature-trials.md` §Environment. This also makes
+the missing thermometer less limiting than it first appeared — trials run
+as warm/cold pairs in the same hour control for room ambient by design.
+
+*Not established:* there are no logged temperatures,
 and the diurnal "evening warm / morning cold" story that appeared briefly
 in this session's discussion was an over-reading of a figure of speech
 and has been withdrawn. The direction — warm works, cold fails — rests on
@@ -1317,6 +1331,15 @@ help, and neither would 20 MHz.
 It also means 2026-08-31's four-phase deskew sweep may have been pushing
 the right signal in the wrong direction — the remedy for hold is *more*
 delay on MOSI relative to SCK, not less.
+
+#### Trial log
+
+Results are recorded in **`log/chip0-temperature-trials.md`**, one
+appendable table, started 2026-09-04. Fixed for the whole series:
+**Ch A = 42** (chip0) and **Ch B = 94** (chip1) — one channel per chip,
+because with both on chip1 a dead chip0 is invisible and a trial records a
+false pass — and bitstream `cdc7d39d…` (`kuntur` `761d662`). A single row
+proves nothing; the series is the point.
 
 #### The next work is measurement, not a fix
 

@@ -1,0 +1,124 @@
+# chip0 intermittency — temperature trial log
+
+**What this is.** A running record of chip0 pass/fail against thermal state,
+started 2026-09-04. Background, mechanism and the reasoning behind it:
+**PLAN.md A.1.2** and `log/2026-09-04.md` §7. Kept as one appendable file
+rather than scattered through daily logs, because the whole point is the
+*series* — a single trial says nothing.
+
+**Why it exists.** chip0 has been root-caused three times and every one was
+confirmed by a single hardware pass. On a board that drifts over hours, one
+pass cannot distinguish a fix from a lucky boot. Until this table has enough
+rows to show a pass *rate* and what it tracks, no bench result on this board
+can be scored — including any future "fix".
+
+## Method
+
+- **Indicator:** live waveform in the pc-app, not the A.1.1 ladder.
+  **Ch A = 42** (chip0, range 0–63) and **Ch B = 94** (chip1, range 64–127),
+  chosen at random on 2026-09-04 and **held fixed for the whole series**.
+  One channel per chip is mandatory: with both on chip1 a dead chip0 is
+  invisible and the trial records a false pass.
+- **Failure signature:** chip0 returns all `0xFFFF`, which decodes as −1 in
+  int16, so Ch A reads as a **flat trace at essentially zero** while Ch B
+  shows normal noise. This does **not** trip the pc-app's underrun
+  indicator — that fires on `0x8000` on *both* channels, a different
+  condition. Flat vs. alive is the signal.
+- **Bitstream, held fixed:** `cdc7d39dca801aa8864cb0840d6aac1d2d8601c34c5026c80a1dd72d90da9fa7`
+  (`kuntur` `761d662`, on `main`). The FPGA is SRAM-configured, so every
+  power cycle requires a reflash — reflash from this file, and **do not let
+  Radiant rebuild**: rebuilds here are not bit-identical, and a new
+  bitstream would void the series.
+- **Thermal state** is recorded as a category, not a temperature: no
+  thermometer is available yet (see Limitations).
+
+## Trials
+
+| # | Date | Time | Thermal state | Ch A (chip0) | Ch B (chip1) | Ambient | Notes |
+|---|---|---|---|---|---|---|---|
+| 0 | 2026-09-04 | ~11:09 | cold — first bench activity of the day | **FLAT** | ok | not measured | Failed twice: committed bitstream `7a5418d6`, then a rebuild. Retrospective entry, before this protocol existed; different bitstream, so not directly comparable to the rows below |
+| 1 | 2026-09-04 | 15:50 | **warm** — powered and running several hours, undisturbed | ok | ok | thermostat 72 °F / 22.2 °C (see Environment) | Baseline / initial state. Recovered untouched earlier the same afternoon after trial 0's failures. Ch A/Ch B set to 42/94 for the first time here. **Oscilloscope already off** for some minutes before this reading — so trials 1 and 2 share that condition and it is controlled between them |
+
+## Environment, 2026-09-04
+
+Recorded because it turns out to matter for how the results can be read.
+
+- **Test room is in a house with a single thermostat, on the floor above.**
+  One zone for the whole building, so temperature varies broadly between
+  rooms and floors and the thermostat reading is **not** the test room's
+  temperature. Heat rises, so the floor above is likely *warmer* than the
+  test room — the reading is probably an over-estimate.
+- **Thermostat: cool mode only** — it can lower the temperature, never
+  raise it. Reading at trial 1: **72 °F (22.2 °C)**.
+- **Outside at trial 1: 89 °F (31.7 °C)**, feels-like 94 °F (34.4 °C),
+  per phone weather.
+- **Oscilloscope off**, switched off some minutes before trial 1 — the one
+  heat source near the board that is being deliberately controlled.
+
+### What cool-only mode implies, and why it complicates the naive reading
+
+On a hot day in cool-only mode the room is likely **coldest while the AC
+is working hardest — daytime — and warmest overnight** when it stops and
+the house coasts on thermal mass. That is the *opposite* of the
+"cold morning / warm afternoon" intuition, and it means a room-ambient
+story does not obviously fit the 2026-09-04 observations at all: trial 0
+failed at 11:09 and trial 1 passed at 15:50, when the afternoon room was
+plausibly the cooler of the two.
+
+**This points away from room ambient and toward board self-heating as the
+variable.** At 11:09 the board had just been powered for the first bench
+activity of the day; by 15:50 it had been running for hours. The board's
+own temperature moved a great deal in that window regardless of what the
+room did.
+
+**That refinement makes the missing thermometer less limiting than it
+looks.** Trials 2 and 3 are run in the same room, in the same hour, at two
+board temperatures — so room ambient is controlled *by the pair design*
+rather than by measurement. Whatever the room is doing, it is doing the
+same thing to both.
+
+**Do not over-read a null.** If trial 3 passes, that does **not** refute
+temperature: an overnight swing of a few °F in a thermally massive house,
+plus a board that reaches ambient quickly, may simply not reach the
+threshold. A null result narrows nothing on its own, which is the whole
+reason this is a series and not an experiment.
+
+## Limitations, recorded so they are not forgotten
+
+- **No measurement of the test room, and none of the board.** The
+  thermostat is a different floor and a single zone (see Environment), so
+  it is a weak proxy at best and biased warm. Board temperature — which
+  the Environment section argues is the more likely variable — is not
+  measured at all. Logged as *not measured* rather than estimated: an
+  invented number would be worse than a gap, and this series exists
+  precisely because unsupported inferences were previously read as
+  evidence. A cheap BLE thermo-hygrometer for the room and a K-type probe
+  for the board would close both.
+- **Trial 0 used a different bitstream** (`7a5418d6`, pre-fH-fix) and a
+  different indicator (register readback, not the waveform). It is recorded
+  for completeness, not for comparison.
+- **Thermal state is categorical**, so this can establish *correlation with
+  warm/cold*, not a threshold temperature. A threshold needs instrumentation.
+- **Self-heating confounds "overnight running".** A board left powered all
+  night is warmer than one that was off, so a pass in that state is weaker
+  evidence than a pass after a cold soak. This is why trials are run in
+  pairs — warm first, then again after a power-off soak, same morning, same
+  room.
+
+## Next scheduled trials
+
+- **2 — 2026-09-05, first thing.** Board left powered overnight,
+  oscilloscope off (off since before trial 1, so this condition is shared
+  with the baseline). Check the waveforms *before touching anything* —
+  the board is at its warmest here, having self-heated all night.
+- **3 — 2026-09-05, ~60 min later.** Power off, wait 60 min so the board
+  reaches room ambient, reflash from the fixed bitstream, check again.
+
+Trials 2 and 3 are the same room and the same morning at two **board**
+temperatures. If 2 passes and 3 fails, board temperature is isolated as
+the variable with no instrumentation at all — room ambient is held
+constant by the design rather than by measurement. Also record the
+overnight outdoor low from the phone the next morning: a poor proxy for
+the room, clearly marked as such, but across several trials it orders them
+coldest-to-warmest, which is enough to see whether a correlation exists at
+all.
