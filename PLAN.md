@@ -1264,10 +1264,28 @@ recollection:
   the same day's earlier evidence had supported.
 - It **drifts on a timescale of hours** in a powered, idle system.
 
-**Hypothesis, well-supported but not yet measured: temperature.** The only
-variable known to change over hours of idle powered operation is the
-board warming. It matches Manuel's own independent impression that cold
-and warm days differ. *Not established:* there are no logged temperatures,
+**Hypothesis, well-supported but not yet measured: temperature — and
+more likely the board's own than the room's.** The only variable known to
+change over hours of idle powered operation is the board warming. It
+matches Manuel's own independent impression that cold and warm days
+differ.
+
+*Refined 2026-09-04 evening, once the test environment was described:*
+the room has a single cool-only thermostat on the floor above. **In cool
+mode the setpoint is a ceiling, not a floor** — the AC holds the room at
+72 °F and can never drive it below, so the only path lower is passive
+drift when outside is cooler. On 2026-09-04 outside was **~70 °F in the
+morning and 89 °F by 16:00**, making the morning the room's coldest window
+and the afternoon its warmest. That matches the observations directly.
+
+**Room ambient and board self-heating therefore point the same way**, and
+2026-09-04 does not separate them: the room moved ~2 °F while the board
+went from freshly-powered at 11:09 to hours-warm at 15:50, which is
+plausibly the larger term. Either could be the driver. The paired trials
+in `log/chip0-temperature-trials.md` separate them — two board
+temperatures, minutes apart, in one unchanged room.
+
+*Not established:* there are no logged temperatures,
 and the diurnal "evening warm / morning cold" story that appeared briefly
 in this session's discussion was an over-reading of a figure of speech
 and has been withdrawn. The direction — warm works, cold fails — rests on
@@ -1317,6 +1335,15 @@ help, and neither would 20 MHz.
 It also means 2026-08-31's four-phase deskew sweep may have been pushing
 the right signal in the wrong direction — the remedy for hold is *more*
 delay on MOSI relative to SCK, not less.
+
+#### Trial log
+
+Results are recorded in **`log/chip0-temperature-trials.md`**, one
+appendable table, started 2026-09-04. Fixed for the whole series:
+**Ch A = 42** (chip0) and **Ch B = 94** (chip1) — one channel per chip,
+because with both on chip1 a dead chip0 is invisible and a trial records a
+false pass — and bitstream `cdc7d39d…` (`kuntur` `761d662`). A single row
+proves nothing; the series is the point.
 
 #### The next work is measurement, not a fix
 
