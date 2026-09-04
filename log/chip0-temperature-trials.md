@@ -55,33 +55,55 @@ Recorded because it turns out to matter for how the results can be read.
 - **Oscilloscope off**, switched off some minutes before trial 1 — the one
   heat source near the board that is being deliberately controlled.
 
-### What cool-only mode implies, and why it complicates the naive reading
+### What cool-only mode implies
 
-On a hot day in cool-only mode the room is likely **coldest while the AC
-is working hardest — daytime — and warmest overnight** when it stops and
-the house coasts on thermal mass. That is the *opposite* of the
-"cold morning / warm afternoon" intuition, and it means a room-ambient
-story does not obviously fit the 2026-09-04 observations at all: trial 0
-failed at 11:09 and trial 1 passed at 15:50, when the afternoon room was
-plausibly the cooler of the two.
+*This section was written backwards on first attempt and corrected the same
+evening, 2026-09-04 — the wrong version is not preserved because this file
+is a protocol others will act on, but the error is worth naming: it
+confused the AC "running harder" with the room "going colder". It cannot.*
 
-**This points away from room ambient and toward board self-heating as the
-variable.** At 11:09 the board had just been powered for the first bench
-activity of the day; by 15:50 it had been running for hours. The board's
-own temperature moved a great deal in that window regardless of what the
-room did.
+**In cool mode the setpoint is a ceiling, not a floor.** The AC holds the
+house *at* 72 °F and can never drive it below. The only path below setpoint
+is **passive drift when outside is cooler than the setpoint** — and with no
+heating in the loop, nothing pushes back up until the sun does.
 
-**That refinement makes the missing thermometer less limiting than it
-looks.** Trials 2 and 3 are run in the same room, in the same hour, at two
-board temperatures — so room ambient is controlled *by the pair design*
-rather than by measurement. Whatever the room is doing, it is doing the
-same thing to both.
+So for 2026-09-04:
+
+| | Outside | Room |
+|---|---|---|
+| morning | **~70 °F / 21.1 °C** | drifting toward outside, **below setpoint** — the coldest the room gets |
+| 16:00 | 89 °F / 31.7 °C (day's high) | pinned at the setpoint, **72 °F / 22.2 °C** |
+
+**The morning is the cold end, and the afternoon is the warm end.** That
+matches the observations directly: trial 0 failed at 11:09 in the coldest
+room of the day, trial 1 passed at 15:50 with the room at its ceiling.
+
+### Room ambient and board self-heating point the same way
+
+Both effects act in the same direction here, so 2026-09-04 does not
+separate them:
+
+- **Room:** ~70 °F in the morning, 72 °F in the afternoon.
+- **Board:** freshly powered at 11:09 for the first bench activity of the
+  day; running for hours by 15:50. A powered board typically sits well
+  above ambient, so this term is probably the larger of the two — a couple
+  of °F of room swing against ten or more of self-heating.
+
+They reinforce rather than compete, which is why the failure was so clean.
+It also means **either could be the actual driver**, and separating them is
+what the paired trials are for: trials 2 and 3 sit minutes apart in the
+same room, so room ambient is constant between them and only the board's
+temperature changes.
+
+Favourably for tomorrow, both trials land in the morning — the room's own
+coldest window — so trial 3 is the coldest combined condition available
+without any equipment.
 
 **Do not over-read a null.** If trial 3 passes, that does **not** refute
-temperature: an overnight swing of a few °F in a thermally massive house,
-plus a board that reaches ambient quickly, may simply not reach the
-threshold. A null result narrows nothing on its own, which is the whole
-reason this is a series and not an experiment.
+temperature: the room swing is only a couple of °F, and a board that
+reaches ambient quickly may still not cross the threshold. A null narrows
+nothing on its own, which is the whole reason this is a series and not an
+experiment.
 
 ## Limitations, recorded so they are not forgotten
 
