@@ -194,14 +194,17 @@ A.3–A.5). This is the order that actually matters:
    lossless" into evidence — which is exactly what a one-shot animal
    recording needs. Smallest change in the plan, largest information
    gain. Also retires T3.3's `cmd_is_00 = fifo_full` debug hijack.
-3. **A.7 step 2 — telemetry frame end to end.** *(Claude: MCU + bridge +
-   pc-app)* New `0xFFF4` notify characteristic, bridge discovery + CCCD,
-   `0xDD 0x22` re-framing with the bridge's own counters,
-   `serial_reader.py` decode, pc-app status line. Plus the MCU's
-   `ring_truncated_samples` and `stall_time_ms_total`. Riskiest part is
-   the bridge connection sequence — bring it up against an
-   already-streaming headstage so a telemetry failure is unambiguous.
-   **Ready to start; no dependency on 1 or 2.**
+3. **A.7 step 2 — telemetry frame end to end.** ✅ **Code complete
+   2026-09-04** *(Claude: MCU + bridge + pc-app)* — `0xFFF4`
+   characteristic, bridge discovery + fourth CCCD, `0xDD 0x22`
+   re-framing, `serial_reader.py` decode, pc-app attribution panel, plus
+   the MCU's `ring_truncated_samples` and `stall_time_ms_total`. Both
+   firmwares build clean; desk tests pass. **What remains is bench
+   bring-up, and it folds into item 1's session:** the bridge connection
+   sequence now writes a fourth CCCD and nothing desk-side can exercise
+   it. Bring it up against an already-streaming headstage so a telemetry
+   failure is unambiguous. Until item 2's RTL lands, every frame carries
+   `fpga_counters_valid = 0` by design — *absent*, not *clean*.
 4. **A.4 RTL — fully unblocked, nothing desk-side gates it.**
    `docs/interfaces/lvds-tunnel.md` is complete on both ends of the cable;
    O1 and O2 are closed. Order per its §12: `.pdc` `IO_TYPE=LVDS` + PAR
@@ -1803,7 +1806,8 @@ version handshake.
       - **T3.3's `cmd_is_00 = fifo_full` debug hijack is superseded by it**
         (`kuntur_fpga.v:118`), so that cleanup wants doing in the same pass
         rather than as a separate carried-over item.
-- [ ] **Step 2 — make loss measurable.** *(Claude: MCU + bridge + pc-app)*
+- [x] **Step 2 — make loss measurable.** ✅ **Implemented 2026-09-04,
+      desk-verified, not yet on hardware.** *(Claude: MCU + bridge + pc-app)*
       The telemetry frame end to end: new `0xFFF4` notify characteristic in
       `stream.c`'s service definition, the bridge's connection sequence
       extended to discover it and write its CCCD, bridge re-framing to
@@ -1814,10 +1818,33 @@ version handshake.
       `stall_time_ms_total`, which with the existing `s_flowoff_total` gives
       both halves of the stall duty cycle.
       Retires one of the three causes currently conflated in
-      `dropped_packets` on its own merit, independent of step 3. Riskiest
-      part is the bridge connection sequence, which has a history of
-      fragility — bring it up against an already-streaming headstage so a
-      telemetry failure is unambiguous.
+      `dropped_packets` on its own merit, independent of step 3.
+      - **Built:** MCU `0xFFF4` characteristic + byte-wise serialiser +
+        1 Hz `StreamTelemetryPoll()` + the two new counters; bridge
+        discovery, fourth CCCD and `0xDD 0x22` re-framing; pc-app
+        `telemetry.py`, three-way frame dispatch in `serial_reader.py`,
+        and an attribution column in the Debug Info panel. Both firmwares
+        compile clean with no new warnings; `test_telemetry.py` covers
+        §6.2's byte offsets, the dispatch through a real `SerialReader`
+        thread, forward-compatibility with a longer future frame, and the
+        loss-differencing arithmetic across a far-end counter reset.
+      - **Two spec gaps closed while building** (both now in the spec):
+        §6.2's `reserved` byte became `flags` bit 0
+        `fpga_counters_valid`, because "the FPGA counter cannot be read"
+        and "the FPGA counter reads zero" were indistinguishable and the
+        first is what is true until step 1 lands; and §6.6 now argues why
+        a 1 Hz regbank read mid-stream is safe from one specific call
+        site, which the agreed text had walked past — every other regbank
+        access in the firmware is confined to streaming being stopped.
+      - **One spec correction:** §6.5 named two MCU discard sites. Only
+        the `flow_off:` one is; the others clamp their FPGA *read*, so a
+        short read leaves the remainder in `fifo0` and loses nothing.
+      - **Still needs the bench** — the riskiest part is unchanged and
+        untestable at the desk: the bridge connection sequence now writes
+        a *fourth* CCCD. Bring it up against an already-streaming
+        headstage so a telemetry failure is unambiguous. Also worth
+        measuring there: the 1 Hz notify's real cost on packet rate
+        (argued negligible, ~60 µs/s, but `μ` was measured without it).
 - [x] **Step 3a — μ measured, λ set.** ✅ **2026-09-03.** Done *ahead of*
       steps 1–2 rather than after them, because the existing 22.8-minute
       recording turned out to measure both rates at once: the MCU always

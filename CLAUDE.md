@@ -88,7 +88,10 @@ BleGraphScreen / TimeSeriesGraph  — Compose UI + Canvas graph
 STM32WB0 (BLE peripheral "Kuntur-N", STREAM_MODE_WB09KE_HF)
     ↓  BLE 2M PHY, 244-byte notify packets
 NUCLEO-WB09KE          — BLE central, USB CDC ACM bridge (wb09ke-bridge/)
-    ↓  USB serial, framed: 0xAA 0x55 + uint16 length + 244-byte payload
+    ↓  USB serial, three frame types, all [magic][uint16 len][payload]:
+    ↓    0xAA 0x55  sample data     (244-byte payload)
+    ↓    0xEE 0x11  command response
+    ↓    0xDD 0x22  telemetry       (bridge appends its own TX-ring counters)
 SerialReader (QThread) — re-sync on magic, parse, emit batch_received signal
     ↓  ParsedPacket(ch0, ch1, timestamps_us)
 GraphWidget            — circular numpy buffer, pyqtgraph 30 fps plot
@@ -101,6 +104,8 @@ CsvRecorder            — timestamp_us,ch0,ch1  (identical format to Android)
 - **Notify characteristic**: `0xFFF2` (STM32 → host, `StreamDataPacket`)
 - **Write characteristic**: `0xFFF1` (host → STM32, command frames — see below)
 - **Response characteristic**: `0xFFF3` (notify, STM32 → host, command responses)
+- **Telemetry characteristic**: `0xFFF4` (notify, STM32 → host, ~1 Hz loss/anchor
+  frame — see below and `docs/interfaces/stream-packet-format.md` §6)
 - **Packet layout** (little-endian):
   - bytes 0–3: `uint32` timestamp_s
   - bytes 4–5: `uint16` timestamp_sub_s (ms%1000 × 32, range 0–31999)
@@ -137,6 +142,44 @@ Responses on `0xFFF3` — first byte always echoes the command opcode it answers
 `STOP_STREAMING` order matters: `SetStreamEnable(0)` → readback → only then flush `fifo0`,
 so the flush drains a static backlog rather than racing a live 30 kSPS producer. If the
 readback is non-zero the flush is skipped and logged loudly.
+
+### Telemetry plane (`0xFFF4` notify → `0xDD 0x22` frame)
+
+**A.7 step 2. Implemented 2026-09-04; builds clean on all three sides and is
+desk-verified, but has not run on hardware yet** — the bridge's connection
+sequence now writes a *fourth* CCCD, which is the part with a history of
+fragility. Spec and open items: `docs/interfaces/stream-packet-format.md` §6.
+
+A ~1 Hz frame carrying every loss counter plus an RTC time anchor, assembled in
+two hops: the MCU fills bytes 0–29 and notifies on `0xFFF4`; the bridge appends
+its own TX-ring truncation counters (bytes 30–37) and emits `0xDD 0x22`. The
+bridge never synthesises one from its own counters alone — no `0xFFF4`
+notification, no frame.
+
+Counters are **cumulative since `START_STREAMING`** and are never reset by a
+report, so a lost frame costs resolution rather than information. The point is
+attribution: `dropped_packets` in the pc-app conflates a USB backlog with a
+radio problem, and only the bridge can tell them apart.
+
+| Field | Answers |
+|---|---|
+| `fifo0_overflow_samples` / `fifo0_high_water` | FPGA outran the transport — **not yet readable, see below** |
+| `ring_truncated_samples` | MCU ring overflowed during a flow-off stall |
+| `flow_off_count` / `stall_time_ms_total` | both halves of the stall duty cycle |
+| `tx_ring_drop_bytes` / `tx_ring_drop_frames` | bridge USB backlog, *not* a radio problem |
+| none of the above moved, but samples are missing | lost on air |
+
+`flags` bit 0 `fpga_counters_valid` is `0` in this build and the two `fifo0_*`
+fields read `0`: the RTL counter (A.7 step 1) does not exist yet, and
+"cannot be read" must not look like "read as zero". The MCU switch is
+`STREAM_TELEMETRY_FPGA_COUNTERS` in `stream_app.c`; turning it on needs that
+switch plus the two regbank word addresses, and nothing else in the chain.
+
+**Why the MCU may read the regbank at 1 Hz while streaming**, when every other
+regbank access in the firmware is confined to the streaming-*stopped* branch:
+the read is issued from exactly one call site — the top of `StreamSendTask`, at
+a packet boundary, reads only, skipped during a flow-off. Full argument in the
+spec's §6.6; do not add a second call site without reading it.
 
 ## CSV Recording
 

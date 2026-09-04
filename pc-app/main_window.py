@@ -89,6 +89,22 @@ class MainWindow(QMainWindow):
         self._drops_prev = 0      # drops seen at previous status update
         self._total_underruns = 0 # cumulative FPGA FIFO underrun samples
 
+        # ── A.7 telemetry (docs/interfaces/stream-packet-format.md section 6)
+        # Latest frame, or None if the headstage/bridge has never sent one.
+        # "Never sent one" is displayed as such and never as zeros: section
+        # 6.3 forbids reading no-frame-yet as no-loss-yet.
+        self._telemetry: object | None = None
+        # Whole-path sample loss, accumulated by DIFFERENCING consecutive
+        # frames rather than by comparing absolute totals (section 6.7): over
+        # one interval the MCU produced (Δ anchor_sample_index) samples and
+        # this app received (Δ total_samples), and the shortfall is loss
+        # between them. Differencing means a counter reset on the MCU
+        # (START_STREAMING, reconnect) shows up as a negative Δ that is simply
+        # skipped — no reset has to be tracked on this side, which is the
+        # whole reason it is done this way.
+        self._telem_prev: tuple[int, int] | None = None   # (anchor, received)
+        self._path_loss_samples = 0
+
         # SET_CHANNELS readback verification (section 4) — the pair we're
         # waiting to see echoed back on 0xFFF3, or None if nothing pending.
         self._pending_channels: tuple[int, int] | None = None
@@ -380,7 +396,7 @@ class MainWindow(QMainWindow):
 
     def _build_debug_panel(self) -> QGroupBox:
         box = QGroupBox("Debug Info")
-        box.setMaximumHeight(90)
+        box.setMaximumHeight(96)
         outer = QHBoxLayout(box)
 
         def lbl(text, bold=False):
@@ -436,6 +452,45 @@ class MainWindow(QMainWindow):
 
         grid.setColumnStretch(1, 1)
         grid.setColumnStretch(3, 1)
+
+        # ── Telemetry column (A.7 step 2) ────────────────────────────────
+        # Its own column rather than more rows in the grid above: these are
+        # counters about loss ATTRIBUTION, and the whole point of section 7's
+        # table is that they answer a different question from the throughput
+        # numbers beside them. Mixing them into the same block would invite
+        # reading "drops" and "bridge drop" as the same kind of thing.
+        divider2 = QFrame()
+        divider2.setFrameShape(QFrame.Shape.VLine)
+        divider2.setFrameShadow(QFrame.Shadow.Sunken)
+        outer.addWidget(divider2)
+
+        tgrid = QGridLayout()
+        tgrid.setHorizontalSpacing(24)
+        tgrid.setVerticalSpacing(2)
+        outer.addLayout(tgrid, stretch=1)
+
+        tgrid.addWidget(lbl("Telemetry:"),  0, 0)
+        tgrid.addWidget(lbl("FPGA ovf:"),   1, 0)
+        tgrid.addWidget(lbl("Ring trunc:"), 2, 0)
+        tgrid.addWidget(lbl("Stalls:"),     0, 2)
+        tgrid.addWidget(lbl("Bridge drop:"), 1, 2)
+        tgrid.addWidget(lbl("Path loss:"),  2, 2)
+
+        self._lbl_telem_state  = lbl("no frames")
+        self._lbl_telem_fifo   = lbl("—")
+        self._lbl_telem_ring   = lbl("—")
+        self._lbl_telem_stalls = lbl("—")
+        self._lbl_telem_bridge = lbl("—")
+        self._lbl_telem_loss   = lbl("—")
+        tgrid.addWidget(self._lbl_telem_state,  0, 1)
+        tgrid.addWidget(self._lbl_telem_fifo,   1, 1)
+        tgrid.addWidget(self._lbl_telem_ring,   2, 1)
+        tgrid.addWidget(self._lbl_telem_stalls, 0, 3)
+        tgrid.addWidget(self._lbl_telem_bridge, 1, 3)
+        tgrid.addWidget(self._lbl_telem_loss,   2, 3)
+
+        tgrid.setColumnStretch(1, 1)
+        tgrid.setColumnStretch(3, 1)
         return box
 
     # ── Signal wiring ─────────────────────────────────────────────────────────
@@ -447,6 +502,7 @@ class MainWindow(QMainWindow):
         self._reader.connection_changed.connect(self._on_connection_changed)
         self._reader.error.connect(self._on_error)
         self._reader.channels_readback.connect(self._on_channels_readback)
+        self._reader.telemetry_received.connect(self._on_telemetry)
         self._reader.stop_streaming_ack.connect(self._on_stop_ack)
         self._reader.start_streaming_ack.connect(self._on_start_ack)
 
@@ -541,6 +597,33 @@ class MainWindow(QMainWindow):
                 self._btn_rec.setChecked(False)
                 self._toggle_recording(False)
 
+    def _on_telemetry(self, frame) -> None:
+        """One ~1 Hz telemetry frame — docs/interfaces/stream-packet-format.md
+        section 6. Updates the attribution counters and the whole-path loss
+        figure; the labels themselves are refreshed by _update_status()."""
+        received = self._reader.total_samples
+
+        if self._telem_prev is not None:
+            prev_anchor, prev_received = self._telem_prev
+            # uint32, and section 3.1 requires modular comparison. A wrap
+            # (21.3 h at the 16-bit modes' aggregate) and a counter reset both
+            # land here; the wrap is a legitimate small positive delta under
+            # modular arithmetic, a reset is not, so bound the delta by what
+            # could plausibly have been produced in one interval instead of
+            # trusting the subtraction.
+            d_anchor   = (frame.anchor_sample_index - prev_anchor) % (1 << 32)
+            d_received = received - prev_received
+            plausible  = 0 <= d_received <= d_anchor <= 10_000_000
+            if plausible:
+                self._path_loss_samples += d_anchor - d_received
+            # Implausible means the epochs don't match (START_STREAMING reset,
+            # a reconnect, or a frame lost across a long gap). Skip the
+            # interval rather than book a fictional loss — and re-anchor below
+            # so the next interval is measured from here.
+
+        self._telem_prev = (frame.anchor_sample_index, received)
+        self._telemetry  = frame
+
     def _on_connection_changed(self, connected: bool, port: str):
         self._is_connected = connected
         if connected:
@@ -553,6 +636,14 @@ class MainWindow(QMainWindow):
             self._rate_ts         = time.time()
             self._rate_pkts       = 0
             self._total_underruns = 0
+            # A new link means a new counter epoch on the far end. Clearing
+            # these is belt-and-braces — _on_telemetry's plausibility check
+            # already skips the straddling interval — but it also puts the
+            # panel back to "no frames", which is the honest state until one
+            # actually arrives.
+            self._telemetry   = None
+            self._telem_prev  = None
+            self._path_loss_samples = 0
             self.statusBar().showMessage(f"Connected on {port}")
             # Open bench log for this session
             ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -906,6 +997,71 @@ class MainWindow(QMainWindow):
         self._btn_connect.setText("Connect")
         self.statusBar().showMessage(f"Error: {msg}")
 
+    def _update_telemetry_labels(self) -> None:
+        """Render the A.7 attribution counters — section 6.
+
+        Three display states, and keeping them apart is the point of the
+        panel:
+          - no frame received      -> "no frames", every counter "—"
+          - frame, FPGA counters absent (A.7 step 1's RTL not built yet)
+                                   -> FPGA row reads "n/a", not "0"
+          - frame, FPGA counters present
+                                   -> real numbers
+
+        Section 6.3's third rule is that a receiver must not read "no
+        telemetry yet" as "no loss yet"; the same reasoning applies one level
+        down to a counter the headstage could not read. A zero in either of
+        those places would be a claim the system has not earned.
+        """
+        t = self._telemetry
+        if t is None:
+            self._lbl_telem_state.setText("no frames")
+            self._lbl_telem_state.setStyleSheet("font-size: 11px; color: gray;")
+            return
+
+        self._lbl_telem_state.setText(f"v{t.version}  ×{self._reader.telemetry_frames}")
+        self._lbl_telem_state.setStyleSheet("font-size: 11px; color: green;")
+
+        if t.fpga_counters_valid:
+            self._lbl_telem_fifo.setText(
+                f"{t.fifo0_overflow_samples:,}  (hw {t.fifo0_high_water:,})")
+            self._paint_red_if(self._lbl_telem_fifo, t.fifo0_overflow_samples)
+        else:
+            # Absent, not clean — see the docstring and telemetry.py.
+            self._lbl_telem_fifo.setText("n/a (no RTL counter)")
+            self._lbl_telem_fifo.setStyleSheet("font-size: 11px; color: gray;")
+
+        self._lbl_telem_ring.setText(f"{t.ring_truncated_samples:,}")
+        self._paint_red_if(self._lbl_telem_ring, t.ring_truncated_samples)
+
+        # Both halves of the stall duty cycle spec section 1.3's margin has to
+        # clear — the number A.7 step 3b needs measured rather than assumed.
+        # Sub-second totals shown in ms: early in a session the whole figure is
+        # tens of milliseconds, and rounding that to "0.0 s" would hide exactly
+        # the quantity this row exists to expose.
+        if t.stall_time_ms_total < 1000:
+            stall_str = f"{t.stall_time_ms_total:,} ms"
+        else:
+            stall_str = f"{t.stall_time_ms_total / 1000.0:.1f} s"
+        self._lbl_telem_stalls.setText(f"{t.flow_off_count:,}  /  {stall_str}")
+
+        self._lbl_telem_bridge.setText(
+            f"{t.tx_ring_drop_bytes:,} B  /  {t.tx_ring_drop_frames:,} fr")
+        self._paint_red_if(self._lbl_telem_bridge, t.tx_ring_drop_frames)
+
+        self._lbl_telem_loss.setText(f"{self._path_loss_samples:,}")
+        self._paint_red_if(self._lbl_telem_loss, self._path_loss_samples)
+
+    @staticmethod
+    def _paint_red_if(label, value: int) -> None:
+        """Red once non-zero and red thereafter — same convention the drop
+        counter already uses: a loss that happened does not stop having
+        happened because the next interval was clean."""
+        if value:
+            label.setStyleSheet("font-size: 11px; color: #B71C1C; font-weight: bold;")
+        else:
+            label.setStyleSheet("font-size: 11px;")
+
     def _update_status(self):
         """Called every 2 s — update packet count, rate, drop counter, status bar."""
         pkts  = self._reader.total_packets
@@ -929,6 +1085,7 @@ class MainWindow(QMainWindow):
             self._lbl_thru.setText(f"{kbps:.0f} kbit/s")
             ur_pct = 100.0 * self._total_underruns / max(1, pkts * 59)
             self._lbl_underruns.setText(f"{self._total_underruns:,}  ({ur_pct:.1f}%)")
+            self._update_telemetry_labels()
             self._rate_ts    = now
             self._rate_pkts  = pkts
             self._drops_prev = drops
