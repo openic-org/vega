@@ -252,12 +252,32 @@ any constraint alongside `mregion0`-`mregion7`, never by removing them,
 and (b) measure rather than guess a phase — but the first task is no
 longer a fix, it is a **measurement of the failure's own behaviour**.
 
-**Repo state.** `vega` `main` is current. **`kuntur` is on
-`session-2026-08-31-checkpoint` (now `7e1f8a5`), not `main`** — `main`
-remains deliberately parked at `e2bac25` until the SCK/MOSI question is
-settled, so today's fH change was merged to the checkpoint branch rather
-than fast-forwarding `main`. Three harmless comment-only commits sit on
-old `main`, safe to fast-forward onto whenever.
+**Repo state, 2026-09-04.** Both repos are on `main` and current:
+`vega` at `e083587`, `kuntur` at `461a682`.
+
+**`kuntur` `main` is no longer parked.** It had been held at `e2bac25`
+since 2026-08-31 "until the SCK/MOSI question is settled", with work
+accumulating on `session-2026-08-31-checkpoint`; that branch is now merged
+and fully contained in `main`.
+
+**The park ended because the question was malformed, not because it was
+answered** — and the distinction matters enough to record, because the
+merge on its own reads as a resolution. What `main` was waiting for was a
+re-confirmation that `324a21c`'s bitstream is good. A.1.2 shows no single
+ladder run can establish that: the same bitstream failed twice cold and
+passed warm on 2026-09-04. The evidence the park was waiting for cannot be
+produced in the form it was framed, and holding `main` for it indefinitely
+was worse than merging. **chip0's status is open, and merging did not
+change it** — see critical-path item 0.
+
+Carried into `main` by the merge: the fH = 7.5 kHz change (`6563edc`), the
+A.7 telemetry MCU half (`5f3bbd7`), the Radiant-artifact untracking
+(`0effd91`), and the bitstream recorded with its bench result
+(`761d662`). Coming the other way, the five comment-only commits that had
+sat on old `main` — `fifo0` is 4096 pairs not 1024, the bit-bang pins are
+AHB not APB0, and a dead enum member — all real corrections. The merge was
+dry-run with `git merge-tree` before it was taken: clean, no conflicts,
+`stream_app.c` auto-merged.
 
 **Live external gate: NONE, as of 2026-09-04.** A.0's animal-protocol
 amendment — carried since 2026-08-05 and the last item on the plan whose
