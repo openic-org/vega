@@ -1,15 +1,22 @@
 # Stream packet format (v1) — interface spec
 
-**Status: AGREED 2026-08-28, not yet implemented.** Written before any
-code, per PLAN.md working principle 5 and the standing project rule that
-cross-boundary interfaces get a spec first. This is a **breaking
-wire-format change** to the `0xFFF2` notify payload, plus one new
-characteristic and one new frame type; it supersedes the format
-documented in CLAUDE.md's *BLE Device Protocol* section (here called
-**v0**).
+**Status: AGREED 2026-08-28. §6's telemetry frame implemented
+2026-09-04 (desk-verified, not yet on hardware — §6.8); the v1 header
+(§3–§4) remains unimplemented.** Written before any code, per PLAN.md
+working principle 5 and the standing project rule that cross-boundary
+interfaces get a spec first. This is a **breaking wire-format change** to
+the `0xFFF2` notify payload, plus one new characteristic and one new
+frame type; it supersedes the format documented in CLAUDE.md's *BLE
+Device Protocol* section (here called **v0**).
 
-CLAUDE.md is deliberately **not** updated to describe any of this yet —
-it documents as-built, and none of this is built (working principle 4).
+The two halves are independent and were always meant to be: §6's frame is
+a pure addition that breaks nothing and needed no version handshake,
+which is why it could be built first, ahead of the header change it was
+originally bundled with.
+
+CLAUDE.md is deliberately **not** updated to describe the v1 header — it
+documents as-built, and that half is not built (working principle 4). It
+*does* now describe `0xFFF4` and the `0xDD 0x22` frame, which are.
 
 **Agreed with Manuel, 2026-08-28** — the four questions that were open at
 proposal, now closed:
@@ -801,20 +808,61 @@ into the frame itself (§6.2).
 
 ### 6.2 Contents
 
-| Group | Field | Type | Source |
-|---|---|---|---|
-| Header | `telemetry_version` | `uint8` | constant, `1` |
-| Header | `reserved` | `uint8` | must be 0 |
-| Anchor | `anchor_sample_index` | `uint32` | MCU |
-| Anchor | `anchor_timestamp_s` | `uint32` | MCU RTC |
-| Anchor | `anchor_timestamp_sub_s` | `uint16` | MCU RTC |
-| FPGA | `fifo0_overflow_samples` | `uint32` | regbank (new, §6.4) |
-| FPGA | `fifo0_high_water` | `uint16` | regbank (new, §6.4) |
-| MCU | `ring_truncated_samples` | `uint32` | `stream_app.c` |
-| MCU | `flow_off_count` | `uint32` | `s_flowoff_total` |
-| MCU | `stall_time_ms_total` | `uint32` | new, §6.5 |
-| Bridge | `tx_ring_drop_bytes` | `uint32` | `s_drop_bytes` (exists) |
-| Bridge | `tx_ring_drop_frames` | `uint32` | `s_drop_frames` (exists) |
+| Off | Group | Field | Type | Source |
+|---|---|---|---|---|
+| 0 | Header | `telemetry_version` | `uint8` | constant, `1` |
+| 1 | Header | `flags` | `uint8` | MCU — see below |
+| 2 | Anchor | `anchor_sample_index` | `uint32` | MCU |
+| 6 | Anchor | `anchor_timestamp_s` | `uint32` | MCU RTC |
+| 10 | Anchor | `anchor_timestamp_sub_s` | `uint16` | MCU RTC |
+| 12 | FPGA | `fifo0_overflow_samples` | `uint32` | regbank (new, §6.4) |
+| 16 | FPGA | `fifo0_high_water` | `uint16` | regbank (new, §6.4) |
+| 18 | MCU | `ring_truncated_samples` | `uint32` | `stream_app.c` |
+| 22 | MCU | `flow_off_count` | `uint32` | `s_flowoff_total` |
+| 26 | MCU | `stall_time_ms_total` | `uint32` | new, §6.5 |
+| 30 | Bridge | `tx_ring_drop_bytes` | `uint32` | `s_drop_bytes` (exists) |
+| 34 | Bridge | `tx_ring_drop_frames` | `uint32` | `s_drop_frames` (exists) |
+
+All fields little-endian. **The MCU half is bytes 0–29 (30 bytes) and is
+what appears on `0xFFF4`; the bridge appends bytes 30–37, making the
+`0xDD 0x22` payload 38 bytes.** Offsets are given because three
+independent implementations have to agree on them, and the field order
+puts the version byte first so a receiver can dispatch on it before
+knowing anything else. Nothing here is aligned for free — `uint32`s sit
+at odd-ish offsets 2, 6, 18, 22, 26 — so **every implementation packs and
+unpacks byte-wise, never by casting a struct pointer.** On the Cortex-M0+
+(both the headstage MCU and the bridge) an unaligned `uint32` load
+HardFaults; that is the same class of bug the `aligned(4)` note on
+`StreamDataPacket_t` records, and the cost of avoiding it here is ten
+lines of explicit little-endian stores on a 1 Hz path.
+
+#### `flags` — bit 0 `fpga_counters_valid`
+
+*Added 2026-09-04, during implementation. Byte 1 was `reserved, must be
+0` at agreement.* The two FPGA fields have three possible meanings and
+the frame as agreed could express only two of them: a real zero, and a
+non-zero count. The third — **"this build cannot read them"** — is the
+one that is actually true today and will stay true for as long as step 1
+(§6.4's RTL counter) is unbuilt, and reporting it as `0` is exactly the
+silent-zero failure §6.3's third rule exists to forbid one level up.
+
+- **bit 0 `fpga_counters_valid`** — `1` when
+  `fifo0_overflow_samples` / `fifo0_high_water` were actually read from
+  the regbank for this frame. `0` when they were not, in which case both
+  fields **must** be transmitted as `0` and a receiver **must not**
+  display or accumulate them.
+- **bits 1–7 reserved, must be 0.**
+
+A receiver that sees `fpga_counters_valid == 0` for a whole session knows
+its FPGA-side loss accounting is *absent*, not *clean* — which is a
+different thing, and the distinction is the entire point of §7's
+attribution table. Its top row ("`fifo0_overflow_samples` moved →
+producer-side loss") is unusable without it: with a silent zero, "did not
+move" and "cannot be read" look identical.
+
+This costs nothing on the wire and keeps the frame's size and every other
+offset unchanged, which is why it is worth taking now rather than
+spending `telemetry_version` 2 on it later.
 
 **The anchor pair is the whole reason absolute time survives leaving the
 per-packet header.** `(anchor_sample_index, anchor_timestamp_s/sub_s)`
@@ -840,11 +888,55 @@ alone.
   and never reset by a report.** A lost telemetry frame then costs
   resolution, not information: the receiver diffs against the last one it
   actually received.
-- **Cadence ~1 Hz.** At 474.6 pkt/s of data traffic one extra frame per
-  second is negligible; it does not need to be exact and must not be
-  emitted from the hot send path.
+- **Cadence ~1 Hz.** It does not need to be exact and must not be emitted
+  from the hot send path. **Confirmed 2026-09-04** against the obvious
+  cheaper alternative (once per minute) — see §6.3.1 for why cost is not
+  what sets this.
 - A receiver **must not** infer that "no telemetry frame yet" means "no
   loss yet".
+
+#### 6.3.1 Why 1 Hz and not once per minute
+
+*Added 2026-09-04. The original text justified the cadence on cost — one
+frame against 474.6 pkt/s is negligible — which answers "why not faster"
+and says nothing about "why not slower". Cost does not decide this: 1 Hz
+is ~0.2% of packet slots and 1/min is ~0.003%, and both are free. What
+the rate buys is **time resolution**, and three things need it.*
+
+Because counters are cumulative, a slower cadence loses no *totals* — it
+loses the ability to say which loss episode was which.
+
+1. **Attribution bracket.** §7 attributes a gap by differencing counters
+   across it, so the bracket is one telemetry interval wide. The binding
+   number is §1.5's measurement: the ~116 ms stalls occurred **five times
+   in 22.8 min, minimum spacing 60 s.** At a 1-minute cadence the
+   sampling interval *equals* the observed minimum event spacing — two
+   independent episodes can land in one bucket with several counters
+   moved, and attribution fails exactly when there is something to
+   attribute. 1 Hz leaves 60× margin.
+2. **Short recordings would carry no anchor.** §6.2's anchor pair is what
+   carries absolute time once §3.1 drops the per-packet timestamp. A
+   recording that starts and ends between two anchors contains none, and
+   has no absolute time at all. At 1/min that is most bench recordings;
+   at 1 Hz anything past ~2 s is covered.
+3. **Time to detect that telemetry itself is broken.** "No frame yet" and
+   "the `0xFFF4` CCCD was never enabled" are indistinguishable until a
+   frame arrives — the same ambiguity the rule above this one exists to
+   guard. At 1 Hz the pc-app's 2 s status tick surfaces it within one
+   refresh; at 1/min the panel shows a stale frame 96% of the time.
+   Discovering at t+60 s that loss accounting was never running is a
+   materially worse failure in a **one-shot** animal recording, which is
+   the case A.7 exists for.
+
+**And not faster than 1 Hz either:** stall episodes are ~100 ms but
+spaced ~60 s apart, so 1 Hz already resolves them individually. Finer
+buys no attribution and starts consuming mblocks from the same pool the
+data stream contends for.
+
+1 Hz therefore sits at ~60× margin on the resolution it needs and ~500×
+on cost — a comfortable point rather than a tuned one, which is the right
+shape for a diagnostic. `STREAM_TELEMETRY_PERIOD_MS` in `stream_app.c`
+if the bench ever argues otherwise.
 
 ### 6.4 New RTL requirement
 
@@ -865,11 +957,22 @@ should be built as its first use case rather than separately.
 
 ### 6.5 New MCU counters
 
-- `ring_truncated_samples` — `stream_app.c:1098-1103`, the `flow_off:`
-  path, clamps its 59-pair push to whatever ring room remains and
-  **silently discards the remainder**. Only reachable when the ring is
-  already full, but real and uncounted. `StreamContinuousPollDuringStall`
-  (`:826-835`) has the same clamp shape.
+- `ring_truncated_samples` — the `flow_off:` path clamps its 59-pair push
+  to whatever ring room remains and **silently discards the remainder**.
+  Those pairs have already been popped out of `fifo0`, so they exist
+  nowhere else. Only reachable when the ring is already full, but real and
+  uncounted.
+
+  *Correction, 2026-09-04, found while implementing:* this section also
+  named `StreamContinuousPollDuringStall` (and by the same shape
+  `StreamIngestDuringStall`) as a second discard site. **It is not one.**
+  Both clamp their FPGA *read* — `if (n > room) n = room;` before
+  `FPGA_SPI_ReadSamples(tmp, n)` — so a short read simply leaves the
+  remainder sitting in `fifo0`, which is the intended backpressure and
+  loses nothing. The clamp *looks* identical to the `flow_off:` one and is
+  not, because in the `flow_off:` case the samples are already in hand.
+  There is exactly one MCU-side discard site, and `ring_truncated_samples`
+  counts it.
 - `stall_time_ms_total` — accumulated time with `s_txFlowOff` set. With
   `flow_off_count` this yields both halves of §1.3's stall duty cycle,
   which is the number nobody currently has and which `m` cannot be chosen
@@ -878,6 +981,130 @@ should be built as its first use case rather than separately.
 Backpressure elsewhere in the headstage already behaves correctly and
 needs no counter: a full MCU ring stops `StreamIngestDuringStall`, which
 pushes pressure back onto `fifo0` rather than dropping.
+
+### 6.6 When the MCU may read the FPGA counters
+
+*Added 2026-09-04, during implementation of step 2.*
+
+§6.4 says the MCU reads the FPGA counters "over the existing `REG_READ16`
+path — no new mechanism". That is true about the *primitive* and false
+about the *calling context*, and the difference is a real hazard the
+agreed text walked past.
+
+**The invariant it collides with.** Every regbank access built so far is
+structurally confined to streaming being *stopped*
+(`fpga_spi.h`: "never interleaved with an in-progress
+`FPGA_SPI_ReadSamples()`. Structural as built — `0xFFF1` rejects these
+unless streaming is already stopped, and they execute from
+`StreamSendTask`'s stopped branch"; and
+`channel-selection-control-plane.md` §5, which exists because an earlier
+inline placement hung the MCU). A 1 Hz telemetry frame that reads the
+regbank while streaming is, on its face, the first violation of that
+rule.
+
+**Why it is nonetheless safe, stated as a construction rather than a
+hope.** The invariant's operative clause is *interleaved with an
+in-progress `FPGA_SPI_ReadSamples()`* — a bit-banged SPI0 sequence has no
+preemption to interleave *within*, so what it actually forbids is issuing
+regbank transfers from a context that can land in the middle of one:
+a BLE callback, an ISR, or the pre-A.1.1g FSM state where a POP pair
+could be left half-open. None of those apply here if, and only if, the
+read is issued from **one fixed point: the top of `StreamSendTask`'s send
+loop, between two whole packets, with no `FPGA_SPI_ReadSamples()` in
+progress and none possible until the loop continues.** A.1.1g's trailing
+NOP already guarantees the FSM is clean at that point (it is the same
+property `StreamFlushFpgaFifo` relies on), and `s_command_busy` is
+untouched because no command is involved.
+
+**The three rules that make it a construction:**
+
+1. **Reads only, never writes.** A `REG_WRITE16` mid-stream can change
+   the sampling table under a live conversion; a `REG_READ16` changes no
+   FPGA state.
+2. **From `StreamSendTask` only, at a packet boundary.** Never from the
+   `0xFFF1` callback, never from a timer, never from the flow-off branch
+   (`fifo0` is under maximum pressure there — the worst possible moment
+   to spend SPI0 time not popping it).
+3. **Skipped, not deferred, if the moment is wrong.** If the send loop
+   does not reach its top for a whole second (a long stall), that
+   second's frame goes out with `fpga_counters_valid = 0` rather than
+   forcing the read somewhere less safe. A telemetry frame is worth
+   nothing next to the stream it measures.
+
+**Cost.** Two 16-bit transfers per counter word, three words, ~10 µs per
+transfer bit-banged ≈ **60 µs per second**, or 0.006% of the send loop's
+time — against a packet period of ~2 ms, so at most one packet is
+displaced per second, and only if the read straddles a send opportunity.
+That is inside the `m` = 5.23% rate margin by three orders of magnitude
+(§1.5.2), and it is the reason the cadence is 1 Hz and not faster.
+
+**Until §6.4's RTL lands**, no regbank read is issued at all and the
+frame carries `fpga_counters_valid = 0` (§6.2). The MCU code is written
+so that turning it on is a single compile-time switch plus the two word
+addresses, and the switch is what the RTL step flips — the telemetry
+chain does not need re-testing when it does.
+
+### 6.7 The anchor is a loss detector under v0, not only future-proofing
+
+`anchor_sample_index` counts **aggregate samples since
+`START_STREAMING`** — 2 per pair, so +118 per full v0 packet — exactly as
+§3.1 defines it for the v1 header. Under v0 that field does not appear in
+the per-packet header, so nothing on the wire carries it except this
+frame.
+
+It is still worth counting from day one, and not only so the counter is
+already correct when v1 arrives. A v0 receiver can maintain the *same*
+count independently (packets received × `num_pairs` × 2, from stream
+start), and **the difference between the MCU's anchor and the receiver's
+own count is the total sample loss between them, measured directly.**
+That is a whole-path loss figure available immediately, without the v1
+header, and it is independent of `seq_num` — which only counts *packets*
+and cannot see a short packet or a truncated frame at all.
+
+Where it stays weaker than v1: it says *how many* samples were lost since
+stream start, not *where*. §7's positional answer still needs the v1
+header.
+
+### 6.8 Implementation status, 2026-09-04
+
+Step 2 (§9) is **built on all three sides and desk-verified; nothing here
+has met hardware.** What that means precisely, because "implemented" and
+"working" are not the same claim:
+
+| Side | File | Built | Verified how |
+|---|---|---|---|
+| MCU | `stream.c` / `stream.h` — `0xFFF4` char, CCCD, byte-wise serialiser | ✅ | compiles clean, no new warnings |
+| MCU | `stream_app.c` — counters, 1 Hz `StreamTelemetryPoll()` | ✅ | compiles clean |
+| Bridge | `vega_bridge_app.c` — discovery, 4th CCCD, `0xDD 0x22` re-framing | ✅ | compiles clean |
+| pc-app | `telemetry.py`, `serial_reader.py`, `main_window.py` | ✅ | `test_telemetry.py`, offscreen GUI smoke test |
+
+**Desk-verified** covers the parts that can be: §6.2's byte offsets (a
+test builds a frame field-by-field from the table above and asserts every
+one back out), the three-way magic dispatch through the real
+`SerialReader` thread over a pty, forward-compatibility with a longer
+future frame, the `fpga_counters_valid` distinction, and the
+loss-differencing arithmetic including a far-end counter reset.
+
+**Not verified, and needing the bench:**
+
+1. **The bridge's connection sequence with a fourth CCCD.** Named in §9 as
+   the riskiest part, and unchanged in that assessment: this sequence has
+   a history of fragility, and nothing desk-side can exercise it. Bring it
+   up per §9 — against a headstage that is *already streaming*, so a
+   telemetry failure is unambiguous rather than tangled up in a
+   stream-that-never-started.
+2. **The 1 Hz notify's real cost on the send loop.** Argued at ~60 µs/s
+   in §6.6 and believed negligible, but `μ` was measured without it. A
+   before/after packet-rate comparison is nearly free at the same bench
+   session and would close it.
+3. **`fifo0_overflow_samples` end to end** — blocked on step 1's RTL, by
+   construction. Until then every frame carries `fpga_counters_valid = 0`.
+
+**What is deliberately absent.** No FPGA regbank read is issued: the MCU
+switch `STREAM_TELEMETRY_FPGA_COUNTERS` is `0` and the two word addresses
+are placeholders, because §6.4's counter does not exist in the RTL yet.
+Turning it on is that switch plus the addresses — the rest of the chain
+does not change, so it does not need re-testing when step 1 lands.
 
 ---
 
@@ -977,9 +1204,10 @@ telemetry it depends on exists. Do not reorder 1–3.
    in `stream.c`'s service definition, the bridge's connection sequence
    extended to discover it and write its CCCD, bridge re-framing to
    `0xDD 0x22` with its own counters appended, `serial_reader.py` decode,
-   pc-app status line. §6. Retires one of the three causes currently
-   conflated in `dropped_packets` on its own, independent of everything
-   below. The riskiest part is the bridge connection sequence, which has
+   pc-app status line. §6. ✅ **Implemented 2026-09-04, desk-verified,
+   not yet bench-verified** — see §6.8. Retires one of the three causes
+   currently conflated in `dropped_packets` on its own, independent of
+   everything below. The riskiest part is the bridge connection sequence, which has
    a history of fragility — bring it up against a headstage that is
    already streaming, so a telemetry failure is unambiguous.
 3. **Measure.** `μ_low` (re-measure the packet-rate ceiling directly —

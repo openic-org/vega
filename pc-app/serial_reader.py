@@ -8,6 +8,7 @@ import serial.tools.list_ports
 from PyQt6.QtCore import QThread, pyqtSignal
 import numpy as np
 from packet_parser import parse, ParsedPacket, MAGIC, PACKET_SIZE, SAMPLE_RATE_HZ
+import telemetry
 
 BAUD_RATE   = 2000000  # must match WB09KE bridge USART1; ST-LINK VCP is baud-sensitive
 READ_TIMEOUT = 1.0     # seconds
@@ -37,6 +38,12 @@ CMD_REG_READ16     = 0x05
 #   CMD_REG_READ16     (0x05): [0x05, addr, lo, hi] (4 bytes)
 RESPONSE_MAGIC = bytes([0xEE, 0x11])
 
+# Telemetry framing (bridge -> pc-app). See
+# docs/interfaces/stream-packet-format.md section 6 and telemetry.py.
+# ~1 Hz, out of band from the sample stream: cumulative loss counters from the
+# FPGA, the MCU and the bridge, plus the RTC time anchor.
+TELEMETRY_MAGIC = telemetry.TELEMETRY_MAGIC
+
 
 class SerialReader(QThread):
     """
@@ -54,6 +61,8 @@ class SerialReader(QThread):
     # type (CMD_REG_WRITE16 / CMD_REG_READ16), addr, value — register console.
     # For a write, value is what the FPGA regbank read back, not what was sent.
     reg_access_response = pyqtSignal(int, int, int)
+    # telemetry.TelemetryFrame — ~1 Hz loss report, section 6.
+    telemetry_received = pyqtSignal(object)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -64,6 +73,12 @@ class SerialReader(QThread):
         # Statistics
         self.total_packets  = 0
         self.dropped_packets = 0
+        # Aggregate samples received (2 per pair — both channels), counted the
+        # same way the MCU counts anchor_sample_index so the two are directly
+        # comparable. Their difference over an interval is the whole-path
+        # sample loss; see docs/interfaces/stream-packet-format.md section 6.7.
+        self.total_samples  = 0
+        self.telemetry_frames = 0
         self._expected_seq: int | None = None
 
         # Monotonicity clamp: tracks the last timestamp emitted so that
@@ -154,21 +169,28 @@ class SerialReader(QThread):
 
             buf.extend(chunk)
 
-            # Re-sync: find whichever magic (data or command-response) comes
-            # first and extract complete frames of that type.
+            # Re-sync: find whichever frame magic comes first and extract
+            # complete frames of that type. Three types share this wire —
+            # 0xAA 0x55 samples, 0xEE 0x11 command responses, 0xDD 0x22
+            # telemetry — all with the same [magic][uint16 len][payload]
+            # shape, so only the dispatch below differs.
             while True:
-                idx_data = buf.find(MAGIC)
-                idx_resp = buf.find(RESPONSE_MAGIC)
+                found = [
+                    (buf.find(magic), kind)
+                    for magic, kind in (
+                        (MAGIC,           "data"),
+                        (RESPONSE_MAGIC,  "response"),
+                        (TELEMETRY_MAGIC, "telemetry"),
+                    )
+                ]
+                found = [(i, kind) for i, kind in found if i != -1]
 
-                if idx_data == -1 and idx_resp == -1:
-                    # Neither magic found — keep last 1 byte (could be partial magic)
+                if not found:
+                    # No magic found — keep last 1 byte (could be partial magic)
                     buf = buf[-1:]
                     break
 
-                if idx_resp == -1 or (idx_data != -1 and idx_data <= idx_resp):
-                    idx, is_response = idx_data, False
-                else:
-                    idx, is_response = idx_resp, True
+                idx, kind = min(found)
 
                 if idx > 0:
                     # Discard garbage before magic
@@ -187,7 +209,14 @@ class SerialReader(QThread):
                 payload = bytes(buf[4:total_frame])
                 buf = buf[total_frame:]
 
-                if is_response:
+                if kind == "telemetry":
+                    frame = telemetry.parse(payload)
+                    if frame is not None:
+                        self.telemetry_frames += 1
+                        self.telemetry_received.emit(frame)
+                    continue
+
+                if kind == "response":
                     if len(payload) >= 1:
                         rtype = payload[0]
                         if rtype == CMD_SET_CHANNELS and len(payload) >= 3:
@@ -237,6 +266,9 @@ class SerialReader(QThread):
                 self._expected_seq = (seq + 1) % 256
 
                 self.total_packets += 1
+                # 2 samples per pair — the same aggregate the MCU's
+                # anchor_sample_index counts (spec section 3.1/6.7).
+                self.total_samples += packet.header.num_pairs * 2
                 self.batch_received.emit(packet)
 
         try:

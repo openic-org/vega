@@ -8,9 +8,17 @@
  *
  *   [0xAA][0x55][len_lo][len_hi][payload…]
  *
+ * Three frame types go out on the UART, distinguished by magic:
+ *   [0xAA][0x55] sample data      (0xFFF2)
+ *   [0xEE][0x11] command response (0xFFF3)
+ *   [0xDD][0x22] telemetry        (0xFFF4, with this bridge's own TX-ring
+ *                                  counters appended — stream-packet-format.md
+ *                                  section 6)
+ *
  * On-connect sequence (all event-driven):
  *   connect → MTU exchange (CFG_BLE_ATT_MTU_MAX = 247)
- *           → service/char/desc discovery → enable notify on 0xFFF2 CCCD
+ *           → service/char/desc discovery
+ *           → enable notify on 0xFFF2, then 0xFFF3, then 0xFFF4 CCCDs
  *   MTU exchange response → DLE(251) → symmetric DLE event → PHY 2M
  *
  * All throughput monitoring is done on the PC side (test_validator.py).
@@ -34,6 +42,8 @@
 #define VEGA_NOTIFY_UUID   (0xFFF2)
 #define VEGA_CMD_UUID      (0xFFF1)   /* write-without-response, see A.2 spec */
 #define VEGA_RESPONSE_UUID (0xFFF3)   /* notify, command-response, see spec section 4 */
+#define VEGA_TELEMETRY_UUID (0xFFF4)  /* notify, ~1 Hz telemetry frame — see
+                                       * docs/interfaces/stream-packet-format.md section 6 */
 
 /* ── Frame headers for UART output (bridge -> pc-app) ────────────────────── */
 
@@ -41,6 +51,15 @@
 #define FRAME_MAGIC_1      (0x55U)
 #define RESPONSE_MAGIC_0   (0xEEU)   /* command response, spec section 4.4 */
 #define RESPONSE_MAGIC_1   (0x11U)
+#define TELEMETRY_MAGIC_0  (0xDDU)   /* telemetry, stream-packet-format.md section 6 */
+#define TELEMETRY_MAGIC_1  (0x22U)
+
+/* Bytes this bridge appends to the MCU's telemetry payload: tx_ring_drop_bytes
+ * then tx_ring_drop_frames, both uint32 little-endian — section 6.2 offsets
+ * 30 and 34. They go LAST and stay last: the pc-app locates them from the END
+ * of the payload, so a future telemetry_version that adds MCU fields grows the
+ * frame without moving them. */
+#define TELEMETRY_BRIDGE_BYTES  (8U)
 
 /* ── Bridge GATT context ─────────────────────────────────────────────────── */
 
@@ -67,6 +86,12 @@ typedef struct
 
     /* CCCD of 0xFFF3 */
     uint16_t resp_cccd_hdl;
+
+    /* Characteristic 0xFFF4 (telemetry notify) */
+    uint16_t telem_value_hdl;
+
+    /* CCCD of 0xFFF4 */
+    uint16_t telem_cccd_hdl;
 
     /* Negotiated ATT payload size */
     uint16_t mtu_payload;
@@ -134,6 +159,9 @@ static void parse_chars(aci_att_clt_read_by_type_resp_event_rp0 *p_evt)
         } else if (uuid == VEGA_RESPONSE_UUID) {
             s_ctx.resp_value_hdl = value_hdl;
             DT_INFO_MSG("Found 0xFFF3 value handle: 0x%04X\r\n", value_hdl);
+        } else if (uuid == VEGA_TELEMETRY_UUID) {
+            s_ctx.telem_value_hdl = value_hdl;
+            DT_INFO_MSG("Found 0xFFF4 value handle: 0x%04X\r\n", value_hdl);
         }
     }
 }
@@ -161,6 +189,9 @@ static void parse_descs(aci_att_clt_find_info_resp_event_rp0 *p_evt)
             } else if (cur_value_hdl == s_ctx.resp_value_hdl) {
                 s_ctx.resp_cccd_hdl = handle;
                 DT_INFO_MSG("Found 0xFFF3 CCCD: 0x%04X\r\n", handle);
+            } else if (cur_value_hdl == s_ctx.telem_value_hdl) {
+                s_ctx.telem_cccd_hdl = handle;
+                DT_INFO_MSG("Found 0xFFF4 CCCD: 0x%04X\r\n", handle);
             }
         } else {
             cur_value_hdl = handle;
@@ -203,6 +234,58 @@ static void parse_response_notification(aci_gatt_clt_notification_event_rp0 *p_e
     VEGA_UART_Write(p_evt->Attribute_Value, len);
 }
 
+/* Re-frames a 0xFFF4 telemetry notification as 0xDD 0x22, appending this
+ * bridge's own TX-ring truncation counters — see
+ * docs/interfaces/stream-packet-format.md section 6.
+ *
+ * The bridge is the only place in the system that can tell a USB-side backlog
+ * apart from a packet lost on air (spec section 7's attribution table), which
+ * is the entire reason these counters travel with the MCU's.
+ *
+ * Emitted ONLY on receipt of a 0xFFF4 notification: spec section 6.2 forbids
+ * synthesising a frame from the bridge's counters alone, because a receiver
+ * would then have no way to tell "the headstage reported nothing" from "the
+ * headstage reported zero".
+ *
+ * The counters are sampled BEFORE the write. If this very write truncates, the
+ * truncation it causes is reported by the NEXT frame, not this one — which is
+ * the only consistent choice, and means a frame never contradicts itself. */
+static void parse_telemetry_notification(aci_gatt_clt_notification_event_rp0 *p_evt)
+{
+    if (s_ctx.telem_value_hdl == 0x0000U) return;
+    if (p_evt->Attribute_Handle != s_ctx.telem_value_hdl) return;
+
+    uint32_t drop_bytes  = 0;
+    uint32_t drop_frames = 0;
+    VEGA_UART_GetDropStats(&drop_bytes, &drop_frames);
+
+    uint16_t      mcu_len = p_evt->Attribute_Value_Length;
+    uint16_t      len     = (uint16_t)(mcu_len + TELEMETRY_BRIDGE_BYTES);
+    const uint8_t hdr[4] = {
+        TELEMETRY_MAGIC_0,
+        TELEMETRY_MAGIC_1,
+        (uint8_t)(len & 0xFFU),
+        (uint8_t)(len >> 8),
+    };
+    /* Little-endian, byte-wise — the same rule the MCU side follows, and for
+     * the same reason: these land at odd offsets in the payload and the M0+
+     * cannot do an unaligned 32-bit access. */
+    const uint8_t tail[TELEMETRY_BRIDGE_BYTES] = {
+        (uint8_t)(drop_bytes        & 0xFFU),
+        (uint8_t)((drop_bytes >> 8) & 0xFFU),
+        (uint8_t)((drop_bytes >> 16) & 0xFFU),
+        (uint8_t)((drop_bytes >> 24) & 0xFFU),
+        (uint8_t)(drop_frames        & 0xFFU),
+        (uint8_t)((drop_frames >> 8) & 0xFFU),
+        (uint8_t)((drop_frames >> 16) & 0xFFU),
+        (uint8_t)((drop_frames >> 24) & 0xFFU),
+    };
+
+    VEGA_UART_Write(hdr, 4U);
+    VEGA_UART_Write(p_evt->Attribute_Value, mcu_len);
+    VEGA_UART_Write(tail, TELEMETRY_BRIDGE_BYTES);
+}
+
 /* ── GATT event handler ──────────────────────────────────────────────────── */
 
 static BLEEVT_EvtAckStatus_t Bridge_EventHandler(aci_blecore_event *p_evt)
@@ -224,6 +307,7 @@ static BLEEVT_EvtAckStatus_t Bridge_EventHandler(aci_blecore_event *p_evt)
     case ACI_GATT_CLT_NOTIFICATION_VSEVT_CODE:
         parse_notification((aci_gatt_clt_notification_event_rp0 *)p_evt->data);
         parse_response_notification((aci_gatt_clt_notification_event_rp0 *)p_evt->data);
+        parse_telemetry_notification((aci_gatt_clt_notification_event_rp0 *)p_evt->data);
         break;
 
     case ACI_GATT_CLT_PROC_COMPLETE_VSEVT_CODE:
@@ -323,6 +407,32 @@ static void vega_bridge_discover_all(void)
         }
     } else {
         DT_INFO_MSG("0xFFF3 CCCD not found — readback confirmation unavailable\r\n");
+    }
+
+    /* 6. Enable notifications on the telemetry characteristic — see
+     * docs/interfaces/stream-packet-format.md section 6. Deliberately LAST in
+     * the sequence: it is the newest and least essential of the four, and this
+     * connection sequence has a history of fragility, so a telemetry problem
+     * cannot cost the data stream or the control plane that were already
+     * brought up above. Not fatal if missing — an older headstage without
+     * 0xFFF4 streams and takes commands exactly as before, it just reports no
+     * counters, which is precisely the "absent, not clean" case the frame's
+     * fpga_counters_valid flag exists to keep distinguishable. */
+    if (s_ctx.telem_cccd_hdl != 0x0000U) {
+        uint16_t enable = 0x0001U;
+        ret = aci_gatt_clt_write(conn,
+                                  BLE_GATT_UNENHANCED_ATT_L2CAP_CID,
+                                  s_ctx.telem_cccd_hdl,
+                                  2,
+                                  (uint8_t *)&enable);
+        if (ret == BLE_STATUS_SUCCESS) {
+            gatt_cmd_resp_wait();
+            DT_INFO_MSG("0xFFF4 telemetry notify enabled\r\n");
+        } else {
+            DT_INFO_MSG("0xFFF4 CCCD write failed 0x%02X — telemetry unavailable\r\n", ret);
+        }
+    } else {
+        DT_INFO_MSG("0xFFF4 CCCD not found — telemetry unavailable (pre-A.7 headstage?)\r\n");
     }
 
     s_ctx.state = GATT_CLIENT_APP_CONNECTED;
