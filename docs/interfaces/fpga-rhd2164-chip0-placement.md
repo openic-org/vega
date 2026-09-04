@@ -1,5 +1,21 @@
 # RHD2164 chip0 non-responsiveness — placement investigation
 
+> ⚠️ **UNDER REVIEW, 2026-09-04.** This document's conclusion was
+> confirmed by a **single hardware pass**. On 2026-09-04 chip0 was shown
+> to be **intermittent over a timescale of hours** — it failed twice on a
+> cold board, then recovered with no power cycle, no reflash and no
+> command (PLAN.md A.1.2). On a system that behaves that way a single
+> pass cannot distinguish a fix from a lucky boot, and the debugging loop
+> that produced this document had a systematic bias toward false
+> confirmation: change RTL on a cold board, observe failure, debug for
+> hours while it warms, observe the "fix" working.
+>
+> **Read the ruled-out hypotheses here with that in mind** — several were
+> ruled out by single observations and may need re-testing. The root
+> cause recorded below is *unsupported*, not *disproven*; it may still be
+> right, but the evidence for it does not currently establish that.
+
+
 **Status: RESOLVED 2026-08-24.** Root cause: unconstrained FPGA placement of
 the `spi1_rhd2164x2` block, which drifted to a worse location as design
 complexity grew across builds — not a PCB signal-integrity issue, not a

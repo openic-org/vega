@@ -166,11 +166,24 @@ only. That loses the simultaneous reference comparison, not the test.
 | **A2** | Dual-path validated — Kuntur wireless and Intan controller agree, bench | Blocked on A.4 RTL and A.3 (injection rig). **A.4's spec is complete and all its desk-side gates closed 2026-09-03** — the boards have arrived, the pinout is resolved both ends, and the remaining work is RTL and a pigtail. |
 | **A3** | **In-vivo animal recording** | |
 
-### Current critical path — ordered, 2026-09-03
+### Current critical path — ordered, 2026-09-04
 
 Sections below are not in execution order (A.6 and A.7 run parallel to
 A.3–A.5). This is the order that actually matters:
 
+0. **chip0's intermittency — characterise it before trusting any other
+   bench result.** *(Manuel, bench — see A.1.2)* **Newly first, 2026-09-04.**
+   chip0 failed twice on a cold board and then recovered untouched hours
+   later; the failure drifts over hours and is not latched at boot. Until
+   the pass rate and its driver are known, **no bench result on this board
+   can be scored**, because a change that "fixes" chip0 is
+   indistinguishable from a warm board — which is how three previous root
+   causes came to be confirmed by a single pass each. Cheapest-decisive
+   first: reproduce with freeze spray, then halve `clk` while cold to
+   separate hold from setup, then pass rate versus temperature. Nothing
+   here needs a scope. **This gates item 1's validation, not item 1's
+   execution** — the reflash can proceed, but its result cannot be
+   believed until this is characterised.
 1. **One FPGA rebuild + reflash, carrying two committed-but-unapplied
    changes.** *(Manuel, bench)* Both are specified, committed and
    verified on paper; neither is on hardware. They are gated on the same
@@ -181,10 +194,19 @@ A.3–A.5). This is the order that actually matters:
    - **fH 20 kHz → 7.5 kHz** (`kuntur` `6563edc`). fH sat at the chip
      maximum, whose Nyquist is 40 kSPS — **every recording this project
      has made was aliased**.
-   - Fold in the **`324a21c` re-confirmation** carried since 2026-08-31:
-     the ladder pass and 22.8-min recording ran against `e89671d`, not
-     the retuned + `clk90` build. A short ladder run plus a brief
-     recording settles it, and gates any `kuntur` `main` fast-forward.
+   - ~~Fold in the **`324a21c` re-confirmation** carried since
+     2026-08-31~~ — **superseded 2026-09-04.** This was framed as
+     settling whether `324a21c`'s bitstream is good. A.1.2 shows the
+     question was malformed: `324a21c`'s bitstream both failed and worked
+     on the same day with nothing changed, so no single ladder run can
+     settle it, and neither could the ones that produced the conflicting
+     records. Re-confirmation is now item 0's job, and any `kuntur` `main`
+     fast-forward waits on it.
+   - **Caution on the PLL retune** *(added 2026-09-04)*: it was expected
+     to help chip0 by relaxing SCK from 22.770 to 21.252 MHz. If A.1.2's
+     failure turns out to be hold-type, that expectation is wrong and
+     frequency-independent — do not read a chip0 pass after the retune as
+     evidence the retune helped.
 2. **A.7 step 1 — `fifo0` overflow counter + high-water mark as read-only
    regbank words.** *(Manuel, RTL)* **Now the highest-value single item
    in the plan.** A.7 step 3a set λ from measurement, but *cannot confirm
@@ -219,11 +241,16 @@ A.3–A.5). This is the order that actually matters:
 **Closed 2026-09-03 and no longer on the critical path:** A.4's interface
 spec (item 5 of the 2026-08-31 list), its open items O1 and O2, A.5 (now
 discharged by construction — see below), and A.7 step 3's measurement
-half. The chip0/SCK-MOSI regression stays closed and is **not blocking
-anything**; the standing rule if it is reopened is (a) add any deskew
-constraint alongside `mregion0`-`mregion7`, never by removing them, and
-(b) measure the real board asymmetry or check for Lattice Dynamic Phase
-Shift rather than guessing a phase again.
+half.
+
+**REOPENED 2026-09-04 — chip0 is intermittent, and all three of its
+previous root causes are unsupported. See A.1.2 below.** This is now the
+most serious open item in Phase A: it is an experiment-integrity risk,
+not a bench annoyance, and it invalidates the evidence behind three
+closures. The standing rule still applies to any deskew attempt — (a) add
+any constraint alongside `mregion0`-`mregion7`, never by removing them,
+and (b) measure rather than guess a phase — but the first task is no
+longer a fix, it is a **measurement of the failure's own behaviour**.
 
 **Repo state.** `vega` `main` is current. **`kuntur` is on
 `session-2026-08-31-checkpoint` (now `7e1f8a5`), not `main`** — `main`
@@ -232,8 +259,10 @@ settled, so today's fH change was merged to the checkpoint branch rather
 than fast-forwarding `main`. Three harmless comment-only commits sit on
 old `main`, safe to fast-forward onto whenever.
 
-**Live external gate:** A.0's animal-protocol amendment, in progress with
-the collaborator since 2026-08-05, **revisit 2026-09-05** — two days out.
+**Live external gate: NONE, as of 2026-09-04.** A.0's animal-protocol
+amendment — carried since 2026-08-05 and the last item on the plan whose
+timing the project did not control — **closed: no amendment is needed.**
+Every remaining Phase A item is internal bench, RTL or desk work.
 
 **Schedule risk, CLOSED 2026-09-02:** the LIFCL-40-EVN and IAM FMC
 breakout **have arrived**, and as of 2026-09-03 nothing desk-side gates
@@ -289,8 +318,15 @@ has a greppable blast radius.
       tied high (deselected), `spi2_sck`/`spi2_mosi0` tied low — chip can never
       latch a command. Committed `4f0e31d` on `fpga-fifo-sentinel`.
 - [x] Confirm whether the collaborator's animal protocol needs an amendment to admit
-      a new device — communicated to collaborator 2026-08-05, amendment in progress.
-      Revisit 2026-09-05.
+      a new device — communicated to collaborator 2026-08-05. **CLOSED
+      2026-09-04: no amendment is needed** (collaborator's determination,
+      relayed by Manuel). This was the plan's only live external gate and
+      the only Phase A item whose schedule was outside the project's
+      control; A2/A3 are now gated purely on internal work.
+      *(The determination's reasoning is not recorded here — worth capturing
+      one line of it if the collaborator stated one, since "no amendment
+      needed" is the kind of finding a reviewer may later ask the basis
+      for.)*
 
 ## A.1 — Make the signal real  → **A1**  *(Manuel, RTL)*
 
@@ -1176,6 +1212,130 @@ in the same class as B.6's licensed-toolchain problem, not a convenience.
 
 *Already verified correct:* RHD init sequence — chip-ID read, regs 0–21,
 `RHD_CALIBRATE`, then nine dummy reads as the datasheet requires.
+
+### A.1.2 — chip0 is intermittent on a timescale of hours  *(Manuel, bench — REOPENED 2026-09-04)*
+
+**The single most serious open item in Phase A.** Not because a channel
+is missing today, but because it means **the project cannot currently
+tell whether chip0 works**, and a one-shot animal recording could come
+back with one channel of two and no indication anything was wrong.
+
+#### What was observed, 2026-09-04
+
+1. Loaded the previously-committed bitstream (`324a21c`,
+   SHA-256 `7a5418d6…`). chip0 gave **all `0xFFFF`** — the signature
+   Manuel recognises as the SCK/MOSI timing failure. chip1 fine.
+2. Rebuilt from source and reflashed. Same result, minutes later.
+3. System left powered and **completely untouched** for several hours
+   (meetings, lunch). On return, **both chips responding.** No power
+   cycle, no reconfiguration, no command.
+4. Manuel: this is not new — a bitstream that had been working has failed
+   on a later reload before, **on occasions spanning days and weeks.**
+
+#### What follows, and what does not
+
+**Established by (1)–(3) alone**, without relying on any earlier
+recollection:
+
+- The failure is **not deterministic in the bitstream.** Two different
+  bitstreams failed and one of them later worked untouched.
+- It is **not latched at initialisation.** Step 3 recovered with no
+  re-init of any kind, which refutes the "all-or-nothing per boot" reading
+  the same day's earlier evidence had supported.
+- It **drifts on a timescale of hours** in a powered, idle system.
+
+**Hypothesis, well-supported but not yet measured: temperature.** The only
+variable known to change over hours of idle powered operation is the
+board warming. It matches Manuel's own independent impression that cold
+and warm days differ. *Not established:* there are no logged temperatures,
+and the diurnal "evening warm / morning cold" story that appeared briefly
+in this session's discussion was an over-reading of a figure of speech
+and has been withdrawn. The direction — warm works, cold fails — rests on
+step 3 plus that impression, and wants confirming before anything is
+built on it.
+
+#### This invalidates three closures
+
+chip0 has been root-caused three times, and **every one was confirmed by a
+single pass**: unconstrained placement (2026-08-24), the SCK/MOSI
+regression (2026-08-31, closed by reverting to passthrough), and this
+session's initial suspicion of `324a21c`'s `clk90`/PLL retune.
+
+On a system that is intermittent over hours, a single pass is not evidence
+of a fix — it is one sample from a process that produces passes and
+failures regardless of what was changed. Worse, the debugging loop had a
+**systematic bias toward false confirmation**: change RTL on a cold board
+in the morning → observe failure → debug for hours while the board warms
+→ observe the "fix" working. That sequence manufactures a convincing
+causal story for whatever happened to be changed that day.
+
+Point (4) sharpens this: if the phenomenon spans weeks, it was present
+before, during and after all three episodes — exactly what would be
+expected if none of them addressed it.
+
+**Consequence for the record:** `324a21c`'s commit message ("Bench-verified:
+both chips responding") and PLAN.md's note that its re-confirmation was
+still outstanding were **never in conflict.** They are two honest reports
+of two different boots. The contradiction was the evidence talking, and it
+was read as a bookkeeping error.
+
+#### Correction to a claim made earlier the same day
+
+Slowing the clock was proposed here as likely to help chip0, on the
+grounds that λ = 28,000's `clk` = 42.504 MHz gives SCK = 21.252 MHz
+against the failing build's 22.770 MHz (SCK = `clk`/2 exactly — the SPI
+controller is a hand-unrolled FSM with two `clk` states per SCK half
+period, no divider).
+
+**If the temperature direction is warm-works / cold-fails, that reasoning
+is probably wrong.** Colder silicon is faster, so a failure that appears
+as delays *shorten* is a **hold** violation, and hold violations are
+frequency-independent: stretching the period does not change how long
+data remains valid after an edge. If this is hold, 42.504 MHz will not
+help, and neither would 20 MHz.
+
+It also means 2026-08-31's four-phase deskew sweep may have been pushing
+the right signal in the wrong direction — the remedy for hold is *more*
+delay on MOSI relative to SCK, not less.
+
+#### The next work is measurement, not a fix
+
+Ordered cheapest-decisive first. None of it needs a scope.
+
+- [ ] **Reproduce on demand with freeze spray.** If cold is the trigger,
+      this converts an intermittent ghost into a debuggable fault — which
+      is the single thing that has been missing from every previous
+      attempt. Chill chip0 and its SCK/MOSI traces and expect dropout.
+      **Everything below is far cheaper once this works.**
+- [ ] **Halve `clk` while cold.** Not a 5% trim — half. If chip0 still
+      fails, the failure is hold-type and frequency is permanently off the
+      table as a remedy. If it recovers, it is setup after all. One PLL
+      change, and it discriminates cleanly between the two families of fix.
+- [ ] **Pass rate versus temperature.** Ten cold power cycles with ambient
+      logged, then ten warm. This is the margin measurement the standing
+      rule has been asking for, obtainable without the 10s-of-GSa/s scope
+      that blocked the 2026-08-24 measurement.
+- [ ] **Re-examine the three closures** against whatever the above shows.
+      `docs/interfaces/fpga-rhd2164-chip0-placement.md` and
+      `fpga-timing-constraints.md` both record ruled-out hypotheses that
+      were ruled out *by single observations* and may need re-testing.
+
+#### Consequences elsewhere
+
+- **Animal test protocol.** A cold start in a surgical suite can yield a
+  one-shot recording with one channel of two. Until this is closed, a
+  warm-up-and-verify step before the subject is anaesthetised is
+  **mandatory**, and it belongs in A.0's checklist rather than in
+  somebody's memory.
+- **Pre-session self-test** (B.5, "boot/startup process hardening") is
+  promoted from nice-to-have: it must be **re-runnable at session start**,
+  not boot-only, because the state changes while powered.
+- **Every past bench result on this board is weaker than recorded**,
+  including any that happened to be taken while chip0 was healthy. The
+  22.8-minute recording behind λ = 28,000 is not invalidated — μ and λ are
+  transport measurements, independent of which RHD channels are live — but
+  results that depended on *both* chips responding should be re-checked
+  against the temperature question before being relied on.
 
 ## A.2 — Minimum control plane  *(Claude: MCU + app; Manuel: RTL side)*  — ✅ **COMPLETE, hardware-verified 2026-08-06**
 
