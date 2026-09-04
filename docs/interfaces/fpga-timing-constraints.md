@@ -1,5 +1,21 @@
 # FPGA timing constraints — RHD2164 SPI1 link — interface spec
 
+> ⚠️ **UNDER REVIEW, 2026-09-04.** This document's conclusion was
+> confirmed by a **single hardware pass**. On 2026-09-04 chip0 was shown
+> to be **intermittent over a timescale of hours** — it failed twice on a
+> cold board, then recovered with no power cycle, no reflash and no
+> command (PLAN.md A.1.2). On a system that behaves that way a single
+> pass cannot distinguish a fix from a lucky boot, and the debugging loop
+> that produced this document had a systematic bias toward false
+> confirmation: change RTL on a cold board, observe failure, debug for
+> hours while it warms, observe the "fix" working.
+>
+> **Read the ruled-out hypotheses here with that in mind** — several were
+> ruled out by single observations and may need re-testing. The root
+> cause recorded below is *unsupported*, not *disproven*; it may still be
+> right, but the evidence for it does not currently establish that.
+
+
 **Status: CONSTRAINTS + STRUCTURAL FIX LANDED AND VERIFIED, 2026-08-24.**
 Constraints written and iterated against actual Radiant STA output (not
 just derived by hand). First run found a real, small setup violation on
