@@ -38,6 +38,83 @@ can be scored — including any future "fix".
 |---|---|---|---|---|---|---|---|
 | 0 | 2026-09-04 | ~11:09 | cold — first bench activity of the day | **FLAT** | ok | not measured | Failed twice: committed bitstream `7a5418d6`, then a rebuild. Retrospective entry, before this protocol existed; different bitstream, so not directly comparable to the rows below |
 | 1 | 2026-09-04 | 15:50 | **warm** — powered and running several hours, undisturbed | ok | ok | thermostat 72 °F / 22.2 °C (see Environment) | Baseline / initial state. Recovered untouched earlier the same afternoon after trial 0's failures. Ch A/Ch B set to 42/94 for the first time here. **Oscilloscope already off** for some minutes before this reading — so trials 1 and 2 share that condition and it is controlled between them |
+| 2 | 2026-09-05 | 08:06 | **warm** — powered overnight, undisturbed, scope off | ok | ok | thermostat 72 °F / 22.2 °C; outside 70 °F / 21.1 °C | **PASS.** Checked before touching anything. Room reading identical to trial 1 — the overnight drift below setpoint did not occur, so ambient is roughly constant across trials 0–2 |
+| 3 | 2026-09-05 | 09:08 | **cold soak** — powered off 08:10, off 58 min, reflashed, checked promptly | ok | ok | thermostat 72 °F / 22.2 °C; outside ~70 °F / 21.1 °C | **PASS — a null.** Everything powered down (FPGA, MCU, bridge). Channels re-set to 42/94 after reconfiguration (SET_CHANNELS is runtime state, cleared by FPGA reset). Power-up order not recorded |
+
+### Trial 2 — and a result the thermostat did not predict
+
+**The room did not get colder overnight.** The thermostat read 72 °F at
+trial 1 (2026-09-04 15:50) and reads **72 °F again at trial 2**
+(2026-09-05 08:06), with outside at 70 °F — only 2 °F below setpoint, not
+enough to pull a thermally massive house below it. The predicted overnight
+drift below setpoint did not happen.
+
+That is more useful than a drop would have been:
+
+- **Room ambient is roughly constant across trials 0, 1 and 2.** Outside
+  was ~70 °F during yesterday morning's *failure* and is ~70 °F during
+  today's *pass*; the thermostat reads the same 72 °F at both of
+  yesterday's afternoon pass and today's morning pass. Within the limits
+  of a single-zone thermostat one floor up, **the room was at a similar
+  temperature when chip0 failed and when it worked.**
+- **That argues against room ambient as the driver**, and toward the board
+  — self-heating, or something else about a fresh power-up.
+- **It makes trial 3 close to a clean single-variable test.** Room
+  unchanged from trial 2, only the board's own temperature falls. If
+  trial 3 fails, board temperature is isolated with the room held constant
+  by observation rather than assumption.
+
+Caveat kept in view: the thermostat is one zone, a different floor, and
+biased warm. "Similar reading" is not "same test-room temperature". It is
+the best available and it is weak.
+
+### What trials 2 and 3 do and do not show
+
+**Trial 3 is a null, and it was pre-registered as one that refutes
+nothing.** Recording what it actually narrows:
+
+Running tally for bitstream `cdc7d39d…`, the only one under the protocol:
+
+| | Condition | chip0 |
+|---|---|---|
+| trial 0b | 2026-09-04 ~11:09, cold, after an overnight power-off | **FAIL** |
+| trial 1 | 2026-09-04 15:50, warm, hours powered | pass |
+| trial 2 | 2026-09-05 08:06, warm, powered overnight | pass |
+| trial 3 | 2026-09-05 09:08, cold, 58 min off | pass |
+
+**One failure in four boots.** Three consecutive passes is not evidence of
+anything: at a per-boot failure probability of 25 % the chance of three
+passes in a row is 42 %, and at 50 % it is still 12.5 %. **Nothing here
+distinguishes "fixed" from "unremarkable luck"** — which is the exact trap
+A.1.2 exists to name, so it must not be sprung here.
+
+**What did move:** a 58-minute cold soak at the same room reading did
+*not* reproduce the failure. A small unenclosed board reaches ambient in
+well under that, so if a simple board-temperature threshold existed at
+~72 °F ambient, trial 3 should have found it. It did not.
+
+Live hypotheses after today, none eliminated:
+
+1. **Temperature, but needing colder than this room reached.** The
+   thermostat is a floor up and biased warm; yesterday's test room may
+   genuinely have been colder than today's despite matching readings.
+2. **Off-duration, not temperature.** Overnight-off is not 58-minutes-off.
+   Something with a long time constant — moisture, a slowly-settling
+   rail, an electrolytic — would separate them while board temperature
+   does not.
+3. **Per-boot randomness, with no thermal driver at all.** One failure in
+   four boots is entirely consistent with this, and it is the hypothesis
+   the data currently fits most cheaply.
+4. **Humidity**, unmeasured throughout.
+
+**This shifts the priority.** More single trials have low information
+value now: each costs ~15 minutes and moves the estimate barely at all.
+**The pass-rate measurement (PLAN.md A.1.2, item 0) is now the thing to
+do** — ten rapid power cycles, each ~2 minutes (off, on, reflash, check),
+gives a real number in under an hour and separates hypothesis 3 from the
+rest. If the rate comes out near zero, the thermal hypotheses survive and
+deserve equipment; if it comes out at 20–30 % with no thermal pattern,
+that reframes chip0 entirely.
 
 ## Environment, 2026-09-04
 
@@ -127,7 +204,24 @@ experiment.
   pairs — warm first, then again after a power-off soak, same morning, same
   room.
 
-## Next scheduled trials
+## Next session — Monday 2026-09-07
+
+**Ten rapid power cycles, counted.** Off, on, reflash from the fixed
+bitstream, check Ch A 42 / Ch B 94, record pass/fail. ~2 minutes each.
+Add one row per cycle below.
+
+This replaces further paired thermal trials, which have low information
+value at the current sample size. The question it answers — *is there a
+baseline per-boot failure rate, and what is it?* — has to be settled
+before any thermal manipulation can be interpreted, because against a
+25% baseline a dropout during freeze spray would mean nothing.
+
+If the rate comes back near zero, the thermal hypotheses survive and the
+instruments are worth buying. If it comes back at 20–30% with no thermal
+pattern, chip0 is a different problem than three previous investigations
+assumed.
+
+## Completed trials — original schedule
 
 - **2 — 2026-09-05, first thing.** Board left powered overnight,
   oscilloscope off (off since before trial 1, so this condition is shared
