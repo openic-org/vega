@@ -1336,6 +1336,17 @@ It also means 2026-08-31's four-phase deskew sweep may have been pushing
 the right signal in the wrong direction — the remedy for hold is *more*
 delay on MOSI relative to SCK, not less.
 
+#### State as of 2026-09-05 — four boots, one failure, no reproduction
+
+Trials 1–3 all passed, including a 58-minute cold soak at the same room
+reading that failed the day before. **Three consecutive passes is not
+evidence of a fix** — at a 25% per-boot failure rate its probability is
+42% — and reading it as one would be the precise error this item exists to
+prevent. The fault has not been reproduced since 2026-09-04, and the
+cheapest explanation now on the table is **per-boot randomness with no
+thermal driver at all**. Resumes Monday 2026-09-07 with the pass-rate
+count.
+
 #### Trial log
 
 Results are recorded in **`log/chip0-temperature-trials.md`**, one
@@ -1349,19 +1360,35 @@ proves nothing; the series is the point.
 
 Ordered cheapest-decisive first. None of it needs a scope.
 
+**Re-ordered 2026-09-05** after trials 2 and 3 (both passes, one of them
+a 58-minute cold soak) failed to reproduce the fault. The thermal
+manipulations are demoted below the counting exercise, because at one
+failure in four boots there is not yet a phenomenon to manipulate.
+
+- [ ] **Pass rate first — ten rapid power cycles.** *(Now the top item.)*
+      Off, on, reflash, check: ~2 minutes each, under an hour for ten.
+      This separates "per-boot random with no thermal driver" — which the
+      current 1-in-4 fits most cheaply — from everything else, and it
+      needs no equipment at all. **Every other item below is worth doing
+      only if this comes back near zero failures**, i.e. only if the
+      thermal story survives.
 - [ ] **Reproduce on demand with freeze spray.** If cold is the trigger,
-      this converts an intermittent ghost into a debuggable fault — which
-      is the single thing that has been missing from every previous
-      attempt. Chill chip0 and its SCK/MOSI traces and expect dropout.
-      **Everything below is far cheaper once this works.**
+      this converts an intermittent ghost into a debuggable fault — the
+      single thing missing from every previous attempt. Chill chip0 and
+      its SCK/MOSI traces and expect dropout. Gated on the pass rate: with
+      a 25% baseline failure rate, a dropout during spraying would prove
+      nothing.
 - [ ] **Halve `clk` while cold.** Not a 5% trim — half. If chip0 still
       fails, the failure is hold-type and frequency is permanently off the
       table as a remedy. If it recovers, it is setup after all. One PLL
-      change, and it discriminates cleanly between the two families of fix.
-- [ ] **Pass rate versus temperature.** Ten cold power cycles with ambient
-      logged, then ten warm. This is the margin measurement the standing
-      rule has been asking for, obtainable without the 10s-of-GSa/s scope
-      that blocked the 2026-08-24 measurement.
+      change, and it discriminates cleanly between the two families of
+      fix. Also gated on knowing the baseline rate.
+- [ ] **Instrument, if the thermal hypotheses survive.** A BLE
+      thermo-hygrometer for the room (also gives dew point, needed before
+      any spray cooling) and a K-type probe for the board. ~$30 the pair.
+      Deliberately *not* bought yet: trials 2–3 showed the room reading
+      barely moves, so the instrument to buy depends on what the pass rate
+      says is worth measuring.
 - [ ] **Re-examine the three closures** against whatever the above shows.
       `docs/interfaces/fpga-rhd2164-chip0-placement.md` and
       `fpga-timing-constraints.md` both record ruled-out hypotheses that
