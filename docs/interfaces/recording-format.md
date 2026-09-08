@@ -323,6 +323,16 @@ vanish twenty minutes later.
   died and recovered is not the same as one that never died; `state` alone
   cannot say which happened, and at the end of a recording it will usually
   read `alive` either way.
+- **Counters are cumulative since the pc-app connected, not since the
+  recording started**, because the detector runs whenever a link is up —
+  recording is not required to observe or log a dropout. A second field,
+  **`channel_health_at_start`**, carries the same structure snapshotted at
+  `start()`, so a reader gets this recording's own figures by subtracting:
+  `dropouts_during_recording = channel_health.dropouts −
+  channel_health_at_start.dropouts`. Without it, a dropout ten minutes
+  before the operator pressed record would read as this recording's.
+  Individual `transitions` carry wall-clock and sample timestamps and can
+  be filtered against `recording_started_utc` directly.
 - **`sample_timestamp_us` is backdated** to where the run began, not to
   where the detector crossed its threshold — otherwise every edge is late
   by `dead_enter_sec` and correlating a dropout against a stall or a

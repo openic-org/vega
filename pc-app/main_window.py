@@ -602,8 +602,14 @@ class MainWindow(QMainWindow):
             "filter_settings": dict(self._filter_settings_state),
             "firmware_version": "unknown",
             "bitstream_version": "unknown",
-            # Seeded at start so the field always exists; _on_health_transition
-            # keeps it current and stop() merges the latest via live_metadata.
+            # Two snapshots, because the counters are cumulative SINCE
+            # CONNECT, not since this recording started — a dropout ten
+            # minutes before the operator pressed record would otherwise
+            # show up as this recording's dropout. The _at_start baseline
+            # lets a reader subtract; `channel_health` itself is kept
+            # current (2 s tick + every transition) so it is the final
+            # state, not the state at start.
+            "channel_health_at_start": self._health.summary(),
             "channel_health": self._health.summary(),
         }
 
@@ -1195,6 +1201,12 @@ class MainWindow(QMainWindow):
             self._lbl_underruns.setText(f"{self._total_underruns:,}  ({ur_pct:.1f}%)")
             self._update_telemetry_labels()
             self._update_health_labels()
+            # Keep the sidecar's health block current even when no transition
+            # has fired — dead_seconds grows while a channel stays dead, and
+            # an auto-stop can land at any moment.
+            if self._recorder.info.is_recording:
+                self._recorder.live_metadata["channel_health"] = self._health.summary(
+                    self._reader._last_ts_us or None)
             self._rate_ts    = now
             self._rate_pkts  = pkts
             self._drops_prev = drops
