@@ -181,6 +181,32 @@ the read is issued from exactly one call site — the top of `StreamSendTask`, a
 a packet boundary, reads only, skipped during a flow-off. Full argument in the
 spec's §6.6; do not add a second call site without reading it.
 
+### Channel liveness detection (`pc-app/channel_health.py`)
+
+**Added 2026-09-08.** chip0 can stop responding ~2 minutes into a session and
+recover spontaneously ~88 minutes later, while streaming — see PLAN.md A.1.2
+and `log/chip0-temperature-trials.md`. A non-responding RHD2164 leaves MISO
+undriven, so every sample decodes as `0xFFFF` = −1: on the graph, a flat trace
+at essentially zero, easily mistaken for a quiet channel.
+
+`ChannelHealthMonitor` watches both channels on every packet and reports
+transitions. Three outputs: a live panel indicator with a **sticky** dropout
+count, a per-session `bench/health_*.csv` of every transition, and a
+`channel_health` block in the recording sidecar
+(`docs/interfaces/recording-format.md` §2.2a).
+
+Two rules worth knowing before changing it:
+
+- **Dead and alive are not symmetric.** Dead needs a long *continuous* run of
+  −1 (0.25 s), because only a stuck MISO sustains that. Alive needs just a
+  handful of non-−1 samples, because a single one proves the chip is driving
+  the line. Making alive a duration was the first implementation's bug — a
+  noisy channel touching −1 once per packet never reached the threshold.
+- **Underrun samples (`0x8000` on both channels) are neutral**, not evidence
+  of life, and are excluded. After the A.7 PLL retune ~5% of samples are
+  underrun padding by design (λ < μ); counting them as alive would reset the
+  dead-run counter forever.
+
 ## CSV Recording
 
 Recordings are written to the device's Downloads folder via MediaStore. Format: `timestamp_us,ch0,ch1` at the full sample rate (30,000 SPS × 2 channels ≈ ~178 KB/s). Auto-stop triggers at 10 minutes or < 200 MB free storage. File names: `vega_YYYYMMDD_HHmmss.csv`.

@@ -17,6 +17,7 @@ from PyQt6.QtGui import QFont, QPixmap
 from serial_reader import SerialReader
 from graph_widget  import GraphWidget
 from csv_recorder  import CsvRecorder, MAX_DURATION_STR
+from channel_health import ChannelHealthMonitor, DEAD, ALIVE
 from diagnostics   import RUNGS, RungRunner, FilterSettingsReader, RawChannelSetter
 import channel_mapping
 import rhd2164_units
@@ -104,6 +105,18 @@ class MainWindow(QMainWindow):
         # whole reason it is done this way.
         self._telem_prev: tuple[int, int] | None = None   # (anchor, received)
         self._path_loss_samples = 0
+
+        # ── Channel liveness (log/chip0-temperature-trials.md, trial 4)
+        # chip0 can go flat at 0xFFFF ~2 min into a session and recover
+        # spontaneously ~88 min later, while streaming. Nothing used to
+        # notice, so a recording could silently lose a channel partway
+        # through and get it back. This watches for it continuously — a
+        # pre-session check is insufficient by construction.
+        from packet_parser import SAMPLE_RATE_HZ as _SR
+        self._health = ChannelHealthMonitor(_SR)
+        self._health_file = None
+        self._health_log  = None
+        self._health_path = ""
 
         # SET_CHANNELS readback verification (section 4) — the pair we're
         # waiting to see echoed back on 0xFFF3, or None if nothing pending.
@@ -396,7 +409,7 @@ class MainWindow(QMainWindow):
 
     def _build_debug_panel(self) -> QGroupBox:
         box = QGroupBox("Debug Info")
-        box.setMaximumHeight(96)
+        box.setMaximumHeight(116)
         outer = QHBoxLayout(box)
 
         def lbl(text, bold=False):
@@ -468,6 +481,13 @@ class MainWindow(QMainWindow):
         tgrid.setHorizontalSpacing(24)
         tgrid.setVerticalSpacing(2)
         outer.addLayout(tgrid, stretch=1)
+
+        tgrid.addWidget(lbl("Ch A health:", bold=True), 3, 0)
+        tgrid.addWidget(lbl("Ch B health:", bold=True), 3, 2)
+        self._lbl_health_a = lbl("—")
+        self._lbl_health_b = lbl("—")
+        tgrid.addWidget(self._lbl_health_a, 3, 1)
+        tgrid.addWidget(self._lbl_health_b, 3, 3)
 
         tgrid.addWidget(lbl("Telemetry:"),  0, 0)
         tgrid.addWidget(lbl("FPGA ovf:"),   1, 0)
@@ -582,10 +602,21 @@ class MainWindow(QMainWindow):
             "filter_settings": dict(self._filter_settings_state),
             "firmware_version": "unknown",
             "bitstream_version": "unknown",
+            # Two snapshots, because the counters are cumulative SINCE
+            # CONNECT, not since this recording started — a dropout ten
+            # minutes before the operator pressed record would otherwise
+            # show up as this recording's dropout. The _at_start baseline
+            # lets a reader subtract; `channel_health` itself is kept
+            # current (2 s tick + every transition) so it is the final
+            # state, not the state at start.
+            "channel_health_at_start": self._health.summary(),
+            "channel_health": self._health.summary(),
         }
 
     def _on_batch(self, packet):
         self._total_underruns += packet.fifo_underruns
+        for t in self._health.update(packet.ch0, packet.ch1, packet.timestamps_us):
+            self._on_health_transition(t)
         self._graph.add_batch(packet.timestamps_us, packet.ch0, packet.ch1)
 
         # CSV
@@ -596,6 +627,71 @@ class MainWindow(QMainWindow):
             if not ok and self._recorder.info.auto_stopped:
                 self._btn_rec.setChecked(False)
                 self._toggle_recording(False)
+
+    def _on_health_transition(self, t) -> None:
+        """A channel went dead or came back — log it, surface it, and make sure
+        it reaches the recording sidecar.
+
+        Every transition is written to a per-session CSV as it happens. That
+        file is the point: the 2026-09-08 episode was only characterised
+        because somebody happened to be watching the screen at 12:32 and again
+        at 14:00. This makes that automatic, so a period (if there is one) is
+        measured rather than stumbled upon.
+        """
+        physical = self._channels_state.get(
+            "ch_a" if t.channel == "ch0" else "ch_b")
+        line = (f"{t.wall_time_utc}  {t.channel}"
+                f"{f' (phys {physical})' if physical is not None else ''}"
+                f"  -> {t.to_state.upper()}"
+                f"  at sample_ts {t.sample_timestamp_us} us"
+                + (f"  after {t.prior_state_duration_s} s"
+                   if t.prior_state_duration_s is not None else ""))
+
+        if self._health_log:
+            self._health_log.writerow([
+                t.wall_time_utc, t.channel,
+                physical if physical is not None else "",
+                t.to_state, t.sample_timestamp_us,
+                t.prior_state_duration_s if t.prior_state_duration_s is not None else "",
+            ])
+            self._health_file.flush()   # a dropout must survive a crash
+
+        # Keep the sidecar current continuously rather than at stop(), so an
+        # auto-stop (duration cap, low disk) still carries the health record.
+        self._recorder.live_metadata["channel_health"] = self._health.summary()
+
+        if t.to_state == DEAD:
+            self.statusBar().showMessage(f"⚠  {t.channel} DEAD — {line}", 10000)
+        else:
+            self.statusBar().showMessage(f"✓  {t.channel} recovered — {line}", 10000)
+        print(line, flush=True)
+        self._update_health_labels()
+
+    def _update_health_labels(self) -> None:
+        """Current state plus a STICKY dropout count.
+
+        Both halves matter and they answer different questions: the state says
+        whether the channel is usable right now, the count says whether this
+        session's data can be trusted end to end. A channel that died and
+        recovered is not the same as one that never died, and only the counter
+        remembers that.
+        """
+        for ch, lbl in (("ch0", self._lbl_health_a), ("ch1", self._lbl_health_b)):
+            state = self._health.state(ch)
+            drops = self._health.dropouts(ch)
+            secs  = self._health.dead_seconds(ch, self._reader._last_ts_us or None)
+            if state == DEAD:
+                lbl.setText(f"DEAD  ({drops}× / {secs:.0f}s)")
+                lbl.setStyleSheet("font-size: 11px; color: #B71C1C; font-weight: bold;")
+            elif drops:
+                lbl.setText(f"alive  ({drops}× / {secs:.0f}s)")
+                lbl.setStyleSheet("font-size: 11px; color: #B71C1C;")
+            elif state == ALIVE:
+                lbl.setText("alive")
+                lbl.setStyleSheet("font-size: 11px; color: green;")
+            else:
+                lbl.setText("—")
+                lbl.setStyleSheet("font-size: 11px; color: gray;")
 
     def _on_telemetry(self, frame) -> None:
         """One ~1 Hz telemetry frame — docs/interfaces/stream-packet-format.md
@@ -653,6 +749,20 @@ class MainWindow(QMainWindow):
             self._bench_log  = csv.writer(self._bench_file)
             self._bench_log.writerow(["elapsed_s", "kbps", "pps"])
             self._bench_start = time.time()
+            # Channel-liveness transition log for this session. Separate file
+            # from the bench log because it is event-driven, not periodic, and
+            # because it is the artifact that feeds
+            # log/chip0-temperature-trials.md — it should be readable on its
+            # own without a rate column beside every row.
+            self._health.reset()
+            self._health_path = str(BENCH_DIR / f"health_{ts}.csv")
+            self._health_file = open(self._health_path, "w", newline="")
+            self._health_log  = csv.writer(self._health_file)
+            self._health_log.writerow(
+                ["wall_time_utc", "channel", "physical_channel",
+                 "to_state", "sample_timestamp_us", "prior_state_duration_s"])
+            self._health_file.flush()
+            self._update_health_labels()
         else:
             self._lbl_status.setText("Disconnected")
             self._lbl_status.setStyleSheet("font-size: 11px; color: gray;")
@@ -678,6 +788,10 @@ class MainWindow(QMainWindow):
             if self._recorder.info.is_recording:
                 self._btn_rec.setChecked(False)
                 self._toggle_recording(False)
+            if self._health_file:
+                self._health_file.close()
+                self._health_file = None
+                self._health_log  = None
             if self._bench_file:
                 self._bench_file.close()
                 self._bench_file = None
@@ -1086,6 +1200,13 @@ class MainWindow(QMainWindow):
             ur_pct = 100.0 * self._total_underruns / max(1, pkts * 59)
             self._lbl_underruns.setText(f"{self._total_underruns:,}  ({ur_pct:.1f}%)")
             self._update_telemetry_labels()
+            self._update_health_labels()
+            # Keep the sidecar's health block current even when no transition
+            # has fired — dead_seconds grows while a channel stays dead, and
+            # an auto-stop can land at any moment.
+            if self._recorder.info.is_recording:
+                self._recorder.live_metadata["channel_health"] = self._health.summary(
+                    self._reader._last_ts_us or None)
             self._rate_ts    = now
             self._rate_pkts  = pkts
             self._drops_prev = drops
