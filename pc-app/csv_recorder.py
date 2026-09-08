@@ -74,6 +74,13 @@ class CsvRecorder:
         self._start_time  = 0.0
         self._rows_written = 0
         self.info = RecordingInfo()
+        # Fields that are only known while the recording runs and must survive
+        # an auto-stop, which happens inside write_batch() with no UI in the
+        # loop. Callers update this dict as facts arrive; stop() merges it.
+        # First user: channel_health (docs/interfaces/recording-format.md
+        # §2.2) — a channel that dies mid-recording has to reach the sidecar
+        # even when the recording ends by hitting the duration cap.
+        self.live_metadata: dict = {}
 
     def start(self, directory: str = ".", metadata: dict | None = None) -> str:
         """Start a new recording. `metadata` carries everything known at
@@ -108,6 +115,7 @@ class CsvRecorder:
 
         self._start_time   = time.time()
         self._rows_written = 0
+        self.live_metadata = {}
         self.info = RecordingInfo(
             is_recording=True, file_path=str(path), sidecar_path=str(sidecar_path)
         )
@@ -151,6 +159,7 @@ class CsvRecorder:
                 "rows_written": self._rows_written,
                 "auto_stopped": auto_stopped,
                 "auto_stop_reason": auto_stop_reason,
+                **self.live_metadata,
             })
             _atomic_write_json(self._sidecar_path, self._sidecar_data)
         self.info.is_recording      = False

@@ -31,6 +31,13 @@ can be scored — including any future "fix".
   bitstream would void the series.
 - **Thermal state** is recorded as a category, not a temperature: no
   thermometer is available yet (see Limitations).
+- **Watch duration is a required field from trial 5 onward** *(added
+  2026-09-08)*. Trial 4 showed the fault can onset ~2 minutes into a
+  session, so "it was working when I looked" is not a result — a pass is
+  only a pass for as long as it was actually observed. Trials 0–3 have no
+  duration recorded and cannot be re-interpreted after the fact.
+  **Minimum 10 minutes of continuous observation**, and record the time of
+  any transition.
 
 ## Trials
 
@@ -40,6 +47,8 @@ can be scored — including any future "fix".
 | 1 | 2026-09-04 | 15:50 | **warm** — powered and running several hours, undisturbed | ok | ok | thermostat 72 °F / 22.2 °C (see Environment) | Baseline / initial state. Recovered untouched earlier the same afternoon after trial 0's failures. Ch A/Ch B set to 42/94 for the first time here. **Oscilloscope already off** for some minutes before this reading — so trials 1 and 2 share that condition and it is controlled between them |
 | 2 | 2026-09-05 | 08:06 | **warm** — powered overnight, undisturbed, scope off | ok | ok | thermostat 72 °F / 22.2 °C; outside 70 °F / 21.1 °C | **PASS.** Checked before touching anything. Room reading identical to trial 1 — the overnight drift below setpoint did not occur, so ambient is roughly constant across trials 0–2 |
 | 3 | 2026-09-05 | 09:08 | **cold soak** — powered off 08:10, off 58 min, reflashed, checked promptly | ok | ok | thermostat 72 °F / 22.2 °C; outside ~70 °F / 21.1 °C | **PASS — a null.** Everything powered down (FPGA, MCU, bridge). Channels re-set to 42/94 after reconfiguration (SET_CHANNELS is runtime state, cleared by FPGA reset). Power-up order not recorded |
+| 4 | 2026-09-08 | ~12:32 | power-on, then **~2 min of running** | **ok → FLAT (0xFFFF)** | ok | not recorded | **Failure observed DURING operation.** Both channels present at power-on; Ch A went flat at zero after ~2 minutes. **Spontaneous — no command, no interaction, nothing touched at the transition.** First time the fault has been seen to *onset* while streaming rather than being present or absent at check time |
+| 4b | 2026-09-08 | ~14:00 | **~90 min powered**, streaming throughout | **FLAT → ok** | ok | not recorded | **Spontaneous recovery**, no intervention. Failure episode ≈ 88 min (12:32 → 14:00). First complete onset-to-recovery cycle ever observed |
 
 ### Trial 2 — and a result the thermostat did not predict
 
@@ -67,6 +76,66 @@ That is more useful than a drop would have been:
 Caveat kept in view: the thermostat is one zone, a different floor, and
 biased warm. "Similar reading" is not "same test-room temperature". It is
 the best available and it is weak.
+
+### Trial 4 changes the shape of the problem
+
+**2026-09-08: chip0 worked at power-on and stopped ~2 minutes later,
+while streaming.** Every previous data point was a *snapshot* — chip0 was
+either working or not at the moment somebody looked. This is the first
+observation of the fault **onsetting during operation**, and it carries
+more information than the three passes before it combined.
+
+**What it rules out:**
+
+- **Not a per-boot coin flip.** The state changes *within* a session, in
+  both directions — it recovered untouched on 2026-09-04 and it failed
+  untouched today. Hypothesis 3 in the previous section is dead as stated.
+- **Not latched at initialisation**, confirmed from the other side.
+
+**What it does to the temperature story:** the direction is now
+inconsistent. 2026-09-04 gave cold→fail, warm→pass. Today gives
+cold(power-on)→pass, warming(2 min)→fail. A simple monotonic
+board-temperature threshold cannot produce both.
+
+**A reconstruction that fits every data point — and it implicates trial 3.**
+Suppose the fault has an **onset a couple of minutes after power-on**, and
+may recover later in a long session:
+
+| | Observation | Fits? |
+|---|---|---|
+| 0b | 09-04 ~11:09, checked shortly after power-up → FAIL | yes — inside the window |
+| 1 | 09-04 15:50, hours powered → pass | yes — long past it, recovered |
+| 2 | 09-05 08:06, powered overnight → pass | yes — long past it |
+| 3 | 09-05 09:08, reflash then checked promptly → pass | **unknown — the watch duration was not recorded** |
+| 4 | 09-08 ~12:32, watched continuously → pass then FAIL at ~2 min | yes — the onset caught live |
+
+**Trial 3 is undetermined, not disproven.** *(Corrected 2026-09-08: this
+section first asserted trial 3 was "probably a false pass" because the
+check came before the onset. That was an assumption, not an observation —
+the log does not record how long the channel was watched, and Manuel's
+practice is to reflash and observe the effect right away. The claim was
+made without verifying it, which is precisely the error this whole item
+exists to guard against, and it is withdrawn.)*
+
+What is actually true: **watch duration was never a recorded field**, for
+any trial before 4.
+
+*Answered 2026-09-08: Manuel observed trial 3 for **less than 3 minutes**.*
+That eliminates the branch where trial 3 is a demonstrated cold pass, but
+it **does not** make it a false pass — with an onset around 2 minutes and
+a watch under 3, it lands either side depending on the exact times, and
+neither is recorded. **Trial 3 stays undetermined**, now compatible with
+the reconstruction rather than testing it.
+
+**Consequence for method: a check is not a moment, it is a duration.**
+Every future trial must watch continuously for at least 10 minutes and
+record *when* the state changes, not whether it was good when glanced at.
+
+**Consequence for priority: this is the reproduction that has been
+missing.** If the onset repeats on a power cycle, the fault becomes
+available on demand in ~2 minutes, with no freeze spray, no instruments,
+and no ten-cycle counting exercise. That is worth more than everything
+else on A.1.2's list.
 
 ### What trials 2 and 3 do and do not show
 
@@ -203,6 +272,63 @@ experiment.
   evidence than a pass after a cold soak. This is why trials are run in
   pairs — warm first, then again after a power-off soak, same morning, same
   room.
+
+### The live failure of 2026-09-08 — first complete cycle ever observed
+
+| Time | Event |
+|---|---|
+| ~12:30 | power on, reflash, channels set to 42/94 — **both alive** |
+| ~12:32 | Ch A goes **flat at `0xFFFF`**, ~2 min after power-on, spontaneous |
+| 13:32 | still flat — confirmed 60 min in |
+| ~14:00 | **recovers spontaneously**, board powered and streaming throughout |
+| 14:07 | both channels confirmed working |
+
+**Failure duration ≈ 88 minutes**, with no intervention at either end.
+
+This is the first episode in the entire investigation observed from onset
+to recovery. Every earlier one was found after the fact or cleared by a
+power cycle before anything could be measured. For comparison,
+2026-09-04's recovery was bounded only between 0 and ~4.7 hours (failed
+~11:09, seen recovered 15:50, unwatched in between) — an ~88 minute
+episode fits inside that window comfortably, and nobody would have seen
+either edge.
+
+**The implication is larger than the measurement.** chip0 does not fail
+*at* boot and stay failed; it **cycles** while running. A recording that
+straddles a transition loses a channel partway through, silently, and gets
+it back. Nothing in the system currently notices, and nobody has ever
+watched continuously for long enough to see a period.
+
+**The question that now matters most: does it fail again, and after how
+long?** A repeating fault with a measurable period is dramatically more
+tractable than an intermittent one — and it costs nothing but leaving the
+board running and glancing at it. Record every transition with a
+timestamp.
+
+**This is the first failure that has ever been available to work on.**
+Every prior one was discovered after the fact or cleared by a power cycle
+before anything was measured. The order below is deliberate:
+non-destructive first, because a power cycle probably clears the state and
+there is no way to get it back on demand yet.
+
+1. **`REG_READ16` from chip0, then chip1.** Does chip0 read `0xFFFF` on a
+   register readback too, or only in the sample stream? Separates "the SPI
+   path to chip0 is dead" from "the sample path is dead". chip1 is the
+   control that proves the SPI master and the rest of the chain are fine.
+2. **Measure chip0's supply rail with a DMM.** The single highest-value
+   physical measurement, and non-invasive. `0xFFFF` means chip0 is not
+   driving MISO at all, and an undervolt or a current-limiting regulator
+   would explain that, the ~2 minute onset (something warms), and the slow
+   recovery — without needing any SCK/MOSI timing story. Compare against
+   chip1's rail.
+3. **`SET_CHANNELS` to a different chip0 channel** (e.g. 10 instead of
+   42). Whole chip, or one channel? Cheap, and it has never been checked.
+4. **`STOP_STREAMING` → `START_STREAMING`.** Does a stream restart recover
+   it *without* a power cycle? Note that this is not an RHD re-init — the
+   FPGA re-issues the sampling-table commands every frame regardless — so
+   a recovery here would be genuinely surprising and very informative.
+5. **Only then, power cycle.** Does it clear? That establishes whether
+   recovery needs a power cycle or happens on its own.
 
 ## Next session — Monday 2026-09-07
 

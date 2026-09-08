@@ -284,6 +284,77 @@ operator-initiated stop) — distinguishes `csv_recorder.py`'s two
 `write_batch()` auto-stop call sites, which previously both collapsed
 into the same `auto_stopped: bool`.
 
+### 2.2a `channel_health` — added 2026-09-08
+
+**Why the sidecar needs this.** On 2026-09-08 chip0 was observed to go
+flat at `0xFFFF` about two minutes into a session and recover
+spontaneously ~88 minutes later, board powered and streaming throughout
+(PLAN.md A.1.2, `log/chip0-temperature-trials.md` trial 4). The fault
+**cycles while running**, so a recording can lose a channel partway
+through, get it back, and read as complete afterwards. A dead RHD2164
+leaves MISO undriven and every sample decodes as −1, which on a graph is a
+flat trace at essentially zero — easy to mistake for a quiet channel,
+which is how it went unnoticed for weeks.
+
+Nothing in the CSV distinguishes that from real data, so **the sidecar has
+to carry it or the recording is not self-describing.** A pre-session
+self-test cannot substitute: it would pass and the channel could still
+vanish twenty minutes later.
+
+```json
+"channel_health": {
+  "detector_version": 1,
+  "dead_value": -1,
+  "dead_enter_sec": 0.25,
+  "channels": {
+    "ch0": { "state": "alive", "dropouts": 1, "dead_seconds": 5280.4 },
+    "ch1": { "state": "alive", "dropouts": 0, "dead_seconds": 0.0 }
+  },
+  "transitions": [
+    { "channel": "ch0", "to_state": "dead",  "sample_timestamp_us": 118000,
+      "wall_time_utc": "2026-09-08T17:32:04Z", "prior_state_duration_s": 118.0 },
+    { "channel": "ch0", "to_state": "alive", "sample_timestamp_us": 5398000,
+      "wall_time_utc": "2026-09-08T19:00:11Z", "prior_state_duration_s": 5280.0 }
+  ]
+}
+```
+
+- **`dropouts` is sticky and is the field to check first.** A channel that
+  died and recovered is not the same as one that never died; `state` alone
+  cannot say which happened, and at the end of a recording it will usually
+  read `alive` either way.
+- **`sample_timestamp_us` is backdated** to where the run began, not to
+  where the detector crossed its threshold — otherwise every edge is late
+  by `dead_enter_sec` and correlating a dropout against a stall or a
+  command becomes guesswork. It indexes directly into the CSV's own
+  `timestamp_us` column, so the affected rows can be found exactly.
+- **Underrun samples are excluded from the evidence.** When the FIFO runs
+  dry both channels read `0x8000`, and after the A.7 PLL retune that is
+  expected on ~5% of samples by design (λ < μ). They say nothing about
+  whether a chip is responding, and counting them as signs of life would
+  reset the dead-run counter forever — the detector would never fire
+  against exactly the configuration the project is moving to.
+- **Written continuously, not at `stop()`.** `CsvRecorder.live_metadata`
+  is merged at stop, so the record survives an auto-stop (duration cap,
+  low disk) that happens inside `write_batch()` with no UI in the loop.
+  A recording that hits the duration cap is exactly the long one where a
+  dropout is most likely.
+- **Also written per session, independently**, to `bench/health_*.csv` —
+  every transition as it happens, flushed immediately. That file exists
+  because the 2026-09-08 episode was characterised only because somebody
+  happened to be looking at the screen at 12:32 and again at 14:00. It
+  makes that automatic, so a period (if there is one) gets measured rather
+  than stumbled upon.
+
+`detector_version` is present so the rule can change — the `-1` signature
+and the 0.25 s threshold are both empirical — without a reader having to
+guess which rule produced a given file.
+
+**Backward compatibility:** older sidecars have no `channel_health` key.
+A reader must treat *absent* as **unknown**, never as *no dropouts*: every
+recording before 2026-09-08 was made with no detector running at all, and
+several were made while this fault was active and unnoticed.
+
 ## 3. `sample_rate` — RESOLVED 2026-08-28
 
 **FPGA-driven rate, derived from RTL 2026-08-27 (Manuel: "look at the

@@ -1365,7 +1365,25 @@ a 58-minute cold soak) failed to reproduce the fault. The thermal
 manipulations are demoted below the counting exercise, because at one
 failure in four boots there is not yet a phenomenon to manipulate.
 
-- [ ] **Pass rate first — ten rapid power cycles.** *(Now the top item.)*
+- [x] **Channel-liveness detector in the pc-app.** ✅ **2026-09-08**
+      *(Claude.)* `pc-app/channel_health.py` + `test_channel_health.py`.
+      Watches both channels continuously for the flat-`0xFFFF` signature,
+      shows live state plus a **sticky** dropout count, writes every
+      transition to `bench/health_*.csv` as it happens, and records the
+      whole history in the recording sidecar
+      (`recording-format.md` §2.2a). Underrun sentinels are excluded from
+      the evidence — without that, the ~5% of `0x8000` padding the A.7
+      retune creates by design would reset the dead-run counter forever
+      and the detector would never fire.
+      - **This changes how the trials are run.** Watching a screen is no
+        longer the instrument; the transition log is. Every trial from
+        here produces timestamped edges automatically, so the period —
+        if there is one — gets measured rather than stumbled upon.
+      - **It also changes what a recording means.** Trial 4 showed a
+        channel can vanish mid-recording and return, and nothing noticed.
+        Every recording from here carries its own liveness history.
+- [ ] **Pass rate first — ten rapid power cycles.** *(Now the top item of
+      what remains.)*
       Off, on, reflash, check: ~2 minutes each, under an hour for ten.
       This separates "per-boot random with no thermal driver" — which the
       current 1-in-4 fits most cheaply — from everything else, and it
