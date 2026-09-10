@@ -173,6 +173,13 @@ A.3–A.5). This is the order that actually matters:
 
 0. **chip0's intermittency — characterise it before trusting any other
    bench result.** *(Manuel, bench — see A.1.2)* **Newly first, 2026-09-04.**
+   **REPRODUCED 2026-09-10 (trial 6)** — cold start, onset 12 min 04 s,
+   dead 36 min, spontaneous recovery, full cycle captured by the liveness
+   detector including a **1.39 s** partial recovery. The fault is now
+   observable on demand-ish and instrumented; what changed is the *method*,
+   not the diagnosis. **Read A.1.2's corrected pass-rate design before
+   running anything** — the 2-minute-per-cycle version would have scored
+   trial 6 a pass. `log/2026-09-10.md`.
    chip0 failed twice on a cold board and then recovered untouched hours
    later; the failure drifts over hours and is not latched at boot. Until
    the pass rate and its driver are known, **no bench result on this board
@@ -216,17 +223,46 @@ A.3–A.5). This is the order that actually matters:
    lossless" into evidence — which is exactly what a one-shot animal
    recording needs. Smallest change in the plan, largest information
    gain. Also retires T3.3's `cmd_is_00 = fifo_full` debug hijack.
-3. **A.7 step 2 — telemetry frame end to end.** ✅ **Code complete
-   2026-09-04** *(Claude: MCU + bridge + pc-app)* — `0xFFF4`
-   characteristic, bridge discovery + fourth CCCD, `0xDD 0x22`
-   re-framing, `serial_reader.py` decode, pc-app attribution panel, plus
-   the MCU's `ring_truncated_samples` and `stall_time_ms_total`. Both
-   firmwares build clean; desk tests pass. **What remains is bench
-   bring-up, and it folds into item 1's session:** the bridge connection
-   sequence now writes a fourth CCCD and nothing desk-side can exercise
-   it. Bring it up against an already-streaming headstage so a telemetry
-   failure is unambiguous. Until item 2's RTL lands, every frame carries
-   `fpga_counters_valid = 0` by design — *absent*, not *clean*.
+3. **A.7 step 2 — telemetry frame end to end.** ⚠️ **Code complete
+   2026-09-04, and it FAILED bench bring-up 2026-09-09.** *(Claude: MCU +
+   bridge + pc-app)* — `0xFFF4` characteristic, bridge discovery + fourth
+   CCCD, `0xDD 0x22` re-framing, `serial_reader.py` decode, pc-app
+   attribution panel, plus the MCU's `ring_truncated_samples` and
+   `stall_time_ms_total`. Both firmwares build clean; desk tests pass.
+   **On hardware it produces nothing.** A 17.26-hour unattended run
+   against a streaming headstage (2026-09-08→09) ended with the panel
+   reading `Telemetry: no frames` and all five attribution fields at `—`.
+   That is not an ambiguous test — the bench bring-up this item was
+   waiting for has happened, unintentionally, and the answer is negative.
+   Debug order: does the MCU notify on `0xFFF4` at all; does the bridge
+   discover the characteristic; does the **fourth CCCD write** succeed
+   (the part the spec names as fragile, and the part nothing desk-side can
+   exercise); does `0xDD 0x22` reach the host. Until item 2's RTL lands,
+   every frame carries `fpga_counters_valid = 0` by design — *absent*, not
+   *clean* — but today there are no frames at all.
+   **This is now blocking, not merely pending**, because of the finding
+   immediately below: the pc-app's own loss counter has turned out to be
+   unreliable, so `0xFFF4` is no longer a nice-to-have second opinion — it
+   is the only trustworthy loss measurement the system can have. Full
+   evidence: `log/2026-09-09.md` §3.
+   - **A.7 step 2b — `dropped_packets` under-reports burst loss; fix or
+     flag.** *(Claude, pc-app.)* **New 2026-09-09, and it invalidates every
+     past "drops: N" reading in this repo's logs.** `serial_reader.py:263`
+     computes `gap = (seq - self._expected_seq) % 256`, but `seq_num` is a
+     rolling byte, so **every gap is taken mod 256**. A 7,220-packet burst
+     loss on the 2026-09-08 run reported as `7220 % 256` = **52**; a burst
+     of exactly 256×k reports as **zero**. The counter fails in the
+     dangerous direction — bursty loss, the only kind that matters, reads
+     as a *cleaner* number than it is. That night's panel showed 727 drops
+     out of 31 M packets (0.0023%, an apparently excellent link) while
+     throughput accounting put ~40,400 packets missing.
+     **A byte counter cannot carry this**, so there is no arithmetic fix.
+     Two options, not exclusive: (a) when a gap is large, record "gap
+     detected, true size unknown (≥ N)" and stop presenting the sum as a
+     total — cheap, correct, stops the panel lying today; (b) this item's
+     `0xFFF4` counters, cumulative and 32-bit and not wrapping at a packet
+     boundary — the real answer. Do (a) immediately; (a) is a stopgap, and
+     it is what makes this item urgent rather than optional.
 4. **A.4 RTL — fully unblocked, nothing desk-side gates it.**
    `docs/interfaces/lvds-tunnel.md` is complete on both ends of the cable;
    O1 and O2 are closed. Order per its §12: `.pdc` `IO_TYPE=LVDS` + PAR
@@ -1375,6 +1411,16 @@ failure in four boots there is not yet a phenomenon to manipulate.
       the evidence — without that, the ~5% of `0x8000` padding the A.7
       retune creates by design would reset the dead-run counter forever
       and the detector would never fire.
+      - ⚠️ **The ~5% figure is in doubt** *(2026-09-09)*. A 17.26-hour run
+        reported **0 underruns (0.0%)** on the panel, at 29,488 SPS — a
+        ~1.7% rate deficit with *no* padding. Zero padding alongside a rate
+        deficit is not what the retune description predicts: either the
+        retune is not in this build, or the ~5% is stale. **Not resolved,
+        and not edited here on the strength of one panel reading** — check
+        `STREAM_ACTIVE_MODE`, the shipped λ, and whether `0x8000` padding is
+        emitted at all in this bitstream first. Consequence if padding is
+        genuinely absent: the exclusion rule above is currently *inert* —
+        harmless, but never exercised on hardware. `log/2026-09-09.md` §4.
       - **This changes how the trials are run.** Watching a screen is no
         longer the instrument; the transition log is. Every trial from
         here produces timestamped edges automatically, so the period —
@@ -1382,14 +1428,62 @@ failure in four boots there is not yet a phenomenon to manipulate.
       - **It also changes what a recording means.** Trial 4 showed a
         channel can vanish mid-recording and return, and nothing noticed.
         Every recording from here carries its own liveness history.
-- [ ] **Pass rate first — ten rapid power cycles.** *(Now the top item of
-      what remains.)*
-      Off, on, reflash, check: ~2 minutes each, under an hour for ten.
+- 🚨 **Trial 6, 2026-09-10: REPRODUCED, and the first complete cycle
+      captured by instrument rather than by eye.** Cold start after ~18.5 h
+      powered off, thermostat 70 °F / outside 75 °F — the lowest setpoint in
+      the series and **the first FAIL with any ambient recorded**. (The
+      thermostat controls the floor *above* the test room, so "colder" is
+      inference, not measurement — this is what makes the ~$30
+      thermo-hygrometer worth un-gating.) Onset
+      12 min 04 s after connect, dead 36 min 01 s, spontaneous recovery,
+      nothing touched. Three assumptions die with it: the onset delay is
+      variable (2–12 min, not ~2 min), there is no characteristic episode
+      period (36 vs 88 min), and a **1.39-second partial recovery** mid-
+      episode is not something a thermal drift can produce — it points at a
+      marginal timing edge. **Cold start after an overnight power-off is
+      now 2 for 2 on failure**, and the one cold pass that disagrees
+      (trial 3, "checked promptly") is undermined by the variable onset
+      delay. Full analysis: `log/chip0-temperature-trials.md` § Trial 6.
+- **Trial 5 logged 2026-09-09: a 17.26-hour warm pass**, zero liveness
+      transitions, the longest observation in the series by two orders of
+      magnitude and the first to satisfy the watch-duration rule. It
+      brackets trial 4 (onset ~2 min, recovery ~88 min) — that cycle did
+      not recur across 17 hours. **It does not change this ordering:** warm
+      runs were never the arm that failed, and trial 0b (cold, after an
+      overnight power-off) is still the only FAIL. It was free, because the
+      rig was being left on regardless. `log/chip0-temperature-trials.md`.
+- [ ] **Pass rate — ten power cycles.** *(Still the top item of what
+      remains — but the design below is BROKEN and must be fixed first.)*
+      ~~Off, on, reflash, check: ~2 minutes each, under an hour for ten.~~
       This separates "per-boot random with no thermal driver" — which the
-      current 1-in-4 fits most cheaply — from everything else, and it
-      needs no equipment at all. **Every other item below is worth doing
-      only if this comes back near zero failures**, i.e. only if the
-      thermal story survives.
+      current rate fits most cheaply — from everything else, and it needs
+      no equipment at all. **Every other item below is worth doing only if
+      this comes back near zero failures**, i.e. only if the thermal story
+      survives.
+      - 🚨 **The ~2-minute-per-cycle design is invalid** *(2026-09-10)*.
+        Trial 6's fault onset **12 min 04 s** after connect, against trial
+        4's ~2 min. A two-minute check would have scored trial 6 as a
+        **pass** — the channel was live and normal for the entire window.
+        Run as written, this experiment manufactures false passes and
+        would have reported a near-zero failure rate, which is exactly the
+        answer that retires the thermal hypotheses and stops all the work
+        below. **It would have concluded the opposite of the truth.**
+      - **Minimum per-cycle observation is now the longest onset delay
+        ever seen, with margin — call it 20 minutes**, which puts ten
+        cycles at 3.5+ hours rather than under an hour. That is the real
+        cost, and it is worth paying; the cheap version answers nothing.
+      - **Do not score by eye.** Every cycle must be scored from
+        `bench/health_*.csv`. Trial 6 contained a **1.39-second** partial
+        recovery between two 16-minute dead stretches — a human watch
+        cannot resolve that, and if the fault does it routinely then a
+        by-eye "pass" and a by-eye "fail" are not measuring the same thing
+        from cycle to cycle.
+      - Cheaper alternative worth considering first: **fewer cycles, each
+        watched much longer.** With onset delay and episode duration both
+        variable (§ trial 6), a small number of fully-instrumented cycles
+        may buy more than ten shallow ones — the quantity in doubt is no
+        longer just *whether* a boot fails but *when*, and only long
+        watches measure that.
 - [ ] **Reproduce on demand with freeze spray.** If cold is the trigger,
       this converts an intermittent ghost into a debuggable fault — the
       single thing missing from every previous attempt. Chill chip0 and
@@ -1401,12 +1495,29 @@ failure in four boots there is not yet a phenomenon to manipulate.
       table as a remedy. If it recovers, it is setup after all. One PLL
       change, and it discriminates cleanly between the two families of
       fix. Also gated on knowing the baseline rate.
-- [ ] **Instrument, if the thermal hypotheses survive.** A BLE
+- [ ] **Instrument — the gate on this should now be reconsidered.** A BLE
       thermo-hygrometer for the room (also gives dew point, needed before
       any spray cooling) and a K-type probe for the board. ~$30 the pair.
-      Deliberately *not* bought yet: trials 2–3 showed the room reading
+      ~~Deliberately *not* bought yet: trials 2–3 showed the room reading
       barely moves, so the instrument to buy depends on what the pass rate
-      says is worth measuring.
+      says is worth measuring.~~
+      - **That reasoning was circular and is now visibly so** *(2026-09-10)*.
+        "The room reading barely moves" was a reading from a thermostat
+        **one floor above the test room**, controlling a different floor of
+        a single-zone house. It was never a measurement of the room the
+        board is in, so it could not have shown that the room's temperature
+        barely moves. The premise for deferring the purchase does not hold.
+      - **Two failures (0b, 6) now rest on a cold hypothesis whose
+        independent variable has never once been measured where the board
+        is.** Every temperature statement in the trial log is an inference
+        from a proxy with an unknown, non-constant offset. $30 and a day's
+        shipping converts the whole series from inference to data, and it
+        is cheap next to the 3.5+ hours the corrected pass-rate experiment
+        now costs.
+      - Order it **before** the next pass-rate attempt, not after. If it
+        arrives in time, every cycle of that experiment carries a real room
+        temperature; if it does not, the experiment still runs — but log
+        the thermostat reading as the proxy it is.
 - [ ] **Re-examine the three closures** against whatever the above shows.
       `docs/interfaces/fpga-rhd2164-chip0-placement.md` and
       `fpga-timing-constraints.md` both record ruled-out hypotheses that
@@ -2058,8 +2169,9 @@ version handshake.
       - **T3.3's `cmd_is_00 = fifo_full` debug hijack is superseded by it**
         (`kuntur_fpga.v:118`), so that cleanup wants doing in the same pass
         rather than as a separate carried-over item.
-- [x] **Step 2 — make loss measurable.** ✅ **Implemented 2026-09-04,
-      desk-verified, not yet on hardware.** *(Claude: MCU + bridge + pc-app)*
+- [ ] **Step 2 — make loss measurable.** ⚠️ **Implemented 2026-09-04,
+      desk-verified — and it FAILED bench bring-up 2026-09-09. Reopened.**
+      *(Claude: MCU + bridge + pc-app)*
       The telemetry frame end to end: new `0xFFF4` notify characteristic in
       `stream.c`'s service definition, the bridge's connection sequence
       extended to discover it and write its CCCD, bridge re-framing to
@@ -2091,12 +2203,54 @@ version handshake.
       - **One spec correction:** §6.5 named two MCU discard sites. Only
         the `flow_off:` one is; the others clamp their FPGA *read*, so a
         short read leaves the remainder in `fifo0` and loses nothing.
-      - **Still needs the bench** — the riskiest part is unchanged and
-        untestable at the desk: the bridge connection sequence now writes
-        a *fourth* CCCD. Bring it up against an already-streaming
-        headstage so a telemetry failure is unambiguous. Also worth
-        measuring there: the 1 Hz notify's real cost on packet rate
-        (argued negligible, ~60 µs/s, but `μ` was measured without it).
+      - **The bench happened, and it failed.** *(2026-09-09.)* A
+        17.26-hour unattended run against a streaming headstage
+        (2026-09-08 17:50 → 2026-09-09 11:05, `STREAM_MODE_WB09KE_HF`)
+        ended with the pc-app panel reading **`Telemetry: no frames`** and
+        all five attribution fields at `—`. Seventeen hours is not an
+        ambiguous test. The bring-up this bullet was waiting for has now
+        occurred, by accident, and the result is negative.
+        - **Debug order**, cheapest-decisive first: is the MCU notifying on
+          `0xFFF4` at all (is `StreamTelemetryPoll()` running and is
+          `aci_gatt_srv_notify` returning success?) → does the bridge
+          discover the characteristic → does the **fourth CCCD write**
+          succeed → does `0xDD 0x22` reach the host. The prediction on
+          record is the fourth CCCD, and it is still the prediction.
+        - **The cost of the failure is now concrete.** That same run lost
+          ~7,220 packets to a 33 s host stall and has ~40,400 packets
+          unaccounted for across the night, and **none of it can be split**
+          between radio loss, MCU ring truncation and bridge USB backlog —
+          which is the exact question this frame exists to answer. Full
+          write-up: `log/2026-09-09.md` §3.
+        - Still unmeasured, and still worth measuring once frames flow: the
+          1 Hz notify's real cost on packet rate (argued negligible,
+          ~60 µs/s, but `μ` was measured without it).
+- [ ] **Step 2b — `dropped_packets` under-reports burst loss.**
+      *(Claude, pc-app)* **New 2026-09-09.** `serial_reader.py:263` is
+      `gap = (seq - self._expected_seq) % 256`. `seq_num` is a rolling
+      byte, so every gap is truncated mod 256: the 2026-09-08 run's
+      ~7,220-packet burst reported as **52**, and a burst of exactly
+      256×k reports as **zero**. The counter is not a loss total; it is a
+      sum of per-event losses modulo 256, and it degrades exactly in the
+      bursty regime that matters, in the direction that hides the problem.
+      - **Why this belongs in A.7 and not in a bug list.** A.7 exists to
+        turn "we believe it is lossless" into a number. `dropped_packets`
+        was the number the pc-app already had, and it is now known to be a
+        lower bound of unknown tightness. **Every `drops: N` reading in
+        this repo's logs should be re-read as "at least N, unknown how
+        much more".**
+      - **A byte counter cannot carry a 7,000-packet gap**, so there is no
+        arithmetic fix in `serial_reader.py`. (a) When a gap exceeds a
+        threshold, record it as "gap detected, true size unknown (≥ N)"
+        and stop presenting the sum as a total — cheap, honest, and it
+        stops the panel from lying today. (b) Step 2's `0xFFF4` counters
+        are cumulative 32-bit and do not wrap at a packet boundary — the
+        real answer. **Do (a) now; (a) is a stopgap and is precisely what
+        makes step 2 urgent rather than optional.**
+      - Note the ordering consequence: step 2 was previously "nice second
+        opinion, folds into the next bench session". With the pc-app's own
+        counter untrustworthy, it is the only trustworthy loss measurement
+        the system can have before the animal test.
 - [x] **Step 3a — μ measured, λ set.** ✅ **2026-09-03.** Done *ahead of*
       steps 1–2 rather than after them, because the existing 22.8-minute
       recording turned out to measure both rates at once: the MCU always

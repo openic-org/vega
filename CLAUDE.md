@@ -146,9 +146,14 @@ readback is non-zero the flush is skipped and logged loudly.
 ### Telemetry plane (`0xFFF4` notify → `0xDD 0x22` frame)
 
 **A.7 step 2. Implemented 2026-09-04; builds clean on all three sides and is
-desk-verified, but has not run on hardware yet** — the bridge's connection
-sequence now writes a *fourth* CCCD, which is the part with a history of
-fragility. Spec and open items: `docs/interfaces/stream-packet-format.md` §6.
+desk-verified — but it does NOT work on hardware.** A 17.26-hour unattended
+run on 2026-09-08→09 produced **zero frames**: the panel read
+`Telemetry: no frames` and all five attribution fields stayed at `—`. Treat
+every telemetry field as unavailable until this is fixed. The prime suspect
+is the part with a history of fragility — the bridge's connection sequence
+now writes a *fourth* CCCD, and nothing desk-side can exercise it. Debug
+order and evidence: `log/2026-09-09.md` §3; spec:
+`docs/interfaces/stream-packet-format.md` §6; schedule: PLAN.md A.7 step 2.
 
 A ~1 Hz frame carrying every loss counter plus an RTC time anchor, assembled in
 two hops: the MCU fills bytes 0–29 and notifies on `0xFFF4`; the bridge appends
@@ -160,6 +165,15 @@ Counters are **cumulative since `START_STREAMING`** and are never reset by a
 report, so a lost frame costs resolution rather than information. The point is
 attribution: `dropped_packets` in the pc-app conflates a USB backlog with a
 radio problem, and only the bridge can tell them apart.
+
+**`dropped_packets` is also a lower bound, not a total** *(found 2026-09-09)*.
+`serial_reader.py:263` computes `gap = (seq - self._expected_seq) % 256`, and
+`seq_num` is a rolling byte — so every gap is truncated mod 256. A
+7,220-packet burst reported as **52**; a burst of exactly 256×k reports as
+**zero**. It fails in the direction that hides the problem: bursty loss reads
+as a *cleaner* number than it is. Read every historical `drops: N` as "at
+least N". A byte counter cannot carry this, which is why the 32-bit
+cumulative counters above are the real fix. PLAN.md A.7 step 2b.
 
 | Field | Answers |
 |---|---|
