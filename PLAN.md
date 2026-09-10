@@ -1411,8 +1411,11 @@ strength of that reproduction; the purchase gate below is lifted.
 
 **Order of work from here:**
 
-1. **Buy the kit** (~$50–90, below). Hygrometer arrives before any
-   cooling — dew point is a hard precondition, not a nicety.
+1. ✅ **Kit fully ordered 2026-09-10.** DigiKey (SO `101549716`,
+   $151.33, FedEx Ground) + hygrometer (Amazon, **arriving 2026-09-11**).
+   The hygrometer lands first, which is the right order — and it means
+   **step 2 starts on 09-11 without waiting for the DigiKey box**, since
+   unperturbed cold starts need the ambient record, not the probes.
 2. **Baseline cold starts, unperturbed** — enough to know the spontaneous
    onset-latency distribution. Currently *n* = 2 (2 min, 12 min), which is
    not a distribution.
@@ -1522,13 +1525,38 @@ Steps 3 and 4 are why the equipment is worth buying; step 4 is the payoff.
         full pass rate first. **The gate loosens, it does not vanish** —
         step 2 above (a handful of unperturbed cold starts) is what you are
         comparing against, and it is still required.
-      - 🚨 **Dew point is a hard precondition.** Cooling the board below
-        dew point condenses water on it, which creates leakage paths that
-        can *cause or mask* faults and damages hardware on repetition. The
-        risk is not just a wasted afternoon: it is chasing a condensation
-        artifact and recording it as chip0. **Do not spray before the
-        hygrometer is in hand and the dew point is known.** Short bursts,
-        and stop if the board approaches it.
+      - 🚨 **Frost budgeting, not dew-point avoidance — corrected
+        2026-09-10 against the chosen spray's datasheet.** ~~Dew point is a
+        hard precondition. Cooling the board below dew point condenses
+        water on it. Do not spray before the hygrometer is in hand and the
+        dew point is known. Short bursts, and stop if the board approaches
+        it.~~ **The avoidance framing was unachievable.** MG Chemicals
+        403A is 100% HFC-134a rated to **−51 °C**: every trigger pull puts
+        the target *hundreds* of degrees below any room dew point,
+        instantly. Condensation is not a risk to be held away from, it is
+        a certainty to be budgeted. **The hazard itself is unchanged and
+        real** — water on the board creates leakage paths that can *cause
+        or mask* faults and damages hardware on repetition, and the
+        failure mode is chasing a condensation artifact and recording it
+        as chip0. What changes is the mitigation:
+        - **Short bursts, then full rewarm and dry before the next one.**
+          Never stack a burst onto an already-cold target — that is what
+          accumulates frost instead of flashing it off.
+        - **Visible frost is the stop signal**, not a temperature
+          threshold. There is no threshold to stay above.
+        - **Ambient RH is the only real lever.** Run the series on a dry
+          day if there is a choice.
+        - "Moisture free" on the can describes the *propellant*. It says
+          nothing about condensing the room's water onto a chilled
+          package.
+      - **What the hygrometer is for, revised.** Not a go/no-go gate — per
+        the above there is no gate to hold. It buys two things: how much
+        frosting to expect on the day, and **the ambient record every
+        trial in this series has lacked**. Per the last bullet of the kit
+        item below, two failures rest on a cold hypothesis whose
+        independent variable has never once been measured where the board
+        is. That justification is stronger than the one it replaces.
+        **Still buy it first.**
       - **Spray warm as well as cold.** Recovery has only ever been
         observed spontaneously. If warming reliably recovers a *dead*
         chip0, that symmetry is far stronger evidence than triggering
@@ -1554,19 +1582,135 @@ Steps 3 and 4 are why the equipment is worth buying; step 4 is the payoff.
         reproduces the *symptom* without isolating the *cause*, and cooling
         things could burn a week without yielding a fix. Hold-vs-setup is
         the question that survives either way.
-- [ ] **Buy the thermal kit. APPROVED 2026-09-10 (Manuel); the gate is
-      lifted.** Not just measurement any more — the decision is to acquire
-      local temperature *control*, so the fault can be reproduced on demand
-      and the `clk` experiment becomes runnable.
+- [x] **Buy the thermal kit. APPROVED 2026-09-10 (Manuel); ORDERED
+      2026-09-10.** Not just measurement any more — the decision was to
+      acquire local temperature *control*, so the fault can be reproduced
+      on demand and the `clk` experiment becomes runnable.
 
-      | Item | ~Cost | Why |
-      |---|---|---|
-      | BLE thermo-hygrometer | $15 | Room ambient + **dew point**. **Buy first** — it is a precondition for spraying, not a companion to it |
-      | K-type thermocouple + meter | $15 | Room temperature is not what the package sees; localisation needs board-level readings |
-      | Freeze spray (proper, not an inverted duster) | $20 | ~−50 °C, localised, short bursts |
-      | Hot air source | $0–40 | A hair dryer suffices; rework station if one is already on the bench |
+      ✅ **DigiKey** — sales order `101549716`, web ID `376512578`, FedEx
+      Ground. $121.05 + $8.49 shipping + $10.42 tariff + $11.37 tax =
+      **$151.33**.
+      ✅ **Hygrometer** — Amazon, ordered 2026-09-10, **arriving
+      2026-09-11** (overnight), i.e. ahead of the DigiKey shipment. That
+      satisfies the frost precondition before any spray is possible, and
+      **unblocks step 2 immediately** — baseline cold starts need the
+      ambient record, not the probes.
+      - **Model confirmed: Govee H5075.** Broadcast format is known and
+        decoders exist, so nothing needs reverse-engineering:
+        - Manufacturer data under company ID **`0xEC88`** (60552). In
+          `bleak`, `manufacturer_data[0xEC88]` = `[0x00, b1, b2, b3,
+          batt]`. Print the dict keys once on first run to confirm the
+          key's endianness on your stack rather than trusting it.
+        - `base = (b1<<16)|(b2<<8)|b3`; `neg = base & 0x800000`;
+          `v = base & 0x7FFFFF`; `T_C = ±(v//1000)/10`;
+          `RH = (v % 1000)/10`. One packed integer carries both.
+        - Battery = `batt & 0x7F`. **`batt & 0x80` is an error flag** —
+          log it; a sensor reporting an error must not silently become an
+          ambient record.
+        - ⚠️ **It needs an ACTIVE scan, not a passive one** — the payload
+          rides in the scan response, so the scanner must issue a
+          `SCAN_REQ`. `bleak` defaults to active scanning, so this is free
+          on the Linux box, but a passive-only setup would see nothing and
+          look like a dead sensor.
 
-      **~$50–90 total.** Cheap against the 3.5+ hours the corrected
+      | Item | Part | Qty | Unit | Why |
+      |---|---|---|---|---|
+      | Freeze spray | **MG Chemicals `403A-400G`** (DK `473-1194-ND`) | 1 | $31.23 | 100% HFC-134a, −51 °C, non-flammable (no flash point), non-conductive, zero residue, explicitly rated for **energized circuits** — required, since the board must be streaming. 400 g over 285 g: localisation is many short bursts across four targets |
+      | Thermocouple probes | **Labfacility `XE-3506-001`** (DK `5425-XE-3506-001-ND`) | 3 | $18.13 | Type K, PTFE, **exposed welded junction**, 1/0.2 mm (32 AWG), **−75 °C** min, Class 1, 2 m, miniature plug. Exposed bead because a sheathed probe's thermal mass under-reads a 1–2 s burst; fine gauge because fat wire thermally shorts the package to ambient and reads the cold gas stream. ⚠️ **Non-cancelable/non-returnable** |
+      | TC→banana adapters | **Klein `69146`** (DK `1742-1420-ND`) | 3 | $11.81 | K-type socket to banana plugs. Both meters take bananas, the probes carry mini plugs |
+      | BLE thermo-hygrometer | Amazon, arriving 2026-09-11 | 1 | ~$18 | Must broadcast T/RH in BLE advertisements — see the dedicated bullet below |
+      | Meters | **Keysight U1242B + Keithley DMM6500** | — | **$0** | Already owned. See below — no meter purchase was needed |
+      | Hot air source | Hair dryer | — | $0 | Already owned |
+
+      - 🌡️ **The meters already on the bench cover this; nothing was
+        bought.** The **U1242B is a two-channel K-type thermometer**:
+        separate `+T1/−T1` and `+T2/−T2` inputs, displaying **T1, T2 and
+        `T1−T2`** plus a scan mode, −40 °C to 1000 °C, with defeatable
+        ambient compensation for relative measurement. `T1−T2` **is** the
+        localisation measurement — chip0 on T1, the neighbour on T2, read
+        the differential live while spraying.
+        - **Jack mapping:** T1 = V/Ω + COM, T2 = µA/mA + **A**. Two
+          independent pairs, no shared jack, so two banana adapters plug
+          in at once. Confirmed from the manual's *Input-A Warning Alert*:
+          the meter suppresses its usual "lead in the A jack" alarm
+          specifically "in T1/T2 temperature measurements mode", i.e. that
+          jack legitimately carries the second thermocouple.
+        - **The U1242B's weakness is its −40 °C floor**, against a
+          −51 °C spray. A package under short bursts realistically lands
+          −20 to −40 °C so this is probably fine, but it could clip.
+        - **Escape hatch — the DMM6500 read as DCV.** Its native TC mode
+          goes to −200 °C but its reference junction at the front
+          terminals is **simulated only** (internal CJC needs a
+          2001-TCSCAN card). Reading the raw thermocouple **voltage**
+          instead has no floor, 6½ digits, and needs no CJC at all for a
+          *delta*: ~41 µV/°C. Every question in A.1.2 is a delta.
+        - **The DMM6500 is also the logging channel.** Deep timestamped
+          buffer over USB/LAN, so a thermal trace can be aligned against
+          `bench/health_*.csv` on one timebase. Trial 6's lesson was that
+          the transition log is the instrument, not a human watching a
+          screen; this extends that to temperature. Suggested split:
+          U1242B drives spray localisation (step 3), DMM6500 logs the long
+          runs (steps 2 and 4).
+      - 🌡️ **Hygrometer: buy one that *broadcasts*, not one that
+        displays — and one is enough.** The justification for this item is
+        the ambient record the series has lacked; a number read off an LCD
+        and written down cannot produce that across a 17-hour unattended
+        run. Pick a sensor whose BLE **advertisements** carry T and RH in
+        the clear so a scan logs to `bench/ambient_*.csv` on the same
+        timebase as `health_*.csv`. **Chosen: Govee H5075** (~$18,
+        broadcasts every ~2 s, decoders exist, no setup — decode below).
+        Alternative considered: Xiaomi LYWSD03MMC (~$6 +
+        pvvx/ATC_MiThermometer reflash — cheaper, but a yak shave in
+        front of the experiment).
+        - **Why one and not one-per-location:** **dew point is the
+          well-mixed quantity, temperature is not.** Absolute humidity
+          equalises across a closed room, so a single sensor anywhere
+          reasonable gives the dew point — which is exactly the number the
+          frost budget needs. Temperature at the board is separately
+          covered by a thermocouple probe in free air near the PCB, which
+          measures it better than a hygrometer would. Placement is
+          therefore not critical.
+        - **Dew point is computed, not measured** (Magnus–Alduchov–
+          Eskridge): `γ = ln(RH/100) + 17.625·T/(243.04+T)`, then
+          `Td = 243.04·γ/(17.625−γ)`.
+        - **Check the Linux box has a BLE adapter.** The pc-app reaches
+          the device over USB serial to the WB09KE bridge, so host BLE has
+          never been needed. A ~$10 USB dongle covers it; no conflict with
+          the data path either way.
+      - **Why type K and not type T.** Type T (copper/constantan) is the
+        metrologically correct type for sub-ambient work, and K's class-2
+        limits of error are often specified only down to −40 °C. **K wins
+        on ecosystem, not physics** — meters in this class are K-only, and
+        the U1242B is K/J. Acceptable because this experiment needs
+        *deltas* ("did the part I aimed at drop 40 °C while its neighbour
+        did not"), not absolute accuracy. Avoid a **mono-plug** probe
+        termination: the plug is brass, so it adds two parasitic junctions
+        that only cancel while both sit at the same temperature — exactly
+        the assumption freeze spray breaks. The `XE-3506-001` is the
+        **IEC** variant (green, not ANSI yellow); the miniature flat-pin
+        format is dimensionally common to both and the wider pin keys
+        polarity, so it mates with a US meter.
+      - **On arrival, test-fit before anything else.** The probes are
+        non-returnable, so the first five minutes should confirm the
+        miniature plug actually mates with the Klein socket, and that two
+        adapters physically fit side by side on the U1242B (the Klein body
+        is 38 mm wide across 19 mm jack spacing — short banana jumpers
+        offset one if they collide).
+      - **Keep the adapters out of the spray plume.** The alloy→copper
+        transition sits inside the adapter shell, an inch or two from the
+        meter's cold-junction sensor. Normally irrelevant; with a −51 °C
+        plume in the room it is a reason not to let them sit downwind.
+      - **The 403A makes no antistatic claim**, and HFC-134a boiling off
+        at speed is a triboelectric generator. Wrist strap and grounded
+        mat — which a live board wants anyway.
+      - **Also needed, probably already on the bench:** Kapton tape, to
+        hold a bead on a package top *and over it* — the tape does the job
+        the rejected Omega SA1 pad's fiberglass upper layer did, shielding
+        the junction from the gas stream so it reads the package rather
+        than a blend of package and −51 °C gas, at ~1 mm of footprint
+        instead of 19 × 25 mm.
+
+      **~$170 all in.** Cheap against the 3.5+ hours the corrected
       pass-rate experiment now costs, and against a one-shot animal
       recording that comes back with one channel of two.
       - **Deliberately NOT buying yet: Peltier stage or thermal chamber.**
