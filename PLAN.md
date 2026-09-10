@@ -1396,10 +1396,33 @@ proves nothing; the series is the point.
 
 Ordered cheapest-decisive first. None of it needs a scope.
 
-**Re-ordered 2026-09-05** after trials 2 and 3 (both passes, one of them
+~~**Re-ordered 2026-09-05** after trials 2 and 3 (both passes, one of them
 a 58-minute cold soak) failed to reproduce the fault. The thermal
 manipulations are demoted below the counting exercise, because at one
-failure in four boots there is not yet a phenomenon to manipulate.
+failure in four boots there is not yet a phenomenon to manipulate.~~
+
+**RE-ORDERED AGAIN 2026-09-10, and the 09-05 premise is dead.** Trial 6
+reproduced the fault on a cold start and the liveness detector captured the
+complete cycle. **There is now a phenomenon to manipulate**, so the thermal
+manipulations come back up the list — and the counting exercise that
+displaced them has itself been found broken (its 2-minute check would have
+scored trial 6 a pass). **Equipment approved by Manuel 2026-09-10** on the
+strength of that reproduction; the purchase gate below is lifted.
+
+**Order of work from here:**
+
+1. **Buy the kit** (~$50–90, below). Hygrometer arrives before any
+   cooling — dew point is a hard precondition, not a nicety.
+2. **Baseline cold starts, unperturbed** — enough to know the spontaneous
+   onset-latency distribution. Currently *n* = 2 (2 min, 12 min), which is
+   not a distribution.
+3. **Spray localisation** — chip0 vs chip1 vs FPGA vs the SCK/MOSI traces.
+   This is the prize: no work to date has established *where* the fault
+   physically lives.
+4. **Halve `clk` while cold** — hold-type vs setup-type. The one
+   experiment that points at a fix rather than at a symptom.
+
+Steps 3 and 4 are why the equipment is worth buying; step 4 is the payoff.
 
 - [x] **Channel-liveness detector in the pc-app.** ✅ **2026-09-08**
       *(Claude.)* `pc-app/channel_health.py` + `test_channel_health.py`.
@@ -1484,40 +1507,89 @@ failure in four boots there is not yet a phenomenon to manipulate.
         may buy more than ten shallow ones — the quantity in doubt is no
         longer just *whether* a boot fails but *when*, and only long
         watches measure that.
-- [ ] **Reproduce on demand with freeze spray.** If cold is the trigger,
-      this converts an intermittent ghost into a debuggable fault — the
-      single thing missing from every previous attempt. Chill chip0 and
-      its SCK/MOSI traces and expect dropout. Gated on the pass rate: with
-      a 25% baseline failure rate, a dropout during spraying would prove
-      nothing.
-- [ ] **Halve `clk` while cold.** Not a 5% trim — half. If chip0 still
+- [ ] **Reproduce on demand with freeze spray.** **Un-gated 2026-09-10.**
+      If cold is the trigger, this converts an intermittent ghost into a
+      debuggable fault — the single thing missing from every previous
+      attempt. Chill chip0 and its SCK/MOSI traces and expect dropout.
+      - ~~Gated on the pass rate: with a 25% baseline failure rate, a
+        dropout during spraying would prove nothing.~~ **That gate assumed
+        a binary score from a human watching a screen.** With
+        `health_*.csv` the score is no longer "did it fail" but
+        **latency-to-onset**, which makes this a *paired within-session
+        test*: confirm alive and stable, spray, measure the delay to the
+        `dead` edge. Spontaneous onset has run 2 min and 12 min; an onset
+        within seconds, repeatably, separates from that without needing the
+        full pass rate first. **The gate loosens, it does not vanish** —
+        step 2 above (a handful of unperturbed cold starts) is what you are
+        comparing against, and it is still required.
+      - 🚨 **Dew point is a hard precondition.** Cooling the board below
+        dew point condenses water on it, which creates leakage paths that
+        can *cause or mask* faults and damages hardware on repetition. The
+        risk is not just a wasted afternoon: it is chasing a condensation
+        artifact and recording it as chip0. **Do not spray before the
+        hygrometer is in hand and the dew point is known.** Short bursts,
+        and stop if the board approaches it.
+      - **Spray warm as well as cold.** Recovery has only ever been
+        observed spontaneously. If warming reliably recovers a *dead*
+        chip0, that symmetry is far stronger evidence than triggering
+        alone — and being able to *cause* recovery would be new.
+      - **Localisation is the real prize, and it needs care.** Freeze spray
+        chills everything nearby. Straw or shield, short bursts, and the
+        thermocouple to know what actually got cold. Done sloppily this
+        yields "the board got cold and something broke", which is already
+        known. Done carefully it says *which part*.
+- [ ] **Halve `clk` while cold.** **The payoff experiment — this is the
+      one that points at a fix.** Not a 5% trim — half. If chip0 still
       fails, the failure is hold-type and frequency is permanently off the
       table as a remedy. If it recovers, it is setup after all. One PLL
-      change, and it discriminates cleanly between the two families of
-      fix. Also gated on knowing the baseline rate.
-- [ ] **Instrument — the gate on this should now be reconsidered.** A BLE
-      thermo-hygrometer for the room (also gives dew point, needed before
-      any spray cooling) and a K-type probe for the board. ~$30 the pair.
-      ~~Deliberately *not* bought yet: trials 2–3 showed the room reading
-      barely moves, so the instrument to buy depends on what the pass rate
-      says is worth measuring.~~
-      - **That reasoning was circular and is now visibly so** *(2026-09-10)*.
-        "The room reading barely moves" was a reading from a thermostat
-        **one floor above the test room**, controlling a different floor of
-        a single-zone house. It was never a measurement of the room the
-        board is in, so it could not have shown that the room's temperature
-        barely moves. The premise for deferring the purchase does not hold.
-      - **Two failures (0b, 6) now rest on a cold hypothesis whose
-        independent variable has never once been measured where the board
-        is.** Every temperature statement in the trial log is an inference
-        from a proxy with an unknown, non-constant offset. $30 and a day's
-        shipping converts the whole series from inference to data, and it
-        is cheap next to the 3.5+ hours the corrected pass-rate experiment
-        now costs.
-      - Order it **before** the next pass-rate attempt, not after. If it
-        arrives in time, every cycle of that experiment carries a real room
-        temperature; if it does not, the experiment still runs — but log
-        the thermostat reading as the proxy it is.
+      change, and it discriminates cleanly between the two families of fix.
+      - ~~Also gated on knowing the baseline rate.~~ **Re-gated 2026-09-10
+        on the spray instead**: what this needs is not a pass *rate* but a
+        *reliable cold trigger*, so it becomes runnable the moment the
+        spray reproduces on demand. That is the whole reason the equipment
+        is worth buying — the spray is the enabler, this is the payoff.
+      - **Why it matters even if temperature is not the mechanism:** trial
+        6's 1.39 s partial recovery says a thermal process may only be
+        setting how close the margin sits, not tripping it. If so, spray
+        reproduces the *symptom* without isolating the *cause*, and cooling
+        things could burn a week without yielding a fix. Hold-vs-setup is
+        the question that survives either way.
+- [ ] **Buy the thermal kit. APPROVED 2026-09-10 (Manuel); the gate is
+      lifted.** Not just measurement any more — the decision is to acquire
+      local temperature *control*, so the fault can be reproduced on demand
+      and the `clk` experiment becomes runnable.
+
+      | Item | ~Cost | Why |
+      |---|---|---|
+      | BLE thermo-hygrometer | $15 | Room ambient + **dew point**. **Buy first** — it is a precondition for spraying, not a companion to it |
+      | K-type thermocouple + meter | $15 | Room temperature is not what the package sees; localisation needs board-level readings |
+      | Freeze spray (proper, not an inverted duster) | $20 | ~−50 °C, localised, short bursts |
+      | Hot air source | $0–40 | A hair dryer suffices; rework station if one is already on the bench |
+
+      **~$50–90 total.** Cheap against the 3.5+ hours the corrected
+      pass-rate experiment now costs, and against a one-shot animal
+      recording that comes back with one channel of two.
+      - **Deliberately NOT buying yet: Peltier stage or thermal chamber.**
+        Those are the tools for characterising a *threshold temperature*,
+        and it is not yet established that there is one — trial 6's 1.39 s
+        blip is evidence against a clean thermal threshold. Freeze spray
+        plus warming demonstrates on/off far more cheaply. Escalate only
+        if the cheap version reproduces and the actual number is then
+        wanted.
+      - **Why this sat unbought for five days, recorded so the mistake is
+        not repeated.** The deferral read: ~~"trials 2–3 showed the room
+        reading barely moves, so the instrument to buy depends on what the
+        pass rate says is worth measuring."~~ **That reasoning was
+        circular.** The reading came from a thermostat **one floor above
+        the test room**, controlling a different floor of a single-zone
+        house — it was never a measurement of the room the board is in, so
+        it could not have shown that the room's temperature barely moves.
+        A proxy was used to argue that the thing it proxied for did not
+        need measuring.
+      - **Two failures (0b, 6) rest on a cold hypothesis whose independent
+        variable has never once been measured where the board is.** Every
+        temperature statement in the trial log is an inference from that
+        proxy, with an unknown and non-constant offset.
 - [ ] **Re-examine the three closures** against whatever the above shows.
       `docs/interfaces/fpga-rhd2164-chip0-placement.md` and
       `fpga-timing-constraints.md` both record ruled-out hypotheses that
