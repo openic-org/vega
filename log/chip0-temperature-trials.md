@@ -49,6 +49,8 @@ can be scored — including any future "fix".
 | 3 | 2026-09-05 | 09:08 | **cold soak** — powered off 08:10, off 58 min, reflashed, checked promptly | ok | ok | thermostat 72 °F / 22.2 °C; outside ~70 °F / 21.1 °C | **PASS — a null.** Everything powered down (FPGA, MCU, bridge). Channels re-set to 42/94 after reconfiguration (SET_CHANNELS is runtime state, cleared by FPGA reset). Power-up order not recorded |
 | 4 | 2026-09-08 | ~12:32 | power-on, then **~2 min of running** | **ok → FLAT (0xFFFF)** | ok | not recorded | **Failure observed DURING operation.** Both channels present at power-on; Ch A went flat at zero after ~2 minutes. **Spontaneous — no command, no interaction, nothing touched at the transition.** First time the fault has been seen to *onset* while streaming rather than being present or absent at check time |
 | 4b | 2026-09-08 | ~14:00 | **~90 min powered**, streaming throughout | **FLAT → ok** | ok | not recorded | **Spontaneous recovery**, no intervention. Failure episode ≈ 88 min (12:32 → 14:00). First complete onset-to-recovery cycle ever observed |
+| 5 | 2026-09-08→09 | 17:50 → 11:05 | **warm** — powered and streaming continuously for **17.26 h**, unattended overnight, undisturbed | ok — **no transition in 17.26 h** | ok | not recorded | **PASS, and the longest observation in the series by a wide margin.** First trial to satisfy the watch-duration rule adopted 2026-09-08. Evidence is the transition log, not a screen: `bench/health_20260908_175000.csv` holds only the two `alive` rows written at connect. Ch A/Ch B 42/94 Verified. **Not a clean run in other respects** — a 33 s host stall at 04:36 (`systemd-oomd`, not the board) and telemetry produced no frames all night; see `log/2026-09-09.md`. Neither touches chip0 liveness. Bitstream **`cdc7d39d…` by inference** — not reflashed for this trial, but the pinned file was on disk unchanged throughout; see caveat |
+| 6 | 2026-09-10 | 11:17:42 → ongoing | **cold start** — powered off overnight (~18.5 h), reflashed, first activity of the day | **ok → FLAT 11:29:46 → 1.39 s alive 11:49:21 → FLAT → ok 12:05:49** | ok throughout | **thermostat 70 °F / 21.1 °C; outside 75 °F / 23.9 °C** | **FAIL, and the first complete cycle captured by instrument rather than by eye.** Ch A/Ch B 42/94 confirmed on the panel. Onset **12 min 04 s** after connect; dead **36 min 01 s** total; recovered spontaneously, nothing touched. Contains a **1.39-second partial recovery** no human watch could have caught. Lowest setpoint in the series (all prior trials 72 °F) — but the thermostat controls the floor **above** the test room, so the room's actual temperature is unmeasured and "coldest" is inference, not fact. First FAIL with any ambient recorded at all. Bitstream **verified `cdc7d39d…`** (hashed from disk after the flash; file untouched since 2026-09-04, tree clean) |
 
 ### Trial 2 — and a result the thermostat did not predict
 
@@ -184,6 +186,190 @@ gives a real number in under an hour and separates hypothesis 3 from the
 rest. If the rate comes out near zero, the thermal hypotheses survive and
 deserve equipment; if it comes out at 20–30 % with no thermal pattern,
 that reframes chip0 entirely.
+
+### Trial 5 — the first long observation, and what it is worth
+
+**2026-09-09.** 17.26 hours of continuous streaming, unattended, with the
+liveness detector running the whole time. Zero transitions on either
+channel.
+
+**What it establishes.** Trial 4 is now bracketed: a fault that onsets ~2
+minutes after power-on and clears ~88 minutes later did *not* recur across
+a 17-hour warm run. Combined with trials 1 and 2, the pattern "long-powered
+warm runs pass" now rests on three observations, one of them two orders of
+magnitude longer than the others.
+
+**What it does not establish.** This is a *warm* trial, and warm trials
+were never the ones that failed. It is one more sample in the arm of the
+experiment that already had samples. Trial 0b — cold, after an overnight
+power-off — remains the only FAIL, and nothing here speaks to it.
+
+**It also does not change the priority.** The re-ordering of 2026-09-05
+still stands: at one failure in five boots, single trials keep buying
+little, and **the pass-rate measurement (PLAN.md A.1.2, item 0 — ten rapid
+power cycles) is still the thing to do.** Trial 5 was free, because the rig
+was going to be left on regardless. A trial that costs a working day should
+be that one instead.
+
+**A caveat that applies from here on.** The instrument for these trials is
+the pc-app, and `log/2026-09-09.md` §1 shows the pc-app's `dropped_packets`
+counter is unreliable for burst loss. That defect does **not** affect the
+liveness detector — `channel_health.py` reads sample values, not sequence
+numbers, and a dropped packet cannot manufacture or erase a `0xFFFF` run.
+Trial 5's pass stands. But a future trial that tries to read anything off
+the *drop* counter should not.
+
+**Bitstream — resolved 2026-09-10, but only by inference.** The pinned file
+`fpga/kuntur_fpga/impl_1/kuntur_fpga_impl_1.bit` hashes to `cdc7d39d…`,
+its mtime is 2026-09-04 15:16, and the `kuntur` working tree is clean — so
+the pinned bitstream sat on disk unchanged across trial 5. **But trial 5
+involved no flash**: the rig had been running since the previous afternoon,
+and the configuration in the SRAM came from some earlier, unrecorded flash
+event. The inference is strong and it is still an inference. Trial 6, which
+*was* flashed and hashed the same day, is the stronger record.
+
+**Still not recorded for trial 5:** ambient temperature.
+
+### Trial 6 — reproduced, instrumented, and it breaks three assumptions
+
+**2026-09-10.** First cold start since the detector existed, and the fault
+reproduced. The entire cycle is in `bench/health_20260910_111742.csv`:
+
+```
+16:17:42Z  ch0  42  alive   (connect)
+16:29:46Z  ch0  42  dead    prior alive  724.259 s
+16:49:21Z  ch0  42  alive   prior dead  1174.585 s
+16:49:22Z  ch0  42  dead    prior alive    1.390 s
+17:05:49Z  ch0  42  alive   prior dead   986.732 s
+```
+
+Ch B normal throughout; throughput flat at ~500 pkt/s across every edge, so
+none of this is a link artifact. Nothing was touched at any transition.
+
+#### 1. The onset delay is not ~2 minutes. It is variable.
+
+**12 min 04 s**, against trial 4's ~2 min. This matters more than it looks,
+because "onset a couple of minutes after power-on" was the hypothesis used
+in *Trial 4 changes the shape of the problem* to reinterpret trials 0b and
+3 as consistent — each was "inside the window". A delay that ranges over
+2–12 minutes makes that window wide enough to swallow most of the series,
+and it makes **trial 3 weaker, not stronger**: trial 3 was a 58-minute cold
+soak "checked promptly", and promptly may simply have meant *before onset*.
+
+**Trial 3 should now be read as very likely uninformative**, not as a cold
+pass. That was already the doc's position ("undetermined, not disproven");
+this is the evidence that settles which way it leans.
+
+#### 2. There is no characteristic period.
+
+Episode durations: trial 4 ≈ **88 min**, trial 6 = **36 min 01 s**. Onset
+delays: ~2 min and 12 min. Two complete cycles, no two numbers alike.
+**Stop trying to predict when to look.** The detector runs continuously and
+costs nothing; that is now the only sound way to observe this fault.
+
+#### 3. The 1.39-second recovery is the first mechanistic evidence
+
+At 16:49:21Z chip0 drove the line for **1.39 seconds**, then failed again
+for another 16 minutes. This is the single most informative observation in
+the series so far, because **a thermal process cannot do this.** A board
+warming through a threshold does not cross it, hold for 1.4 seconds, and
+cross back. That is the signature of a **marginal timing edge** — the SPI
+link sitting close enough to failure that something fast decides the
+outcome — not of a slow drift in temperature.
+
+It is also, by construction, invisible to every method used before
+2026-09-08. Trials 0–4 were scored by looking at a screen. A 1.4-second
+event between two 16-minute dead stretches would not have been seen, and
+if the fault does this routinely then **the earlier trials were sampling a
+signal they could not resolve.**
+
+**How much weight this carries, stated honestly.**
+`channel_health.py` sets `ALIVE_ENTER_SAMPLES = 16` and
+`DEAD_ENTER_SEC = 0.25`. So the alive edge required **16 consecutive
+non-`0xFFFF` samples** (~0.5 ms at 29.5 kSPS) and the return to dead
+required a continuous 0.25 s run of `0xFFFF`. Sixteen samples is more than
+a single corrupted packet can produce, but it is not a large margin.
+**Before this is treated as established mechanism, decide whether 16
+samples proves chip0 was genuinely driving MISO**, or whether a partial or
+garbled SPI read could clear that bar. That is a question about the
+detector, not about the board, and it is answerable at the desk.
+
+#### 4. Temperature: the first FAIL with a number attached
+
+| | Trial 6 |
+|---|---|
+| Thermostat setpoint | **70 °F / 21.1 °C** — 2 °F below every prior trial |
+| Outside | 75 °F / 23.9 °C |
+
+Outside is *warmer* than the setpoint, so by the cool-only argument below
+there is no passive drift downward: the AC actively holds the house at a
+70 °F ceiling.
+
+**What that does NOT establish** *(corrected 2026-09-10, after Manuel
+re-flagged it)*: the thermostat sets the temperature **one floor above the
+test room**, and there is one zone for the whole building. Lowering the
+setpoint from 72 °F to 70 °F changes what the *upper* floor is held at.
+The test room is thermally coupled to that, but it is not controlled by it
+and **there is no known offset between the two** — not a constant one, and
+certainly not a 1:1 transfer of a 2 °F change.
+
+So the honest statement is: **trial 6 ran at the lowest setpoint in the
+series, and the test room was probably but not verifiably colder than in
+trials 1–3.** It is *not* established as the coldest condition in the
+series. The direction of the bias is the only thing the existing argument
+gives — heat rises, so the reading over-estimates the test room — and a
+direction is not a measurement.
+
+It remains **the only FAIL with any ambient recorded at all**, which is
+worth something on its own.
+
+**This is the point at which the missing instrument starts costing real
+conclusions.** Two failures now sit on a cold hypothesis whose independent
+variable has never been measured in the room where the board is. The
+thermo-hygrometer below (~$30, currently gated on the pass rate) is what
+turns "probably colder" into a number, and the gate should be reconsidered
+— see § Limitations.
+
+Tallying the two failures against the cold hypothesis:
+
+| | Condition | Result |
+|---|---|---|
+| trial 0b | cold, after an overnight power-off, ambient unmeasured | **FAIL** |
+| trial 6 | cold start after ~18.5 h off, lowest setpoint in the series | **FAIL** |
+| trial 3 | 58 min cold soak, checked promptly | pass — now suspect (§1) |
+| trials 1, 2, 5 | warm, hours-to-17-hours powered | pass, pass, pass |
+
+**Cold start after an overnight power-off is now 2 for 2 on failure**, and
+the one cold result that disagrees is the one §1 just undermined. This is
+the strongest the temperature hypothesis has ever looked — while §3 is
+simultaneously the strongest evidence *against* a purely thermal mechanism.
+Those are not contradictory: temperature can set how close the timing sits
+to its margin without being what trips it moment to moment.
+
+#### 5. Bitstream: verified
+
+Checked and confirmed the same session. Three checks agree:
+
+```
+$ cd /data/projects/kuntur/kuntur144
+$ sha256sum fpga/kuntur_fpga/impl_1/kuntur_fpga_impl_1.bit
+cdc7d39dca801aa8864cb0840d6aac1d2d8601c34c5026c80a1dd72d90da9fa7
+```
+
+- Hash **identical** to the pinned value — no rebuild slipped in.
+- **mtime 2026-09-04 15:16**, untouched for six days.
+- Working tree clean; file last modified by `761d662`, which is an
+  ancestor of `kuntur` HEAD (`461a682`) — `main` advanced normally and
+  nothing was rewritten underneath it.
+
+**The limit of this check**, stated so it is not over-read later: it hashes
+the file *on disk*, not the configuration inside the part. The FPGA is
+SRAM-configured with no readback, so the guarantee is "the file flashed
+from was the pinned one" — which holds only for a flash from that path.
+
+**Make this routine:** `sha256sum` immediately after each flash, first
+eight characters into the trial row. It is the difference between a trial
+that is interpretable in six months and one that is not.
 
 ## Environment, 2026-09-04
 

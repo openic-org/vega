@@ -1,0 +1,7 @@
+wall_time_utc,channel,physical_channel,to_state,sample_timestamp_us,prior_state_duration_s
+2026-09-10T16:17:42Z,ch0,,alive,33244997,
+2026-09-10T16:17:42Z,ch1,,alive,33244997,
+2026-09-10T16:29:46Z,ch0,42,dead,757503533,724.259
+2026-09-10T16:49:21Z,ch0,42,alive,1932088751,1174.585
+2026-09-10T16:49:22Z,ch0,42,dead,1933479048,1.39
+2026-09-10T17:05:49Z,ch0,42,alive,2920210999,986.732
