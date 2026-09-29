@@ -149,9 +149,11 @@ readback is non-zero the flush is skipped and logged loudly.
 desk-verified — but it does NOT work on hardware.** A 17.26-hour unattended
 run on 2026-09-08→09 produced **zero frames**: the panel read
 `Telemetry: no frames` and all five attribution fields stayed at `—`. Treat
-every telemetry field as unavailable until this is fixed. The prime suspect
-is the part with a history of fragility — the bridge's connection sequence
-now writes a *fourth* CCCD, and nothing desk-side can exercise it. Debug
+every telemetry field as unavailable until this is fixed. **Check first
+whether the 2026-09-04 firmware was ever flashed** — no log records it, and
+old firmware produces exactly this result (desk review 2026-09-29). After
+that, the suspect is the bridge's *fourth* CCCD write. A trace bridge build
+(`make TRACE=1`) now reports every hop into `pc-app/bench/serial_text_*.log`. Debug
 order and evidence: `log/2026-09-09.md` §3; spec:
 `docs/interfaces/stream-packet-format.md` §6; schedule: PLAN.md A.7 step 2.
 
@@ -167,13 +169,16 @@ attribution: `dropped_packets` in the pc-app conflates a USB backlog with a
 radio problem, and only the bridge can tell them apart.
 
 **`dropped_packets` is also a lower bound, not a total** *(found 2026-09-09)*.
-`serial_reader.py:263` computes `gap = (seq - self._expected_seq) % 256`, and
+The gap is `(seq - expected) % 256`, and
 `seq_num` is a rolling byte — so every gap is truncated mod 256. A
 7,220-packet burst reported as **52**; a burst of exactly 256×k reports as
 **zero**. It fails in the direction that hides the problem: bursty loss reads
 as a *cleaner* number than it is. Read every historical `drops: N` as "at
 least N". A byte counter cannot carry this, which is why the 32-bit
 cumulative counters above are the real fix. PLAN.md A.7 step 2b.
+*Stopgap since 2026-09-29:* `packet_parser.SeqGapTracker` uses the packet
+RTC timestamp to flag any gap across enough time for seq to wrap, and the
+panel then reads `≥N (k gaps of unknown size)` rather than a bare total.
 
 | Field | Answers |
 |---|---|
