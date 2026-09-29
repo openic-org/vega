@@ -2,3 +2,5 @@ PyQt6>=6.6.0
 pyqtgraph>=0.13.3
 pyserial>=3.5
 numpy>=1.26.0
+# Bench only — ambient_logger.py (Govee H5075). The app itself does not need it.
+bleak>=0.22
