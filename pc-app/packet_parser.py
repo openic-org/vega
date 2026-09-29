@@ -98,3 +98,73 @@ def parse(data: bytes) -> ParsedPacket | None:
         timestamps_us=timestamps_us,
         fifo_underruns=fifo_underruns,
     )
+
+
+# seq_num is one byte, so a gap is only ever known mod 256: a 7,220-packet
+# burst reads as 52 and a burst of exactly 256×k reads as zero (PLAN.md A.7
+# step 2b). The packet's own RTC timestamp bounds how many packets can have
+# been sent in between, which is what decides whether a wrap was possible.
+# = f(μ): 256 packets at the measured μ = 499.4 pkt/s take 0.513 s
+# (stream-packet-format.md §1.5); 0.4 s leaves ~28% headroom for a backlog
+# drain running faster than the mean. Re-derive if μ moves.
+SEQ_WRAP_POSSIBLE_US = 400_000
+_RTC_DAY_US = 86_400 * 1_000_000   # timestamp_s is time-of-day, wraps at midnight
+
+
+class SeqGapTracker:
+    """Packet-loss accounting from seq_num that knows when it cannot count.
+
+    dropped_packets — sum of seq gaps. Exact only while uncertain_gaps is 0;
+                      otherwise a lower bound ("at least N").
+    uncertain_gaps  — gaps across which enough RTC time passed for seq_num to
+                      have wrapped, so the true loss is gap + 256·k for an
+                      unknown k ≥ 0. Includes a zero seq gap across such a
+                      pause: that is the "256×k reads as zero" case.
+
+    The real fix is A.7 step 2's cumulative 32-bit telemetry counters; this
+    only stops the pc-app presenting a lower bound as a total.
+    """
+
+    def __init__(self):
+        self.dropped_packets = 0
+        self.uncertain_gaps = 0
+        self._expected_seq: int | None = None
+        self._last_raw_us: int | None = None
+
+    def pause(self):
+        """Streaming was stopped on purpose (STOP_STREAMING acked). The MCU
+        does not reset seq_num on STOP/START, so seq continuity still holds,
+        but the time across the pause says nothing about loss — forget it so
+        every channel change is not scored as an uncertain gap."""
+        self._last_raw_us = None
+
+    def update(self, header: PacketHeader) -> tuple[int, bool]:
+        """Account one packet. Returns (seq gap, uncertain) for this packet."""
+        seq = header.seq_num
+        # Raw header time, not ParsedPacket.timestamps_us: the reader's
+        # monotonicity clamp rewrites those, and this needs the MCU's clock.
+        raw_us = header.timestamp_s * 1_000_000 + header.timestamp_sub_s * 1_000 // 32
+
+        gap = 0
+        uncertain = False
+        if self._expected_seq is not None:
+            gap = (seq - self._expected_seq) % 256
+            self.dropped_packets += gap
+            if self._last_raw_us is not None:
+                elapsed = (raw_us - self._last_raw_us) % _RTC_DAY_US
+                # A small backwards step (the RTC/CI jitter the reader's clamp
+                # exists for) comes out of the modulo as ~24 h. Anything past
+                # half a day is that, not a real pause.
+                if SEQ_WRAP_POSSIBLE_US <= elapsed < _RTC_DAY_US // 2:
+                    uncertain = True
+                    self.uncertain_gaps += 1
+        self._expected_seq = (seq + 1) % 256
+        self._last_raw_us = raw_us
+        return gap, uncertain
+
+    def summary(self) -> str:
+        """'727' when exact, '≥727 (2 gaps of unknown size)' when not."""
+        if not self.uncertain_gaps:
+            return str(self.dropped_packets)
+        s = "" if self.uncertain_gaps == 1 else "s"
+        return f"≥{self.dropped_packets} ({self.uncertain_gaps} gap{s} of unknown size)"

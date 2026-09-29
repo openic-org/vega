@@ -4,12 +4,14 @@ test_validator.py — headless Vega packet validator / regression harness.
 
 Reads StreamDataPacket_t frames from the WB09KE bridge serial port and reports:
   - effective packet rate and SPS
-  - seq_num gaps (dropped BLE packets, counted as gap width mod 256)
+  - seq_num gaps (dropped BLE packets). seq_num is one byte, so a gap across
+    enough time for it to wrap has unknown size — see SeqGapTracker
   - raw timestamp monotonicity violations (RTC backwards jumps before clamp)
   - framing errors (junk bytes discarded before 0xAA 0x55 re-sync)
 
 Prints a one-line summary every second. On exit prints a final summary and
-returns exit code 0 (PASS) or 1 (FAIL: drops > --max-drops or serial error).
+returns exit code 0 (PASS) or 1 (FAIL: drops > --max-drops, any gap of unknown
+size after the grace period, or serial error).
 
 Usage:
   python test_validator.py --port /dev/ttyACM0
@@ -24,7 +26,7 @@ import time
 
 import serial
 
-from packet_parser import MAGIC, parse, SAMPLE_RATE_HZ
+from packet_parser import MAGIC, parse, SAMPLE_RATE_HZ, SeqGapTracker
 
 BAUD_RATE = 2_000_000
 
@@ -44,7 +46,8 @@ def run(port_name: str, duration: float, max_drops: int, grace: float, verbose: 
     startup_drops       = 0
     total_framing_bytes = 0
     total_ts_violations = 0
-    expected_seq: int | None = None
+    uncertain_gaps      = 0
+    gaps = SeqGapTracker()
     last_ts_us:   int | None = None
 
     iv_packets = 0
@@ -108,20 +111,20 @@ def run(port_name: str, duration: float, max_drops: int, grace: float, verbose: 
 
                 # seq_num gap detection
                 seq = pkt.header.seq_num
-                if expected_seq is not None:
-                    gap = (seq - expected_seq) % 256
-                    if gap != 0:
-                        in_grace = (time.monotonic() - t_start) < grace
-                        if in_grace:
-                            startup_drops += gap
-                        else:
-                            total_drops += gap
-                        iv_drops += gap
-                        if verbose:
-                            marker = "~DROP" if in_grace else " DROP"
-                            print(f"  {marker}  expected={expected_seq} got={seq}  "
-                                  f"gap={gap}  ts_us={int(pkt.timestamps_us[0])}")
-                expected_seq = (seq + 1) % 256
+                gap, uncertain = gaps.update(pkt.header)
+                if gap or uncertain:
+                    in_grace = (time.monotonic() - t_start) < grace
+                    if in_grace:
+                        startup_drops += gap
+                    else:
+                        total_drops += gap
+                        uncertain_gaps += uncertain
+                    iv_drops += gap
+                    if verbose:
+                        marker = "~DROP" if in_grace else " DROP"
+                        size = f">={gap}, size unknown" if uncertain else str(gap)
+                        print(f"  {marker}  got={seq}  gap={size}  "
+                              f"ts_us={int(pkt.timestamps_us[0])}")
 
                 # Raw timestamp monotonicity check (before the clamp applied in the UI)
                 ts_us = int(pkt.timestamps_us[0])
@@ -157,12 +160,18 @@ def run(port_name: str, duration: float, max_drops: int, grace: float, verbose: 
     print(f"Total packets : {total_packets}")
     print(f"Avg pkt/s     : {avg_pps:.1f}")
     print(f"Avg SPS       : {avg_sps:.0f}")
-    print(f"Total drops   : {total_drops}  (startup grace: {startup_drops})")
+    bound = ">=" if uncertain_gaps else ""
+    print(f"Total drops   : {bound}{total_drops}  (startup grace: {startup_drops})")
+    print(f"Unknown gaps  : {uncertain_gaps}  (seq_num may have wrapped; true size unknown)")
     print(f"Framing bytes : {total_framing_bytes}")
     print(f"TS violations : {total_ts_violations}")
     if grace > 0:
         print(f"Grace period  : {grace:.0f} s  (rows marked ~ are excluded from PASS/FAIL)")
 
+    if uncertain_gaps:
+        print(f"\nFAIL — {uncertain_gaps} gap(s) of unknown size: the drop count is "
+              f"only a lower bound", file=sys.stderr)
+        return 1
     if total_drops > max_drops:
         print(f"\nFAIL — {total_drops} drops > allowed {max_drops}", file=sys.stderr)
         return 1

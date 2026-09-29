@@ -56,7 +56,7 @@ def run_case(frames: list[bytes], expected_batches: int) -> dict:
     reader = SerialReader()
     reader.set_port(slave_name)
 
-    result = {"batches": 0, "errors": [], "opened": False}
+    result = {"batches": 0, "errors": [], "opened": False, "text": []}
 
     def on_batch(_pkt):
         result["batches"] += 1
@@ -65,6 +65,7 @@ def run_case(frames: list[bytes], expected_batches: int) -> dict:
 
     reader.batch_received.connect(on_batch)
     reader.error.connect(lambda msg: result["errors"].append(msg))
+    reader.text_line.connect(lambda line: result["text"].append(line))
     reader.connection_changed.connect(lambda connected, _port: result.__setitem__("opened", connected))
 
     reader.start()
@@ -95,6 +96,8 @@ def run_case(frames: list[bytes], expected_batches: int) -> dict:
 
     result["thread_alive"] = reader.isRunning()
     result["dropped_packets"] = reader.dropped_packets
+    result["uncertain_gaps"] = reader.uncertain_gaps
+    result["telemetry_rejected"] = reader.telemetry_rejected
 
     reader.stop()
     reader.wait(1000)
@@ -131,6 +134,54 @@ assert res["batches"] == 2, f"expected both frames to reach the UI, got {res['ba
 assert res["thread_alive"], "reader thread died on a leading header-only frame"
 assert not res["errors"], f"reader emitted error signal(s): {res['errors']}"
 assert res["dropped_packets"] == 0
+
+# --- Test 3 (A.7 step 2b): a seq-contiguous resume 30 s later is ambiguous
+#     (seq_num may have wrapped) unless streaming was deliberately stopped in
+#     between. The stop ack must travel the real response path to count. ---
+STOP_ACK = bytes([0xEE, 0x11]) + struct.pack("<H", 2) + bytes([0x02, 0x01])
+res = run_case([
+    make_data_frame(seq_num=0, num_pairs=2, ts_s=300, ts_sub=0),
+    make_data_frame(seq_num=1, num_pairs=2, ts_s=330, ts_sub=0),
+], expected_batches=2)
+print("30 s pause, no stop ack:", res)
+assert res["dropped_packets"] == 0 and res["uncertain_gaps"] == 1, \
+    "a 30 s silence with contiguous seq must be flagged, not read as zero loss"
+
+res = run_case([
+    make_data_frame(seq_num=0, num_pairs=2, ts_s=300, ts_sub=0),
+    STOP_ACK,
+    make_data_frame(seq_num=1, num_pairs=2, ts_s=330, ts_sub=0),
+], expected_batches=2)
+print("30 s pause after a stop ack:", res)
+assert res["dropped_packets"] == 0 and res["uncertain_gaps"] == 0, \
+    "a deliberate STOP/START must not be scored as an uncertain gap"
+
+# --- Test 4: bridge trace text (make TRACE=1) between frames is kept as
+#     lines, split across a frame boundary, and never costs a data frame. A
+#     binary byte drops the partial line rather than splicing garbage in. ---
+res = run_case([
+    b"Found 0xFFF4 value handle: 0x0012\r\n0xFFF4 CCCD not ",
+    make_data_frame(seq_num=0, num_pairs=2, ts_s=400, ts_sub=0),
+    b"found\r\n\x01\x02junk\x00Connected: handle=0x0801\r\n",
+    make_data_frame(seq_num=1, num_pairs=2, ts_s=400, ts_sub=64),
+], expected_batches=2)
+print("bridge trace text:", res)
+assert res["batches"] == 2, "text between frames cost a data frame"
+assert res["text"] == [
+    "Found 0xFFF4 value handle: 0x0012",
+    "0xFFF4 CCCD not found",
+    "Connected: handle=0x0801",
+], res["text"]
+
+# --- Test 5: a telemetry frame that arrives but cannot be parsed must be
+#     counted, not vanish — otherwise it reads exactly like "no frames". ---
+BAD_TELEMETRY = bytes([0xDD, 0x22]) + struct.pack("<H", 3) + b"\x01\x00\x00"
+res = run_case([
+    BAD_TELEMETRY,
+    make_data_frame(seq_num=0, num_pairs=2, ts_s=500, ts_sub=0),
+], expected_batches=1)
+print("short telemetry frame:", res)
+assert res["telemetry_rejected"] == 1, res
 
 print("=" * 70)
 print("ALL SERIAL_READER CHECKS PASSED")
