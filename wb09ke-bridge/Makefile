@@ -15,6 +15,14 @@ CLIENT := ../../stm32ble-test/client
 TARGET    := Vega_Bridge
 BUILD_DIR := build
 
+# make TRACE=1 → build-trace/: same firmware with CFG_DEBUG_APP_TRACE on, for
+# bench debugging (connect/discovery/CCCD/telemetry messages on the USB port).
+# Separate directory so the normal image in build/ is never overwritten by it.
+TRACE ?= 0
+ifeq ($(TRACE),1)
+BUILD_DIR := build-trace
+endif
+
 TOOLCHAIN_PATH ?= /opt/st/stm32cubeide_2.1.1/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.14.3.rel1.linux64_1.0.100.202602081740/tools/bin
 PREFIX := arm-none-eabi-
 CC     := $(TOOLCHAIN_PATH)/$(PREFIX)gcc
@@ -36,6 +44,10 @@ DEFS := \
   -DUSE_FULL_LL_DRIVER \
   -DUSE_HAL_DRIVER \
   -DSTM32WB09
+
+ifeq ($(TRACE),1)
+DEFS += -DCFG_DEBUG_APP_TRACE=1
+endif
 
 # ── C sources ────────────────────────────────────────────────────────────────
 # Bridge-specific (local)

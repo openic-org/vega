@@ -31,6 +31,7 @@ java_pid*.hprof
 
 # Build output dirs
 build/
+build-trace/
 android-app/build/
 android-app/app/build/
 android-app/.gradle/
