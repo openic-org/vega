@@ -111,7 +111,7 @@ subject contact.
 
 ## Team & ownership
 
-**Manuel** (PhD EE, full-time): hardware, PCB, analog/mixed-signal, FPGA RTL, all
+**Manuel** (PhD EE, **50% from 2026-09-29** — full-time before): hardware, PCB, analog/mixed-signal, FPGA RTL, all
 bring-up and bench work. **Claude**: PC-app, firmware, tooling, docs. Firmware
 debugging is joint.
 
@@ -135,7 +135,9 @@ and knowledge-transfer work — external contributors are the only path to scale
 
 # PHASE A — Road to the animal test
 
-**Target: September, flexible to October.** Requires the wired path.
+**Target: beginning of November 2026** (rebased 2026-09-29 from
+"September, flexible to October"; see *Schedule — rebased 2026-09-29*).
+Requires the wired path.
 
 ## Why the wired path is worth the effort
 
@@ -166,7 +168,74 @@ only. That loses the simultaneous reference comparison, not the test.
 | **A2** | Dual-path validated — Kuntur wireless and Intan controller agree, bench | Blocked on A.4 RTL and A.3 (injection rig). **A.4's spec is complete and all its desk-side gates closed 2026-09-03** — the boards have arrived, the pinout is resolved both ends, and the remaining work is RTL and a pigtail. |
 | **A3** | **In-vivo animal recording** | |
 
+### Schedule — rebased 2026-09-29
+
+**Why rebased.** The September/October anchor lapsed with no work since
+2026-09-10. New facts from Manuel, 2026-09-29:
+
+- **Animal test (A3): beginning of November**, dates flexible — the
+  collaborators are not ready before then. Target week of **2026-11-02**.
+- **Manuel at 50%** (other projects). ~2.5 days/week, **≈12 days** of
+  bench/RTL time between now and the test.
+- **Scope unchanged** — the wired path is still required for A3.
+- A **paper** on this work is in progress, **no deadline**. A2's dual-path
+  comparison is its central figure, which is one more reason not to drop
+  the wired path.
+- Thermal kit **arrived**; not yet test-fitted. No trials since trial 6.
+
+**Budget, honestly.** Estimated demand on Manuel's time is ~14 days against
+~12 available: chip0 ~2.5, one rebuild + A.7 step 1 ~1.5, telemetry bench
+debug ~0.5, A.4 ~6–7, A.3 ~1, A2 ~1, dress rehearsal ~1. *These are
+Claude's estimates and Manuel should correct them* — A.4 in particular.
+**There is no slack.** Two things absorb overrun: the flexible test date,
+and cutting everything not on the list below. The one unbounded item is
+the chip0 *fix* — characterisation has a known cost, a fix does not.
+
+**Operating rule for a 50% week: every bench day starts with a cold
+start.** Board powered off overnight, powered on first thing, logged to
+`bench/health_*.csv` + ambient for ≥20 min while other work proceeds. This
+builds A.1.2's unperturbed baseline for free instead of spending dedicated
+days on it. **Keep the trial bitstream (`cdc7d39d…`) on the board until the
+chip0 series closes (end of week 2)** — changing it mid-series confounds the
+baseline. A.4 work before then is desk-side (RTL, simulation, companion
+board) and does not need the Kuntur bitstream changed.
+
+| Week | Manuel (~2.5 d) | Claude (desk) | Exit check |
+|---|---|---|---|
+| **1** · 09-29 → 10-02 | Kit test-fit (probes are non-returnable). Cold starts begin. A.4 §12 step 2: `.pdc` `IO_TYPE=LVDS` + PAR margin check. Pigtail (TX/RX swap first). | A.7 2b stopgap (a). Govee → `bench/ambient_*.csv` logger. Telemetry debug instrumentation, so one bench session localises the `0xFFF4` failure across all four hops. | Ambient logging running; pigtail built |
+| **2** · 10-05 → 10-09 | Cold starts (baseline *n* ≥ 4). **Spray localisation** (~1 d). **Halve `clk` while cold** (~0.5 d). A.4 physical layer + `SAMPLE`/CRC in simulation, both ends. | Dual-path compare tooling: Intan file reader, 28k↔30k resampling, correlation/RMS pass-fail (A.3 "capture both endpoints"). Animal-test runbook draft (warm-up-and-verify, O6). | **chip0: hold vs setup known**, fault located |
+| **3** · 10-12 → 10-16 | **One rebuild:** PLL 42.504 MHz + fH 7.5 kHz + A.7 step 1 counter + chip0 fix if one exists. Bench-validate; same session runs the telemetry debug. A.4 §12 step 4 on hardware (physical layer alone). | Telemetry fix from the bench findings. Companion diagnostics console (O8). | New bitstream on hardware; telemetry frames flowing; link locks |
+| **4** · 10-19 → 10-23 | A.4 §12 steps 5–7: frames + CRC, link loss, emulator. A.3 attenuation network. | Runbook complete; recording checklist for the day. | **DECISION 10-23** (below) |
+| **5** · 10-26 → 10-30 | A.4 step 8 → **A2** bench dual-path. **Dress rehearsal**: cold start → warm-up-verify → ≥1 h recording on both paths, following the runbook to the letter. Freeze and tag bitstreams + firmware. | Analyse the rehearsal; A2 figure for the paper. | **A2**; tagged release for the test |
+| **6** · 11-02 → | **A3** | On call | |
+
+**Decision point, Friday 2026-10-23.** If the tunnel is not carrying
+`SAMPLE` frames through the emulator by then, A2 will not fit in week 5.
+Because the scope is fixed and the dates are flexible, the default answer
+is **slip the test, not the scope** — tell the collaborators then, not the
+week before. Rung 1 (wireless-only, placement the existing way) stays
+available as insurance if they cannot move.
+
+**chip0 disposition by end of week 2.** Either a fix goes into week 3's
+rebuild, or it does not and the test runs on mitigation: mandatory
+warm-up-and-verify before the subject is anaesthetised, the liveness
+detector armed, and **both animal-test channels placed on chip1** —
+confirmed feasible against the electrode map (Manuel, 2026-09-29). That
+protects the wireless recording; the Intan side still sees chip0's
+64 channels dead, so the A2/A3 comparison must also use chip1 channels. Do not
+let a chip0 fix hunt run past week 2; it has no bound and A.4 does.
+
+**Explicitly deferred past A3** to protect the date: A.7 step 3b
+(μ re-measurement), A.6.4 DECISION 2, the ten-cycle pass-rate experiment
+(the morning cold starts replace it), re-examining the three chip0
+closures, Peltier/chamber, and all of Phase B. A.3's full stimulus table
+is deferred too — only the attenuation network and the dual-endpoint
+capture are needed for A2.
+
 ### Current critical path — ordered, 2026-09-04
+
+*Superseded as a schedule by the section above (2026-09-29); kept for the
+per-item detail it carries.*
 
 Sections below are not in execution order (A.6 and A.7 run parallel to
 A.3–A.5). This is the order that actually matters:
@@ -3663,6 +3732,10 @@ All four opening questions resolved 2026-08-04:
   already mentioned. Animal test first, so human IRB is not a Phase A gate.
 - **Wired surgical mode:** required for Kuntur to be usable; cannot be deferred.
 - **Schedule anchor:** animal test, September, flexible to October.
+  **Rebased 2026-09-29:** beginning of November, flexible; Manuel at 50%;
+  scope unchanged (wired path still required); a paper is in progress
+  with no deadline. Overrun slips the date, not the scope — decision
+  point 2026-10-23.
 
 Still to confirm (not blocking): whether the collaborator's animal protocol needs an
 amendment; RHS2116 unpopulated/disabled on test hardware; calibration status of
