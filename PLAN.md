@@ -202,7 +202,7 @@ board) and does not need the Kuntur bitstream changed.
 
 | Week | Manuel (~2.5 d) | Claude (desk) | Exit check |
 |---|---|---|---|
-| **1** · 09-29 → 10-02 | Kit test-fit (probes are non-returnable). Cold starts begin. A.4 §12 step 2: `.pdc` `IO_TYPE=LVDS` + PAR margin check. Pigtail (TX/RX swap first). | A.7 2b stopgap (a). Govee → `bench/ambient_*.csv` logger. Telemetry debug instrumentation, so one bench session localises the `0xFFF4` failure across all four hops. | Ambient logging running; pigtail built |
+| **1** · 09-29 → 10-02 | Kit test-fit (probes are non-returnable). Cold starts begin. A.4 §12 step 2: `.pdc` `IO_TYPE=LVDS` + PAR margin check. Pigtail (O5 — no power/stim rails into the breakout). | A.7 2b stopgap (a). Govee → `bench/ambient_*.csv` logger. Telemetry debug instrumentation, so one bench session localises the `0xFFF4` failure across all four hops. | Ambient logging running; pigtail built |
 | **2** · 10-05 → 10-09 | Cold starts (baseline *n* ≥ 4). **Spray localisation** (~1 d). **Halve `clk` while cold** (~0.5 d). A.4 physical layer + `SAMPLE`/CRC in simulation, both ends. | Dual-path compare tooling: Intan file reader, 28k↔30k resampling, correlation/RMS pass-fail (A.3 "capture both endpoints"). Animal-test runbook draft (warm-up-and-verify, O6). | **chip0: hold vs setup known**, fault located |
 | **3** · 10-12 → 10-16 | **One rebuild:** PLL 42.504 MHz + fH 7.5 kHz + A.7 step 1 counter + chip0 fix if one exists. Bench-validate; same session runs the telemetry debug. A.4 §12 step 4 on hardware (physical layer alone). | Telemetry fix from the bench findings. Companion diagnostics console (O8). | New bitstream on hardware; telemetry frames flowing; link locks |
 | **4** · 10-19 → 10-23 | A.4 §12 steps 5–7: frames + CRC, link loss, emulator. A.3 attenuation network. | Runbook complete; recording checklist for the day. | **DECISION 10-23** (below) |
@@ -2015,7 +2015,11 @@ RHD2164 ×2 → Kuntur FPGA ├─→ ch_sel → FIFO → MCU → BLE → bridge
         is *demonstrated* rather than inferred — `spi2_csb` (G5, `PB30A`)
         and `spi2_sck` (F7, `PB26A`) already build as `LVDS_OUT` with
         `DIFFDRIVE:3.5` on this exact device, package and speed grade.
-      - **The TX/RX pair assignment must swap.** G9/F9 is the primary-clock
+      - ~~**The TX/RX pair assignment must swap.**~~ **Superseded 2026-09-03
+        by decision 4** (spec §1.3): with no upstream path both pairs are
+        *outputs* (`TUN_DATA` on G9/F9, `TUN_CLK` on E9/E8), exactly as
+        `kuntur_fpga.v` already declares them — no swap, no pre-pigtail
+        deadline. Original text kept for the record: G9/F9 is the primary-clock
         input pair (`PCLKT5_0`/`PCLKC5_0`); today's `TEST ONLY` passthrough
         puts TX on it and RX on the pair that has no clock capability —
         backwards. Costs nothing (the pigtail is hand-made, so no PCB

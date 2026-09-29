@@ -268,6 +268,68 @@ data. Staying inside one bank is worth more than any individual pin
 choice — it keeps `VCCIO`, the edge-clock resources and the PLL in the
 same quadrant.
 
+#### 1.5.4 Full companion pinout — ADOPTED 2026-09-29
+
+Manuel's pin-test design (`kuntur` `kuntur144/fpga/intan_rec_adapter/`,
+LIFCL-40-9BG400C) drives every port below and each was confirmed on the
+IAM breakout with an oscilloscope. Sites and banks are from that build's
+Radiant pad report. **Only the P (`A`-site) half of each pair was driven**
+in that test; the complement balls are pad-mapped from the eval board
+user guide (FPGA-EB-02028-1.6, Table 8.1) but not yet scoped.
+
+| Port | Pair | IAM pad P / N | LIFCL-40 ball P / N | Site | Bank | Dir |
+|---|---|---|---|---|---|---|
+| `clkin` (12 MHz osc, JP2 installed) | — | — | L13 | `PR17A` | 1 | in — supervisor only, §6.1 |
+| `kuntur_clk` (`TUN_CLK`) | LA02 | H7 / H8 | Y2 / Y3 | `PB8A/B` | 5 | in |
+| `kuntur_data` (`TUN_DATA`) | LA04 | H10 / H11 | V1 / W1 | `PB6A/B` | 5 | in |
+| `spi0_csb` | LA31 | G33 / G34 | Y17 / W17 | `PB82A/B` | 3 | in |
+| `spi0_sck` | LA24 | H28 / H29 | W14 / W15 | `PB72A/B` | 3 | in — clock-capable (§1.5.2) |
+| `spi0_mosi` | LA29 | G30 / G31 | Y15 / Y16 | `PB76A/B` | 3 | in |
+| `spi0_miso0` | LA28 | H31 / H32 | U15 / V16 | `PB78A/B` | 3 | **out** |
+| `spi0_miso1` | LA27 | C26 / C27 | Y13 / Y14 | `PB66A/B` | 3 | **out** |
+
+Tunnel in bank 5, the whole Intan interface in bank 3; no pair spans a
+bank. `spi0_sck` is on LA24 rather than a non-clock-capable pair because
+the emulator is clocked by the Intan controller's SCLK. The three SPI
+inputs need 100 Ω termination (`DIFFRESISTOR=100`, on-die — nothing on
+the pigtail). MISO naming stays `miso0`/`miso1` to match Kuntur; Intan's
+documents call the same lines MISO1/MISO2.
+
+**Kuntur end of the tunnel pigtail** (§1.1): J1 pads 3/5 → H10/H11,
+6/8 → H7/H8, GND2 (4, 7, 10, 13, 16) → H9 (plus H6/H12). **Never connect**
+pads 1, 2 (`VCC2`), 14, 17 (`VCC1`), 12, 15 (`GND1`), **18, 19
+(`VSTIMp/m`)** — O5. Pads 3/5 and 6/8 are the standard micro-HDMI D2 and D1
+pairs, so a stock cable keeps each as a twisted pair; ring every wire out
+before soldering, since cable colours are not standardised.
+
+**Intan end — via Intan's C3430 cable adapter.** The C3430 is one Omnetics
+PZN-12-AA whose 12 pads are brought 1:1 to a 2×6, 0.1″ hole grid labelled
+with the *physical* pad names (column T1–T6, column B1–B6). Signal meaning
+depends on which end of the SPI cable a connector sits: Intan's cable spec
+(Table 1) inverts T/B between the master (controller) and slave
+(headstage) sides. The C3430 is designed as a controller-side adapter
+(Eagle value `RHD2000-CABLE-DAQ-SIDE`), but here it sits where a headstage
+would, so the **slave-side column applies** — the same convention
+`kuntur144-omnetics` J1 uses, which works on hardware (Rung 1):
+
+| C3430 hole | Signal | → IAM pad | Port |
+|---|---|---|---|
+| T1 / B1 | CS+ / CS− | G33 / G34 | `spi0_csb` |
+| T2 / B2 | SCLK+ / SCLK− | H28 / H29 | `spi0_sck` |
+| T3 / B3 | MOSI+ / MOSI− | G30 / G31 | `spi0_mosi` |
+| T4 / B4 | MISO1+ / MISO1− | H31 / H32 | `spi0_miso0` |
+| T5 / B5 | MISO2+ / MISO2− | C26 / C27 | `spi0_miso1` |
+| B6 | GND | an adjacent GND pad (e.g. G32, H30) | — |
+| T6 | VDD (+3.2–3.6 V from the controller) | **not connected** | — |
+
+**Verify the orientation before soldering**, since this rests on reading
+the convention rather than on a measurement: controller powered, cable into
+the C3430, companion disconnected — T6→B6 must read ≈ +3.3 V, and T1−B1
+(CS idling high) ≈ +0.35 V. The IAM breakout's GND pads are **not tied
+together** (IAM datasheet), so ground each pigtail at a pad adjacent to its
+signals. Sources: Intan *RHD SPI Interface Cable/Connector Specification*
+(Table 1); Intan `RHD2000_cable_adapter_PCB.zip` (C3430 board file).
+
 ---
 
 ## 2. Topology and ownership
@@ -716,6 +778,26 @@ the other direction**: Kuntur forwards its own clock and the companion
 derives everything from it. Kuntur is the timing master of both the AFE
 and the cable; the companion has no clock of its own in the datapath.
 
+**Companion clocking — decided 2026-09-29 (Manuel).** The entire companion
+datapath runs on the received `TUN_CLK`: capture, framing, CRC, the §9.5
+elastic buffer and the emulator's data. No data crosses a clock domain
+between the tunnel and the emulator. The eval board's **12 MHz oscillator
+(ball L13, connected with JP2 installed — the default)** is **not** used in
+the datapath. It clocks only a small **always-running supervisor**, because
+logic clocked by `TUN_CLK` stops exactly when `TUN_CLK` does and so cannot
+detect its own absence. The supervisor holds:
+
+- the §7.1 `TUN_CLK`-absence watchdog (12 MHz ticks between `TUN_CLK`
+  edges; 8 `SCLK` periods ≈ 750 ns ≈ 9 ticks),
+- the link-down flag that forces the §7.3 sentinel,
+- receive-PLL lock/reset sequencing, so §7.4 re-insertion needs no reset,
+- the diagnostics console (O8), alive with no cable and Kuntur off.
+
+It crosses into the `TUN_CLK` domain only as a few synchronised status
+bits, never as data. The Intan-facing SPI is clocked by the Intan
+controller's own SCLK (it is the SPI master), so that interface is a
+separate domain regardless of this choice.
+
 Consequences accepted, handled in §9.5 and §10:
 
 - Kuntur's frame rate (29,999.97 Hz, its own crystal via `clkin`) and the
@@ -863,7 +945,10 @@ procedure, on an anaesthetised animal.
 
 The companion declares the link **down** when any of:
 
-- **`TUN_CLK` stops toggling** for more than 8 `SCLK` periods (~700 ns).
+- **`TUN_CLK` stops toggling** for more than 8 `SCLK` periods (~750 ns at
+  the retuned `SCLK`). **Must be clocked by the 12 MHz supervisor, never by
+  `TUN_CLK` itself** (§6.1, 2026-09-29) — a detector running on the clock it
+  watches stops with it, and the §7.3 sentinel would then never be served.
   This is new, and it is the strongest detector in the design: under
   decision 4 the clock is a *continuous, data-independent carrier*, so its
   absence is unambiguous and near-instant. A self-clocked link could only
