@@ -1485,7 +1485,11 @@ strength of that reproduction; the purchase gate below is lifted.
    The hygrometer lands first, which is the right order — and it means
    **step 2 starts on 09-11 without waiting for the DigiKey box**, since
    unperturbed cold starts need the ambient record, not the probes.
-2. **Baseline cold starts, unperturbed** — enough to know the spontaneous
+2. **Baseline cold starts, unperturbed** — ambient logging is ready:
+   `python3 pc-app/ambient_logger.py` (Govee `A4:C1:38:E1:0D:8C` found and
+   decoding, 2026-09-29) writes `bench/ambient_*.csv` on the same
+   `wall_time_utc` timebase as `health_*.csv`; leave it running across the
+   overnight power-off. Enough to know the spontaneous
    onset-latency distribution. Currently *n* = 2 (2 min, 12 min), which is
    not a distribution.
 3. **Spray localisation** — chip0 vs chip1 vs FPGA vs the SCK/MOSI traces.
@@ -1513,7 +1517,14 @@ Steps 3 and 4 are why the equipment is worth buying; step 4 is the payoff.
         retune is not in this build, or the ~5% is stale. **Not resolved,
         and not edited here on the strength of one panel reading** — check
         `STREAM_ACTIVE_MODE`, the shipped λ, and whether `0x8000` padding is
-        emitted at all in this bitstream first. Consequence if padding is
+        emitted at all in this bitstream first.
+        **Resolved on desk 2026-09-29: the retune is not in this build.**
+        The PLL retune to 42.504 MHz is still "committed but not applied"
+        (critical-path item 1), so the board ran the shipped 30,000 SPS,
+        ρ = 1.018 > 1: `fifo0` never runs empty, so there is never anything
+        to pad, and 0% underruns is the *expected* reading. Its companion
+        29,488 SPS is μ, not λ. The ~5% figure is a prediction for the
+        post-retune bitstream and stays unverified until week 3's rebuild. Consequence if padding is
         genuinely absent: the exclusion rule above is currently *inert* —
         harmless, but never exercised on hardware. `log/2026-09-09.md` §4.
       - **This changes how the trials are run.** Watching a screen is no
@@ -2507,11 +2518,64 @@ version handshake.
           between radio loss, MCU ring truncation and bridge USB backlog —
           which is the exact question this frame exists to answer. Full
           write-up: `log/2026-09-09.md` §3.
+        - 🔎 **Desk review 2026-09-29 — a hop zero comes before the four
+          above: was the telemetry firmware ever flashed?** Both halves read
+          correct on review: `chr_count = 4`, the bridge recovers the
+          `0xFFF4` value and CCCD handles, and the MCU poll is reached on
+          every resume (`ResumeSending` clears `s_txFlowOff` before
+          re-queuing the task). Both images were built 2026-09-04 05:40, and
+          that day's log *planned* to "flash both firmwares" in the next
+          bench session — **no log records it happening.** An old MCU or old
+          bridge produces exactly "no frames" and nothing else. The 09-04
+          images are hashed here so a flash readback can settle it:
+          bridge `.bin` `d25397b2…`, bridge `.hex` `aa168d1c…`, MCU `.hex`
+          `97101d6e…` (copies kept outside the repo; ask Claude).
+        - **Instrumentation for a one-session bring-up** *(built
+          2026-09-29)*: `make TRACE=1` in `wb09ke-bridge/` builds a trace
+          image into `build-trace/` (the normal `build/` image is
+          unchanged in behaviour). Its connect/discovery/CCCD messages, plus
+          a line on the first `0xFFF4` notification relayed and one a minute
+          after, now land in **`bench/serial_text_*.log`** — the pc-app keeps
+          the text it used to discard during resync, so no terminal is
+          needed and streaming is unaffected. The panel now also says
+          **`no valid frames (N rejected)`** when frames arrive but fail to
+          parse, which previously looked identical to none arriving.
+        - **Procedure** (~30 min, fold into week 3's rebuild session):
+          1. Flash the MCU from `kuntur` `main` and the bridge from
+             `build-trace/`; `sha256sum` both files and log the first eight
+             characters.
+          2. Start the pc-app and connect, **then press the bridge RESET** —
+             text sent before the port is open is lost, and the connection
+             sequence is what matters.
+          3. Read `serial_text_*.log`. It answers hops 2–4 directly:
+             `Found 0xFFF4 value handle` → `Found 0xFFF4 CCCD` →
+             `0xFFF4 telemetry notify enabled` (or the write's failure code)
+             → `0xFFF4 notification #1 relayed`. If that last line appears
+             but the panel says `no frames`, the fault is host-side.
+          4. If the CCCD is enabled but nothing is relayed, hop 1 is the
+             MCU: its USART1 debug (PA1, 115200) prints `Telemetry=0x…` in
+             the handle list at boot, and `0xFFF4 telemetry notify failed`
+             if the notify is refused.
+          5. Reflash the normal `build/` bridge image afterwards.
         - Still unmeasured, and still worth measuring once frames flow: the
           1 Hz notify's real cost on packet rate (argued negligible,
           ~60 µs/s, but `μ` was measured without it).
 - [ ] **Step 2b — `dropped_packets` under-reports burst loss.**
-      *(Claude, pc-app)* **New 2026-09-09.** `serial_reader.py:263` is
+      *(Claude, pc-app)* **New 2026-09-09. Stopgap (a) ✅ DONE 2026-09-29**
+      — `packet_parser.SeqGapTracker`, shared by `serial_reader.py` and
+      `test_validator.py`. The byte cannot size a gap, but the packet's RTC
+      timestamp says whether a wrap was *possible*: 256 packets need
+      ≥ 0.513 s at μ, so a gap across ≥ 0.4 s of MCU time (= f(μ)) is
+      flagged "size unknown", including a contiguous-looking seq across
+      such a pause (the 256×k-reads-as-zero case). Shorter gaps stay exact
+      — the 116 ms worst stall is well inside. The panel and status bar
+      read `≥52 (1 gap of unknown size)` instead of `52`; the validator
+      FAILs on any unknown gap after its grace period, since a
+      `--max-drops 0` run previously passed a 256-packet burst. A
+      successful STOP ack and a port close clear the timing (the MCU does
+      not reset `seq_num` on STOP/START). Tests: `test_seq_gaps.py`, plus
+      the stop-ack path in `test_serial_reader.py`. (b) below is still the
+      real fix; step 2b stays open until it lands. Original text: `serial_reader.py:263` is
       `gap = (seq - self._expected_seq) % 256`. `seq_num` is a rolling
       byte, so every gap is truncated mod 256: the 2026-09-08 run's
       ~7,220-packet burst reported as **52**, and a burst of exactly

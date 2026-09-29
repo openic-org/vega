@@ -403,13 +403,18 @@ typedef enum
  * debug UART exists on this board as wired), so debug text interleaves into
  * the same byte stream the pc-app parses. Flip to (1) to re-enable — also
  * enables DT_INFO_MSG below (connect/disconnect, discovery, command-relay
- * success/failure) — to diagnose bridge<->MCU issues. To watch it, point a
- * terminal (e.g. tio) at the port instead of running the pc-app — the two
- * can't share the port. Used 2026-08-06 to diagnose a silent command-relay
+ * success/failure) — to diagnose bridge<->MCU issues. Build it as a separate
+ * image with `make TRACE=1` (→ build-trace/), never by editing this default.
+ * The text shares the USB port with the frames and cannot forge one (every
+ * frame magic byte is >= 0x80, ASCII never is); since 2026-09-29 the pc-app
+ * keeps it in bench/serial_text_*.log rather than discarding it, so a terminal
+ * (e.g. tio) is no longer needed to read it. Used 2026-08-06 to diagnose a silent command-relay
  * failure traced to a USART1 RX overrun (see stm32wb0x_it.c) — see PLAN.md
  * A.2 and docs/interfaces/channel-selection-control-plane.md section 5.6.
  */
+#ifndef CFG_DEBUG_APP_TRACE            /* make TRACE=1 sets it to 1 */
 #define CFG_DEBUG_APP_TRACE             (0)
+#endif
 
 /**
  * Use or not advanced trace module. UART interrupts to be enabled.

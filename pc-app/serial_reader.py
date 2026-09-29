@@ -7,7 +7,7 @@ import serial
 import serial.tools.list_ports
 from PyQt6.QtCore import QThread, pyqtSignal
 import numpy as np
-from packet_parser import parse, ParsedPacket, MAGIC, PACKET_SIZE, SAMPLE_RATE_HZ
+from packet_parser import parse, ParsedPacket, MAGIC, PACKET_SIZE, SAMPLE_RATE_HZ, SeqGapTracker
 import telemetry
 
 BAUD_RATE   = 2000000  # must match WB09KE bridge USART1; ST-LINK VCP is baud-sensitive
@@ -63,6 +63,10 @@ class SerialReader(QThread):
     reg_access_response = pyqtSignal(int, int, int)
     # telemetry.TelemetryFrame — ~1 Hz loss report, section 6.
     telemetry_received = pyqtSignal(object)
+    # One line of printable text found between frames — the bridge's
+    # CFG_DEBUG_APP_TRACE output (make TRACE=1). It shares this port with the
+    # frames and can never forge one: every magic byte is >= 0x80.
+    text_line = pyqtSignal(str)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -72,20 +76,35 @@ class SerialReader(QThread):
 
         # Statistics
         self.total_packets  = 0
-        self.dropped_packets = 0
+        self._gaps = SeqGapTracker()
         # Aggregate samples received (2 per pair — both channels), counted the
         # same way the MCU counts anchor_sample_index so the two are directly
         # comparable. Their difference over an interval is the whole-path
         # sample loss; see docs/interfaces/stream-packet-format.md section 6.7.
         self.total_samples  = 0
         self.telemetry_frames = 0
-        self._expected_seq: int | None = None
+        # 0xDD 0x22 frames that arrived but telemetry.parse() refused. Without
+        # this a malformed frame reads exactly like no frame at all.
+        self.telemetry_rejected = 0
+        self._text = bytearray()
 
         # Monotonicity clamp: tracks the last timestamp emitted so that
         # backwards jumps caused by BLE burst delivery / 1 ms RTC resolution
         # are replaced with a forward-continuing sequence.
         self._last_ts_us: int = 0
         self._step_us: int = 1_000_000 // SAMPLE_RATE_HZ  # 33 µs at 30 kSPS
+
+    @property
+    def dropped_packets(self) -> int:
+        """Sum of seq gaps — a lower bound whenever uncertain_gaps > 0."""
+        return self._gaps.dropped_packets
+
+    @property
+    def uncertain_gaps(self) -> int:
+        return self._gaps.uncertain_gaps
+
+    def drops_summary(self) -> str:
+        return self._gaps.summary()
 
     def set_port(self, port_name: str):
         self._port_name = port_name
@@ -187,13 +206,15 @@ class SerialReader(QThread):
 
                 if not found:
                     # No magic found — keep last 1 byte (could be partial magic)
+                    self._capture_text(buf[:-1])
                     buf = buf[-1:]
                     break
 
                 idx, kind = min(found)
 
                 if idx > 0:
-                    # Discard garbage before magic
+                    # Discard garbage before magic — keeping any text in it
+                    self._capture_text(buf[:idx])
                     buf = buf[idx:]
 
                 # Need magic(2) + length(2) + payload
@@ -214,6 +235,8 @@ class SerialReader(QThread):
                     if frame is not None:
                         self.telemetry_frames += 1
                         self.telemetry_received.emit(frame)
+                    else:
+                        self.telemetry_rejected += 1
                     continue
 
                 if kind == "response":
@@ -222,6 +245,8 @@ class SerialReader(QThread):
                         if rtype == CMD_SET_CHANNELS and len(payload) >= 3:
                             self.channels_readback.emit(payload[1], payload[2])
                         elif rtype == CMD_STOP_STREAMING and len(payload) >= 2:
+                            if payload[1]:
+                                self._gaps.pause()
                             self.stop_streaming_ack.emit(bool(payload[1]))
                         elif rtype == CMD_START_STREAMING and len(payload) >= 2:
                             self.start_streaming_ack.emit(bool(payload[1]))
@@ -257,13 +282,9 @@ class SerialReader(QThread):
                         )
                     self._last_ts_us = int(packet.timestamps_us[-1])
 
-                # Drop detection
-                seq = packet.header.seq_num
-                if self._expected_seq is not None:
-                    gap = (seq - self._expected_seq) % 256
-                    if gap != 0:
-                        self.dropped_packets += gap
-                self._expected_seq = (seq + 1) % 256
+                # Drop detection — a lower bound once any gap is uncertain;
+                # see packet_parser.SeqGapTracker.
+                self._gaps.update(packet.header)
 
                 self.total_packets += 1
                 # 2 samples per pair — the same aggregate the MCU's
@@ -277,7 +298,26 @@ class SerialReader(QThread):
         except OSError:
             pass  # already closed by stop()
         self._last_ts_us = 0
+        self._gaps.pause()
         self.connection_changed.emit(False, self._port_name)
+
+    def _capture_text(self, junk: bytes) -> None:
+        """Split printable runs out of discarded bytes into lines. A
+        non-printable byte means corruption rather than text, so it drops the
+        partial line instead of splicing garbage into it."""
+        for b in junk:
+            if b == 0x0A:
+                line = self._text.decode("ascii").strip()
+                self._text.clear()
+                if line:
+                    self.text_line.emit(line)
+            elif 0x20 <= b < 0x7F or b in (0x09, 0x0D):
+                self._text.append(b)
+                if len(self._text) >= 240:   # no newline coming; flush anyway
+                    self.text_line.emit(self._text.decode("ascii").strip())
+                    self._text.clear()
+            else:
+                self._text.clear()
 
     @staticmethod
     def list_ports() -> list[str]:

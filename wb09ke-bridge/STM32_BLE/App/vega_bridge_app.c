@@ -93,6 +93,10 @@ typedef struct
     /* CCCD of 0xFFF4 */
     uint16_t telem_cccd_hdl;
 
+    /* 0xFFF4 notifications relayed this connection — trace only, so a bench
+     * session can tell "bridge never heard one" from "host never saw one". */
+    uint32_t telem_rx;
+
     /* Negotiated ATT payload size */
     uint16_t mtu_payload;
 } BridgeContext_t;
@@ -284,6 +288,13 @@ static void parse_telemetry_notification(aci_gatt_clt_notification_event_rp0 *p_
     VEGA_UART_Write(hdr, 4U);
     VEGA_UART_Write(p_evt->Attribute_Value, mcu_len);
     VEGA_UART_Write(tail, TELEMETRY_BRIDGE_BYTES);
+
+    /* First one, then ~once a minute at 1 Hz. Compiled out unless
+     * CFG_DEBUG_APP_TRACE (make TRACE=1). */
+    s_ctx.telem_rx++;
+    if (s_ctx.telem_rx == 1U || (s_ctx.telem_rx % 60U) == 0U)
+        DT_INFO_MSG("0xFFF4 notification #%lu relayed (MCU len %u)\r\n",
+                    (unsigned long)s_ctx.telem_rx, mcu_len);
 }
 
 /* ── GATT event handler ──────────────────────────────────────────────────── */

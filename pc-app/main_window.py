@@ -88,6 +88,8 @@ class MainWindow(QMainWindow):
         self._rate_ts   = 0.0
         self._rate_pkts = 0
         self._drops_prev = 0      # drops seen at previous status update
+        self._session_ts: str | None = None   # names this connection's bench files
+        self._text_file = None    # bench/serial_text_*.log, opened on first line
         self._total_underruns = 0 # cumulative FPGA FIFO underrun samples
 
         # ── A.7 telemetry (docs/interfaces/stream-packet-format.md section 6)
@@ -523,6 +525,7 @@ class MainWindow(QMainWindow):
         self._reader.error.connect(self._on_error)
         self._reader.channels_readback.connect(self._on_channels_readback)
         self._reader.telemetry_received.connect(self._on_telemetry)
+        self._reader.text_line.connect(self._on_serial_text)
         self._reader.stop_streaming_ack.connect(self._on_stop_ack)
         self._reader.start_streaming_ack.connect(self._on_start_ack)
 
@@ -743,6 +746,7 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage(f"Connected on {port}")
             # Open bench log for this session
             ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            self._session_ts = ts
             BENCH_DIR.mkdir(exist_ok=True)
             self._bench_path = str(BENCH_DIR / f"bench_{ts}.csv")
             self._bench_file = open(self._bench_path, "w", newline="")
@@ -792,6 +796,9 @@ class MainWindow(QMainWindow):
                 self._health_file.close()
                 self._health_file = None
                 self._health_log  = None
+            if self._text_file:
+                self._text_file.close()
+                self._text_file = None
             if self._bench_file:
                 self._bench_file.close()
                 self._bench_file = None
@@ -1111,6 +1118,19 @@ class MainWindow(QMainWindow):
         self._btn_connect.setText("Connect")
         self.statusBar().showMessage(f"Error: {msg}")
 
+    def _on_serial_text(self, line: str) -> None:
+        """Bridge trace text (make TRACE=1) — to bench/serial_text_*.log,
+        opened on the first line so a normal build leaves no empty files.
+        Same wall_time_utc timebase as health_*.csv and ambient_*.csv."""
+        print(f"[bridge] {line}")
+        if self._text_file is None:
+            ts = self._session_ts or datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            BENCH_DIR.mkdir(exist_ok=True)
+            self._text_file = open(BENCH_DIR / f"serial_text_{ts}.log", "a")
+        now = datetime.datetime.now(datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        self._text_file.write(f"{now}  {line}\n")
+        self._text_file.flush()
+
     def _update_telemetry_labels(self) -> None:
         """Render the A.7 attribution counters — section 6.
 
@@ -1129,8 +1149,16 @@ class MainWindow(QMainWindow):
         """
         t = self._telemetry
         if t is None:
-            self._lbl_telem_state.setText("no frames")
-            self._lbl_telem_state.setStyleSheet("font-size: 11px; color: gray;")
+            rejected = self._reader.telemetry_rejected
+            if rejected:
+                # Frames ARE arriving and being refused — a different fault
+                # from none arriving, and it must not look like it.
+                self._lbl_telem_state.setText(f"no valid frames ({rejected} rejected)")
+                self._lbl_telem_state.setStyleSheet(
+                    "font-size: 11px; color: #B71C1C; font-weight: bold;")
+            else:
+                self._lbl_telem_state.setText("no frames")
+                self._lbl_telem_state.setStyleSheet("font-size: 11px; color: gray;")
             return
 
         self._lbl_telem_state.setText(f"v{t.version}  ×{self._reader.telemetry_frames}")
@@ -1183,8 +1211,11 @@ class MainWindow(QMainWindow):
         self._lbl_packets.setText(str(pkts))
 
         # Colour drop label red as soon as any drop is detected; stays red.
-        self._lbl_dropped.setText(str(drops))
-        if drops > 0:
+        # "≥N (k gaps of unknown size)" once seq_num may have wrapped — the
+        # sum is then a lower bound, not a total (PLAN.md A.7 step 2b).
+        uncertain = self._reader.uncertain_gaps
+        self._lbl_dropped.setText(self._reader.drops_summary())
+        if drops > 0 or uncertain > 0:
             self._lbl_dropped.setStyleSheet("font-size: 11px; color: #B71C1C; font-weight: bold;")
 
         now = time.time()
@@ -1220,7 +1251,9 @@ class MainWindow(QMainWindow):
 
             # Status bar: compact one-liner with drops prominently shown
             port = self._port_combo.currentText()
-            drop_str = f"drops: {drops}" if drop_delta == 0 else f"drops: {drops} (+{drop_delta})"
+            drop_str = f"drops: {self._reader.drops_summary()}"
+            if drop_delta:
+                drop_str += f" (+{drop_delta})"
             self.statusBar().showMessage(
                 f"{port}  |  {pps:.0f} pkt/s  {sps:.0f} SPS  {kbps:.0f} kbit/s  |  {drop_str}  |  underruns: {self._total_underruns:,} ({ur_pct:.1f}%)"
             )
