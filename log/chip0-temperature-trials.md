@@ -1,5 +1,10 @@
 # chip0 intermittency — temperature trial log
 
+**Instrumentation (from 2026-09-30):** `docs/bench/chip0-thermal-rig.md` —
+which probe is on which chip and which meter. Trials from then on cite it
+rather than re-describing the setup; earlier trials had no board-level
+temperature at all.
+
 **What this is.** A running record of chip0 pass/fail against thermal state,
 started 2026-09-04. Background, mechanism and the reasoning behind it:
 **PLAN.md A.1.2** and `log/2026-09-04.md` §7. Kept as one appendable file

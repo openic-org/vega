@@ -1480,6 +1480,11 @@ strength of that reproduction; the purchase gate below is lifted.
 
 **Order of work from here:**
 
+**Rig as built (2026-09-30): `docs/bench/chip0-thermal-rig.md`** — probe
+P1 chip0 → DMM6500, P2 chip1 → U1242B T1, P3 FPGA → U1242B T2, Govee
+beside the stack. Every trial row should name that doc rather than
+re-describe the setup.
+
 1. ✅ **Kit fully ordered 2026-09-10.** DigiKey (SO `101549716`,
    $151.33, FedEx Ground) + hygrometer (Amazon, **arriving 2026-09-11**).
    The hygrometer lands first, which is the right order — and it means
@@ -1492,7 +1497,9 @@ strength of that reproduction; the purchase gate below is lifted.
    overnight power-off. Enough to know the spontaneous
    onset-latency distribution. Currently *n* = 2 (2 min, 12 min), which is
    not a distribution.
-3. **Spray localisation** — chip0 vs chip1 vs FPGA vs the SCK/MOSI traces.
+3. **Spray localisation** — chip0 vs chip1 vs FPGA. ~~vs the SCK/MOSI
+   traces~~ — *not separately reachable* (chip0's branch is on internal
+   layer 3; corrected 2026-09-30, see the rig doc below).
    This is the prize: no work to date has established *where* the fault
    physically lives.
 4. **Halve `clk` while cold** — hold-type vs setup-type. The one
