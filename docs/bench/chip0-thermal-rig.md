@@ -92,7 +92,15 @@ reasonable in the room is enough), and it is the frost budget for spraying.
 | Channel liveness | pc-app → `bench/health_*.csv` | `wall_time_utc`, 1 s |
 | Ambient | `ambient_logger.py` → `bench/ambient_*.csv` | `wall_time_utc`, ~6–10 s |
 | chip0 temperature (P1) | DMM6500 reading buffer → USB stick CSV | DMM clock (local), converted to UTC at alignment |
-| chip1 / FPGA (P2, P3) | U1242B | read by eye, noted in the trial row |
+| chip1 / FPGA (P2, P3) | U1242B | read by eye, noted in the trial row — **not logged** (no IR-USB cable, 2026-10-09) |
+
+**Only chip0 has a continuous record.** The U1242B can log internally, but
+reading the log out needs Keysight's IR-USB cable, and there isn't one on
+the bench (Manuel, 2026-10-09). So over an unattended run, chip1 and the
+FPGA are known only at the readings someone writes down. The at-rest
+checks (§5) bracket each run, and the trial row should carry any
+mid-run readings with their times. A chip1 or FPGA temperature *at
+fault onset* therefore exists only if someone was there to read it.
 
 **This DMM6500 has no host interface.** Only the front USB-A (a flash-drive
 host) is fitted — no rear USB-B, no LAN (checked by Manuel, 2026-09-30).
