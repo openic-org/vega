@@ -105,9 +105,32 @@ after the run, and aligned afterwards. For that to work:
   timestamps are local — **UTC = DMM + 5 h** while CDT holds (CST from
   2026-11-01: +6 h). A hand-set clock leaves a residual offset of up to
   tens of seconds: harmless for slow drift, not for spray bursts. **At the
-  start and end of each run, photograph the DMM clock and a PC terminal
-  running `date` in one frame** — that pins the offset to ~1 s and
-  measures the DMM clock's drift over the run.
+  start and end of each run, photograph the DMM's clock with a phone.** The
+  phone's network-synchronised clock stamps the photo (EXIF), so one
+  picture holds both the DMM time and the true time — offset to ~1 s, and
+  the start/end pair gives the DMM clock's drift. No PC in frame needed.
+- **The DMM's timezone is UTC while its clock shows local time**, so the
+  export header's `Base Time Seconds` epoch is **local-as-UTC** (16:59:48
+  decoded as 16:59:48Z, really 21:59:48Z). Align from the per-reading
+  `Time Stamp` + 5 h; never use that epoch field as UTC.
+
+**Export format (verified 2026-09-30, two test runs).** Front-panel save
+gives a CSV with an 8-line header (`Fill Mode`, `Capacity` 100,000,
+`Count`, base time) and one row per reading: temperature, a per-reading
+`Time Stamp` to the nanosecond, and — usefully — **the raw thermocouple
+voltage** (`Extra Values`, µV). Any P1 temperature can therefore be
+recomputed later from the raw voltage, independent of the 23 °C simulated
+setting, and deltas taken directly from µV.
+
+| Setting | Interval | Buffer lasts | Use for |
+|---|---|---|---|
+| continuous trigger, ~10 PLC | 0.170 s | 4.7 h | spray bursts |
+| 1 s delay per reading | **1.170 s** (delay is added *after* each ~0.17 s measurement) | **32.5 h** | baseline / overnight |
+
+Measured noise: 0.0024–0.0031 °C sample-to-sample. `Fill Mode` reads `0`
+— most likely *continuous* (circular); it only bites past the buffer's
+duration (32.5 h at 1.17 s), and must be *fill once* before any run that
+long.
 - **Buffer capacity ≥ run length × rate** (an overnight run at 1 Hz is
   ~60,000 readings), and **fill-and-stop, not circular** — a circular buffer
   silently overwrites the run's start, which is the cold start itself.

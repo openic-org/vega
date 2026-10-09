@@ -325,7 +325,21 @@ would, so the **slave-side column applies** — the same convention
 **Verify the orientation before soldering**, since this rests on reading
 the convention rather than on a measurement: controller powered, cable into
 the C3430, companion disconnected — T6→B6 must read ≈ +3.3 V, and T1−B1
-(CS idling high) ≈ +0.35 V. The IAM breakout's GND pads are **not tied
+(CS idling high) ≈ +0.35 V.
+**Attempted 2026-10-09; inconclusive.** Both harnesses are built and
+checked for continuity. With the C3430 connected and the companion
+disconnected, there was **no voltage on T6 or B6**. Manuel's reading is
+that the controller had detected no headstage and so had not powered the
+port. That reading is plausible but unconfirmed. An absent supply is
+consistent with either cable orientation, so **the T/B orientation is
+still unverified**, and L4 must not treat it as settled. Next step: on the
+known-good Rung 1 setup (`kuntur144-omnetics` J1 on the same cable), find
+the conditions under which the controller drives VDD, e.g. only once RHX
+has opened the board or run a port scan. Then repeat the C3430
+measurement under exactly those conditions. A plain continuity ring-out
+cannot replace this, because the cable's own T/B inversion would have to
+be assumed, and that inversion is the thing in doubt.
+The IAM breakout's GND pads are **not tied
 together** (IAM datasheet), so ground each pigtail at a pad adjacent to its
 signals. Sources: Intan *RHD SPI Interface Cable/Connector Specification*
 (Table 1); Intan `RHD2000_cable_adapter_PCB.zip` (C3430 board file).
@@ -427,20 +441,37 @@ Intan controller from a continuously replicated local buffer:
 ### 2.2 The resulting topology
 
 ```
-                      Kuntur headstage                    │  companion (LIFCL-40-EVN)
+                      Kuntur headstage                    │  companion (LIFCL-40-EVN + IAM breakout)
                                                           │
  RHD2164 ×2 ─SPI1─► spi_master_rhd2164x2 ─┬─► ch_sel ─► fifo0 ─► spi0 ─► MCU ─► BLE ─► bridge ─► pc-app
    (real                                  │             (2 selected channels, unchanged)
     AFE)                                  │
-                                          └─► tunnel TX ═══ E9/E8 ═══► tunnel RX ─► frame buffer
-                                              (all 128 ch)   uHDMI          │        (128 ch × 1 frame)
-                                                                            ▼
-                                              tunnel RX ◄══ G9/F9 ═══ tunnel TX   RHD2164 emulator
-                                              (link status)                            │ SPI slave
-                                                                                       ▼
-                                                                            Omnetics ─► Intan controller
-                                                                                        (SPI master)
+                                          └─► tunnel TX ─┬─ TUN_DATA  G9/F9 ══ uHDMI ══► LA04 ─┐
+                                              (all 128 ch,│                   pigtail          │
+                                               + CONFIG)  └─ TUN_CLK   E9/E8 ═══════════► LA02 ─┤
+                                                                                                ▼
+                                                                         tunnel RX ─► frame buffer
+                                                                         (TUN_CLK     (128 ch × 1 frame
+                                                                          clocks it)   + CONFIG shadow)
+                                                                                               │
+                                                     diagnostics console ◄── counters,         ▼
+                                                     (O8; §5, §9.4)          absorbed writes ─ RHD2164 emulator
+                                                                                               │ SPI slave,
+                                                                                               │ bank 3 LA pairs
+                                                                                               ▼
+                                                                       C3430 ─► Intan SPI cable ─► Intan controller
+                                                                       (Omnetics)                 (SPI master)
 ```
+
+**Both pairs are Kuntur outputs (§1.3, decision 4); nothing travels back
+over the uHDMI.** Kuntur cannot see the link state, the CRC failures or the
+absorbed writes. These live only at the companion's diagnostics console
+(§5, §9.4, O8). The SPI cable between the C3430 and the controller is
+Intan's own interface cable. The companion takes the headstage's place on
+it; it is not the electrode-side Omnetics on the Kuntur bottom board.
+*Diagram redrawn 2026-10-09. The previous version still showed the
+bidirectional draft, with a companion→Kuntur "link status" return path on
+G9/F9 and the two pairs swapped.*
 
 Two independent readouts of **one** AFE, which is precisely what PLAN.md's
 "Why the wired path is worth the effort" argues for: one signal, one AFE,
