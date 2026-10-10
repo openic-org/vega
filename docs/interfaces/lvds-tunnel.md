@@ -339,6 +339,50 @@ has opened the board or run a port scan. Then repeat the C3430
 measurement under exactly those conditions. A plain continuity ring-out
 cannot replace this, because the cable's own T/B inversion would have to
 be assumed, and that inversion is the thing in doubt.
+
+**Repeated 2026-10-10 — VDD orientation CONFIRMED; signal polarity
+still open.** Conditions: controller powered, RHX **not** running, scope
+ground on **B6**.
+- **T6 − B6 = 3.3 V**, with the companion connected, running the
+  emulator bitstream.
+- **Still 3.3 V** with the companion's harness unplugged and the C3430
+  still on the cable.
+
+So VDD does not depend on any load (T6 isn't wired to anything on the
+companion side anyway), and the 10-09 reading of 0 V was a measurement or
+setup artefact whose cause was not identified. VDD on T6 rules out both a
+T/B row swap (VDD would be on B6) and an end-to-end reversal (VDD would be
+on T1).
+
+**Polarity is not yet shown.** With RHX not running, T1 < B1 *and*
+T2 < B2, i.e. CS and SCLK both at logic 0. That proves nothing:
+- RHX uploads the controller's FPGA design at start-up
+  (`RHXController::uploadFPGABitfile()` → `ConfigureFPGA()`), so before
+  that the SPI outputs are in an undefined state.
+- **Decisive check, with RHX running:** CS idles high and SCLK idles low,
+  so T1 − B1 ≈ +0.35 V and T2 − B2 ≈ −0.35 V. They must have opposite
+  signs. If both flip together, the harness inverts every pair.
+- **CS polarity CONFIRMED 2026-10-10.** With RHX running there was
+  toggling during the port scan, after which CS settled at **T1 > B1**,
+  i.e. idle high, as expected. Each pair was wired by hand separately, so
+  CS proves only CS. SCLK, MOSI, MISO1 and MISO2 are checked one by one.
+- **SCLK polarity CONFIRMED 2026-10-10:** idle sign opposite to CS, so
+  idle low, as expected.
+- **Open: MOSI, MISO1 and MISO2 polarity.** These could not be checked on
+  the bench on 10-10. Static levels can't settle them: MOSI has no defined
+  idle, and a MISO at 0 looks the same as an inverted 1. Each needs a
+  known word.
+  - **MOSI:** a companion bitstream that keeps `spi0_mosi` and lights one
+    LED on any received `0xFF00` and another on any `0x00FF`. RHX's
+    register-config list issues `READ(63)` = `0xFF00` several times
+    (`createCommandListRHDRegisterConfig()`). Inverted, it arrives as
+    `0x00FF`, which is not a valid RHD command (CONVERT's low bits are
+    zero). No scope needed. Run it at a low sample rate (§9.1a).
+  - **MISO:** at the latest at §12 step 7/8, when RHX reads the emulator's
+    ROM. An inverted MISO returns the bitwise complement of `"INTAN"`.
+    RHX would then report no chip and find no delay, which is easy to
+    mistake for a timing problem. Check for the complement first.
+
 The IAM breakout's GND pads are **not tied
 together** (IAM datasheet), so ground each pigtail at a pad adjacent to its
 signals. Sources: Intan *RHD SPI Interface Cable/Connector Specification*
@@ -1093,11 +1137,49 @@ All values below are from `rhd2164_defs.vh` and are what the real chips on
 | Register | Value | Meaning |
 |---|---|---|
 | 40–44 | `0x49 0x4E 0x54 0x41 0x4E` | `"INTAN"` company designation |
-| 59 | `0x35` on MISO A, `0x3A` on MISO B | **DDR MISO A/B marker — this is what identifies the part as an RHD2164 rather than an RHD2132** |
+| **48–55** | chip name; RHX checks **48–50 = `'R' 'H' 'D'`** | **Missing from the first draft of this table** (found 2026-10-10 against RHX source). 51–55 are read but not checked. Values for 51–55 are not in `rhd2164_defs.vh`; read them from the real chips before the emulator ROM is written |
+| 59 | `0x35` (53) on MISO A, `0x3A` (58) on MISO B | **DDR MISO A/B marker — this is what identifies the part as an RHD2164 rather than an RHD2132** |
 | 60 | die revision | |
 | 61 | `1` | unipolar amplifiers |
 | 62 | `64` | number of amplifiers |
 | 63 | `4` | Intan chip ID, RHD2164 |
+
+**Source, verified 2026-10-10** against Intan's open-source RHX
+(`github.com/Intan-Technologies/Intan-RHX`, `main`):
+
+- `RHXController::findConnectedChips()` (`Engine/API/Hardware/rhxcontroller.cpp`)
+  runs the register-config command list at each of the **16 MISO delay
+  settings**. It records a delay as good for a MISO line only when
+  `RHXDataBlock::getChipID()` returns a known chip.
+- For an RHD2164 there is an extra condition: register 59 must equal
+  `Register59MISOA` (53) on that line.
+- `getChipID()` (`rhxdatablock.cpp`) returns −1, meaning *no chip*,
+  unless registers 40–44 read `"INTAN"` and 48–50 read `"RHD"`. Only then
+  does it return register 63.
+- The read order is in `createCommandListRHDRegisterConfig()`
+  (`rhxregisters.cpp`): 63, 62, 61, 60, 59, then 48–55, then 40–44, then a
+  read-back of RAM registers 0–17.
+
+**Consequence: detection and cable-delay calibration are one step.** A
+MISO line that cannot answer these reads is not merely "unrecognised": RHX
+never finds a delay setting for it either. An emulator returning constant
+data therefore cannot be calibrated by RHX at all. Its MISO timing can be
+checked only with a scope, or with a host API that sets the delay by hand.
+
+These checks apply to the RHD USB2/USB3 controller types. The
+stim/record controller uses a different ROM layout and is out of scope.
+
+**The host this emulator is designed against** (RHX start-up log,
+2026-10-10): an **Intan RHD Recording Controller**, Opal Kelly
+**XEM7310**, Rhythm version 1, serial `2545001ING`. In RHX terms this is
+`ControllerRecordUSB3` (8 SPI ports, A–H), and RHX loads
+`ConfigRHDController_7310.bit` into it at start-up. Static line levels
+measured before RHX has started are therefore meaningless (§1.5.4).
+`Error I2`…`Error I11` in RHX's start-up output are unrelated to the SPI
+link. They are failed OpenCL buffer allocations in
+`GPUInterface::initializeKernelMemory()`, and exactly the
+channel-count-sized buffers fail, which is what zero detected channels
+produces.
 
 Register 59 deserves emphasis: returning **different** values on MISO A
 and MISO B is how a host distinguishes a 64-channel DDR part from a
@@ -1108,6 +1190,38 @@ values A.1.1's ladder rung `L` checks and that passed on real hardware on
 
 Registers 0–21 (configuration) are answered from the replicated `CONFIG`
 state, §4.4.
+
+### 9.1a MISO timing — clock the emulator from SCLK, do not oversample it
+
+**Evidence from 2026-10-10.** The first emulator model
+(`intan_rec_adapter`, oversampling CS/SCLK/MOSI with the 12 MHz on-board
+oscillator) was simulated against an idealised DDR master. MISO A was read
+after each SCLK rise and MISO B after each fall, with the sampling delay
+swept over 0–5 SCLK in 1/8 steps. A pass is 199/199 words exact.
+
+| Oversampling clock | SCLK 0.7 / 1.05 MHz | SCLK 2.1–7 MHz | SCLK 21 MHz |
+|---|---|---|---|
+| 12 MHz | pass | fail | fail |
+| 50–150 MHz | — | — | fail |
+| 200 / 250 MHz | — | — | pass, but in one 1/8-SCLK step only (~6 ns) |
+
+**Why it fails at speed.** Asynchronous oversampling adds up to one
+clock period of latency jitter, and DDR leaves each bit only half an SCLK
+period (~23.8 ns at 21 MHz). RHX's MISO delay steps are 1/(2800 × fs),
+which is 11.9 ns at 30 kS/s (`setCableDelay()`). The valid window at
+200–250 MHz is about one step wide, so whether any of the 16 steps lands
+in it depends on the cable.
+
+**Design rule:**
+- **Clock the emulator from SCLK.** `spi0_sck` is on clock-capable LA24
+  for this reason (§1.5.4). That gives a fixed SCLK-to-MISO latency, as in
+  the real chip, whose ~9 ns RHX's delay model assumes
+  (`estimateCableLengthMeters()`).
+- The 12 MHz oversampler stays usable for **link checks at a low sample
+  rate only**.
+- SCLK = 2800 × fs / 4 (21 MHz at 30 kS/s) is inferred from the
+  80-clock-per-command structure, not yet measured. Confirm it on the
+  scope.
 
 ### 9.2 Answering `CONVERT` — decode, do not count
 
