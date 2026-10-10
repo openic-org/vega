@@ -152,22 +152,32 @@ async def log(address: str | None, interval: float) -> int:
         loop.add_signal_handler(sig, stop.set)
 
     print(f"Waiting for {'the first H5075' if target is None else target} ... Ctrl-C to stop.")
-    async with BleakScanner(detection_callback=cb, scanning_mode="active"):
-        # Status line every minute, and a loud warning if the sensor goes
-        # quiet — a gap in this file must be visible as a gap, not assumed.
-        while not stop.is_set():
-            try:
-                await asyncio.wait_for(stop.wait(), timeout=60)
-            except asyncio.TimeoutError:
-                pass
-            silent = loop.time() - last_row
-            if rows and silent > max(120, 4 * interval):
-                print(f"{utc_now()}  WARNING: nothing from {target} for {silent:.0f} s",
-                      file=sys.stderr)
-            elif rows:
-                print(f"{utc_now()}  {rows} rows")
+    # A BlueZ discovery session can go quiet over a long run without
+    # raising anything. Unattended, a warning alone would turn the rest of
+    # the night into a gap. So after a silence the scanner is torn down and
+    # restarted. The gap stays visible in the file, as missing rows.
+    silence_limit = max(120, 4 * interval)
+    restarts = 0
+    while not stop.is_set():
+        async with BleakScanner(detection_callback=cb, scanning_mode="active"):
+            scan_started = loop.time()
+            while not stop.is_set():
+                try:
+                    await asyncio.wait_for(stop.wait(), timeout=60)
+                except asyncio.TimeoutError:
+                    pass
+                # Silence counts from the later of the last row and this
+                # scan's start, so a restart gets a full window to recover.
+                silent = loop.time() - max(last_row, scan_started)
+                if rows and silent > silence_limit:
+                    restarts += 1
+                    print(f"{utc_now()}  WARNING: nothing from {target} for {silent:.0f} s "
+                          f"— restarting scan (restart #{restarts})", file=sys.stderr)
+                    break
+                if rows:
+                    print(f"{utc_now()}  {rows} rows")
     f.close()
-    print(f"Stopped. {rows} rows in {path}")
+    print(f"Stopped. {rows} rows, {restarts} scan restarts, in {path}")
     return 0
 
 
