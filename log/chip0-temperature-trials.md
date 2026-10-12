@@ -57,6 +57,49 @@ can be scored — including any future "fix".
 | 5 | 2026-09-08→09 | 17:50 → 11:05 | **warm** — powered and streaming continuously for **17.26 h**, unattended overnight, undisturbed | ok — **no transition in 17.26 h** | ok | not recorded | **PASS, and the longest observation in the series by a wide margin.** First trial to satisfy the watch-duration rule adopted 2026-09-08. Evidence is the transition log, not a screen: `bench/health_20260908_175000.csv` holds only the two `alive` rows written at connect. Ch A/Ch B 42/94 Verified. **Not a clean run in other respects** — a 33 s host stall at 04:36 (`systemd-oomd`, not the board) and telemetry produced no frames all night; see `log/2026-09-09.md`. Neither touches chip0 liveness. Bitstream **`cdc7d39d…` by inference** — not reflashed for this trial, but the pinned file was on disk unchanged throughout; see caveat |
 | 6 | 2026-09-10 | 11:17:42 → ongoing | **cold start** — powered off overnight (~18.5 h), reflashed, first activity of the day | **ok → FLAT 11:29:46 → 1.39 s alive 11:49:21 → FLAT → ok 12:05:49** | ok throughout | **thermostat 70 °F / 21.1 °C; outside 75 °F / 23.9 °C** | **FAIL, and the first complete cycle captured by instrument rather than by eye.** Ch A/Ch B 42/94 confirmed on the panel. Onset **12 min 04 s** after connect; dead **36 min 01 s** total; recovered spontaneously, nothing touched. Contains a **1.39-second partial recovery** no human watch could have caught. Lowest setpoint in the series (all prior trials 72 °F) — but the thermostat controls the floor **above** the test room, so the room's actual temperature is unmeasured and "coldest" is inference, not fact. First FAIL with any ambient recorded at all. Bitstream **verified `cdc7d39d…`** (hashed from disk after the flash; file untouched since 2026-09-04, tree clean) |
 
+### Trial 7 — run sheet (fill in; becomes row 7 once complete)
+
+First cold start with the thermal rig (`docs/bench/chip0-thermal-rig.md`)
+and the room logged. Bitstream must stay **`cdc7d39d…`**: hash it from
+disk before the flash, the way trial 6 did. Not yet run (planned for
+2026-10-09→10, postponed); fill in the dates on the night.
+
+**What each half is for.** The *morning* is the experiment: onset time,
+and the thermal state at onset. Across several cold starts it answers
+whether chip0 drops out at a consistent temperature or at a consistent
+time. The *overnight* logging is cheap context only. It confirms the
+cold soak, gives a P1 offset estimate over hours of equilibrium rather
+than one reading, and records the room's trend. Nothing fails while the
+board is off, so a gap overnight costs little and a gap in the morning
+costs the trial.
+
+**Evening before (date: ____) — Kuntur powered off**
+
+| Item | Value |
+|---|---|
+| Kuntur power-off time (local) | |
+| At-rest check: Govee / P1 DMM6500 / P2 T1 / P3 T2 / T1−T2 | / / / / |
+| DMM6500 mode (expect 1 s delay → 1.17 s interval) and buffer cleared | |
+| DMM clock photo, start (DMM display vs EXIF time) | |
+| `ambient_logger.py` started (time; output file name) | |
+| PC sleep disabled | |
+
+**Morning (date: ____) — cold start**
+
+| Item | Value |
+|---|---|
+| At-rest check before power-on: Govee / P1 / P2 / P3 / T1−T2 | / / / / |
+| P1 offset for the session (= Govee − DMM6500 at rest) | |
+| Bitstream SHA-256 (from disk, before the flash) | |
+| pc-app started; `health_*.csv` / `bench_*.csv` names | |
+| **Kuntur power-on time (local)** | |
+| Connect time; Ch A/Ch B set to 42/94 and confirmed on the panel | |
+| Watch end time (**≥ 20 min after connect**; longer is better) | |
+| P2 / P3 read by eye during the run, each with its time (not logged — no IR-USB cable) | |
+| Transitions in `health_*.csv` (scored from the file, not by eye) | |
+| DMM clock photo, end; DMM CSV exported (file name) | |
+| `ambient_logger.py` stopped; rows and scan restarts from its exit line | |
+
 ### Trial 2 — and a result the thermostat did not predict
 
 **The room did not get colder overnight.** The thermostat read 72 °F at
