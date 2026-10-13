@@ -2079,9 +2079,14 @@ RHD2164 ×2 → Kuntur FPGA ├─→ ch_sel → FIFO → MCU → BLE → bridge
   - [ ] Delay margin: record RHX's chosen MISO delay per port (Configure
         tab) as the baseline. Measure SCLK on the scope (21 MHz is
         inferred).
-  - [ ] Testbench that replays RHX's AuxCmd3 entries 18–35 and checks
-        each answer two words later — today's `tb.v` sends `READ(63)`
-        every word and cannot see a wrong pipeline depth (spec §9.1b).
+  - [x] **RHX-sequence testbench — 2026-10-13.** `tb.v` replays 40
+        sample periods of RHX's command stream (`CONVERT(0..31)` +
+        AuxCmd1/2/3) and checks every `READ` answer two words later on
+        all four MISO streams, plus RHX `getChipID()` against literal
+        values. Passes in iverilog and Questa; a one-word-deeper RTL copy
+        fails (25 errors), so it catches the depth error the old
+        `READ(63)` bench could not. `kuntur` `ba57867`, `5eaa2f4`;
+        `log/2026-10-13.md`. Slot order is inferred from RHX source.
   - [ ] `WRITE` → `{0xFF, D}`; register 59 = 58 on MISO B; `CALIBRATE`
         response; `host_write_changes` / `host_mismatch_regs` (spec §9.3).
   - [ ] `CONVERT(C)` answered from a sample buffer — needs the tunnel
