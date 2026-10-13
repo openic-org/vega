@@ -2084,8 +2084,11 @@ RHD2164 ×2 → Kuntur FPGA ├─→ ch_sel → FIFO → MCU → BLE → bridge
         `log/2026-10-13.md`; spec §9.1a, §9.1b.
         *Delay margin (how many of the 16 settings pass) deferred until
         after phases A and B (Manuel): RHX does not report it.*
-  - [ ] Bit-level MOSI capture across `CONVERT(0)` (~200 ns/div) before
-        the §9.5 frame switch relies on the slot order.
+  - [x] **Slot order confirmed on the wire — 2026-10-13.** Two MOSI
+        captures (760 / 980 ns/div) decode as `CONVERT(29..31)` →
+        `WRITE(3)` → aux2 → `READ(63)` → `CONVERT(0)` → `CONVERT(1..3)`.
+        `CONVERT(0)` opens each sweep, and §9.5 can rely on it. Spec
+        §9.1b.
   - [x] **RHX-sequence testbench — 2026-10-13.** `tb.v` replays 40
         sample periods of RHX's command stream (`CONVERT(0..31)` +
         AuxCmd1/2/3) and checks every `READ` answer two words later on
@@ -2093,8 +2096,8 @@ RHD2164 ×2 → Kuntur FPGA ├─→ ch_sel → FIFO → MCU → BLE → bridge
         values. Passes in iverilog and Questa; a one-word-deeper RTL copy
         fails (25 errors), so it catches the depth error the old
         `READ(63)` bench could not. `kuntur` `ba57867`, `5eaa2f4`;
-        `log/2026-10-13.md`. Slot order: consistent with a MOSI capture,
-        not decoded (see bench item above).
+        `log/2026-10-13.md`. Slot order confirmed on the wire (item
+        below).
   - [x] **Non-`CONVERT` answers — 2026-10-13 (simulation).** `WRITE` →
         `{0xFF, D}`, absorbed rather than applied (§9.3); register 59 =
         58 on MISO B; `CALIBRATE`/`CLEAR` → `0x0000`. Testbench passes

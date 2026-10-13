@@ -1317,13 +1317,16 @@ visible to the emulator:
   Each aux slot sends one entry per sample period from its own list.
   35 × 80 = 2800 ticks of the `2800 × fs` clock in `setCableDelay()`, so
   at SCLK = clock/4 each word is 16 data clocks plus ~4 clocks of CS high.
-  *The slot order — `CONVERT(0..31)` then aux1, aux2, aux3 — is inferred
-  from the result offsets below and from Rhythm's known structure; it is
-  defined in Rhythm's Verilog, not in RHX. **Consistent with a MOSI
-  capture, 2026-10-13, but not decoded.** One silent word (`CONVERT(0)`
-  = `0x0000`) recurs every ~34 µs, the densest words come just before
-  it, and sparse ones follow. At 4.1 µs/div no word was resolved bit by
-  bit; a ~200 ns/div capture across the silent word would confirm.*
+  **The slot order — `CONVERT(0..31)` then aux1, aux2, aux3 — is
+  confirmed on the wire (MOSI captures, 2026-10-13).** It is defined in
+  Rhythm's Verilog, not in RHX, so it was first inferred from the result
+  offsets below. Two captures at 760 and 980 ns/div decode, word by word,
+  as `CONVERT(29..31)` → `WRITE(3, D)` → aux2 → `READ(63)` (`0xFF00`)
+  → `CONVERT(0)` (silent) → `CONVERT(1..3)`. Aux2 is `READ(40)` in one
+  period and `CONVERT(32)` in the other, as AuxCmd2 cycles. These are
+  photographs, so bit positions are good to about ±1 bit. The decode
+  rests on the order of four distinctive words, not on any single bit.
+  `log/2026-10-13.md`.
 - **Data block** — **128 sample periods** (4.27 ms at 30 kS/s, 4,480
   words), the unit Rhythm hands to RHX over USB
   (`RHXDataBlock::samplesPerDataBlock()` returns 128). Aux lists are 128
@@ -1401,11 +1404,10 @@ for the scan.
    for `CONVERT(48)` reads as VDD ≈ 3.3 V. RHX only displays them.
 6. **`CALIBRATE`** arrives once per bank-0 run (initialisation and every
    scan run). Datasheet response, no action.
-7. **`CONVERT(0)` opens each sweep** if the slot order above holds. That
-   matters for the §9.5 frame switch. The 2026-10-13 MOSI capture is
-   consistent with it (exactly one `CONVERT(0)` per sample period, right
-   after the aux words) but did not decode the words; get a bit-level
-   capture before the §9.5 RTL relies on it.
+7. **`CONVERT(0)` opens each sweep**, immediately after aux3's
+   command. This is confirmed on the wire (2026-10-13, slot order above),
+   and the §9.5 frame switch can rely on it. With no CS gap between sample
+   periods (§9.1a), it is also the *only* frame marker.
 
 ### 9.2 Answering `CONVERT` — decode, do not count
 
