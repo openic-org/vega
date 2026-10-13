@@ -389,6 +389,20 @@ T2 < B2, i.e. CS and SCLK both at logic 0. That proves nothing:
     RHX would then report no chip and find no delay, which is easy to
     mistake for a timing problem. Check for the complement first.
 
+**MOSI, MISO1 and MISO2 polarity CONFIRMED 2026-10-13 — by RHX detecting
+the emulator.** With the SCLK-clocked emulator (§9.1a, §9.1b) on the
+companion, RHX's port scan found **two RHD2164s, 128 channels**. That
+settles all three at once, without the LED bitstream:
+
+- **MOSI:** an inverted `READ` (`11rrrrrr 00000000`) arrives as
+  `00…` and decodes as a `CONVERT`, so the ROM would never have answered.
+- **MISO1 and MISO2:** an inverted line returns the complement of
+  `"INTAN"` and fails `getChipID()`. Both lines passed — one RHD2164 each.
+
+Every signal on the C3430 harness is now verified: VDD orientation, CS,
+SCLK, MOSI, MISO1, MISO2. Bitstream and session details:
+`log/2026-10-13.md`.
+
 The IAM breakout's GND pads are **not tied
 together** (IAM datasheet), so ground each pigtail at a pad adjacent to its
 signals. Sources: Intan *RHD SPI Interface Cable/Connector Specification*
@@ -1611,6 +1625,11 @@ decision it could have been given earlier.
    the A.1.1 ladder's own rung `L` against the emulator instead of the
    real chip — the expected values (`0x0035`/`0x003A`) are already known
    and already passing on hardware.
+   **Emulator half done early, 2026-10-13:** the Intan-facing SPI slave
+   (SCLK-clocked, ROM answers only, no tunnel) passes RHX detection on
+   hardware — 128 channels. Ahead of steps 4–6 because it needs neither
+   Kuntur nor the pigtail. Still open in this step: `CONVERT` answers
+   from real data, `WRITE`/`CALIBRATE` responses, `CONFIG` replication.
 8. **Connect the Intan controller.** Confirm headstage detection, then a
    simultaneous dual-path capture with the §10 ZCHECK marker — **A2**.
 
