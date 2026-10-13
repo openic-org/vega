@@ -1,6 +1,8 @@
 # LVDS tunnel — Kuntur FPGA ↔ companion FPGA — interface spec
 
-**Status: DRAFT 2026-09-02, not implemented.** Written before any RTL, per
+**Status: DRAFT 2026-09-02; partly implemented.** *2026-10-13:* the
+companion's Intan-facing SPI slave (§9.1a, §9.1b) passes RHX detection on
+hardware, from a register ROM; the tunnel itself is not yet built. Written before any RTL, per
 PLAN.md working principle 5 and the standing rule that cross-boundary
 interfaces get a spec first. This is PLAN.md **A.4**'s first checkbox
 ("Interface spec, written before implementation — framing, clocking,

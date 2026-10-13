@@ -205,7 +205,7 @@ board) and does not need the Kuntur bitstream changed.
 | **1** · 09-29 → 10-02 | Kit test-fit (probes are non-returnable). Cold starts begin. A.4 §12 step 2: `.pdc` `IO_TYPE=LVDS` + PAR margin check. Pigtail (O5 — no power/stim rails into the breakout). | A.7 2b stopgap (a). Govee → `bench/ambient_*.csv` logger. Telemetry debug instrumentation, so one bench session localises the `0xFFF4` failure across all four hops. | Ambient logging running; pigtail built |
 | **2** · 10-05 → 10-09 | Cold starts (baseline *n* ≥ 4). **Spray localisation** (~1 d). **Halve `clk` while cold** (~0.5 d). A.4 physical layer + `SAMPLE`/CRC in simulation, both ends. | Dual-path compare tooling: Intan file reader, 28k↔30k resampling, correlation/RMS pass-fail (A.3 "capture both endpoints"). Animal-test runbook draft (warm-up-and-verify, O6). | **chip0: hold vs setup known**, fault located |
 | **3** · 10-12 → 10-16 | **One rebuild:** PLL 42.504 MHz + fH 7.5 kHz + A.7 step 1 counter + chip0 fix if one exists. Bench-validate; same session runs the telemetry debug. A.4 §12 step 4 on hardware (physical layer alone). | Telemetry fix from the bench findings. Companion diagnostics console (O8). | New bitstream on hardware; telemetry frames flowing; link locks |
-| **4** · 10-19 → 10-23 | A.4 §12 steps 5–7: frames + CRC, link loss, emulator. A.3 attenuation network. | Runbook complete; recording checklist for the day. | **DECISION 10-23** (below) |
+| **4** · 10-19 → 10-23 | A.4 §12 steps 5–7: frames + CRC, link loss, emulator (*detection half done 2026-10-13*). A.3 attenuation network. | Runbook complete; recording checklist for the day. | **DECISION 10-23** (below) |
 | **5** · 10-26 → 10-30 | A.4 step 8 → **A2** bench dual-path. **Dress rehearsal**: cold start → warm-up-verify → ≥1 h recording on both paths, following the runbook to the letter. Freeze and tag bitstreams + firmware. | Analyse the rehearsal; A2 figure for the paper. | **A2**; tagged release for the test |
 | **6** · 11-02 → | **A3** | On call | |
 
@@ -339,6 +339,12 @@ A.3–A.5). This is the order that actually matters:
    alone at 85.008 Mbps → `SAMPLE` frames + CRC → link-loss behaviour →
    emulator → Intan controller = **A2**. *(Manuel RTL both ends; Claude
    available for O2a and the companion diagnostics console, O8.)*
+   **Status 2026-10-13:** the emulator's Intan-facing half was done out of
+   order and **passes RHX detection on hardware** (128 channels); every
+   C3430 harness signal is verified. The tunnel itself (steps 2–6) has not
+   started on hardware, and its spec changed on 2026-10-12: `TUN_CLK` now
+   forwards `ECLK` (42.5 MHz), so the companion PLL can lock. What remains
+   for the emulator is data, not detection — see A.4's checklist.
 5. **A.3 attenuation network** — independent of everything above, and the
    noise-floor headline number cannot be measured without it. *(Manuel)*
 6. A.4 RTL (both ends) → A.3 dual-endpoint capture → **A2** → **A3**.
@@ -2063,6 +2069,31 @@ RHD2164 ×2 → Kuntur FPGA ├─→ ch_sel → FIFO → MCU → BLE → bridge
       **91.08 Mbps**, `ECLK` = `clk` itself, and 10:1 gearing is replaced
       by `ODDRX4`'s 8:1, one byte per word. Remaining gate is O1 only.
 - [ ] Companion FPGA RTL: deserialise, reassemble SPI, drive the Intan controller
+  - [x] **Intan-facing SPI slave passes RHX detection on hardware —
+        2026-10-13.** SCLK-clocked (CSb resets the bit counter), register
+        ROM in one EBR, two-word pipeline. RHX found two RHD2164s, 128
+        channels. That also closes the C3430 harness: MOSI, MISO1 and
+        MISO2 polarity confirmed (CS, SCLK, VDD on 10-10). `kuntur`
+        `54084a5`; bitstream SHA-256 `69e7b089…2570`.
+        `log/2026-10-13.md`; spec §1.5.4, §9.1a, §9.1b.
+  - [ ] Delay margin: record RHX's chosen MISO delay per port (Configure
+        tab) as the baseline. Measure SCLK on the scope (21 MHz is
+        inferred).
+  - [ ] Testbench that replays RHX's AuxCmd3 entries 18–35 and checks
+        each answer two words later — today's `tb.v` sends `READ(63)`
+        every word and cannot see a wrong pipeline depth (spec §9.1b).
+  - [ ] `WRITE` → `{0xFF, D}`; register 59 = 58 on MISO B; `CALIBRATE`
+        response; `host_write_changes` / `host_mismatch_regs` (spec §9.3).
+  - [ ] `CONVERT(C)` answered from a sample buffer — needs the tunnel
+        receiver, the tunnel-to-SCLK triple buffer, and the frame switch on
+        `CONVERT(0)` (spec §9.5; `CONVERT(0)` as sweep start unconfirmed).
+  - [ ] Receiver: PLL on the forwarded `ECLK`, `IDDRX4` + preamble hunt
+        (O2b). **`TUN_CLK` forwards `ECLK`, not the word clock — changed
+        2026-10-12** because the 10.6 MHz word clock is below the PLL's
+        18 MHz reference minimum (spec §6.4, §6.6).
+  - [ ] Set `top=` explicitly in `intan_rec_adapter.rdf`: it carries only
+        `def_top`, and one 2026-10-13 synthesis silently picked
+        `…_oversampling` as top.
 
 ## A.5 — RHD2164 bus arbitration  *(joint design)*  — ✅ **DISCHARGED BY CONSTRUCTION 2026-09-02**
 
@@ -3860,6 +3891,17 @@ modular-comparison requirement on receivers. Two non-blocking questions remain
 `μ` is truly payload-size-independent, to be confirmed during step 3's
 measurement). **Implementation is unblocked and follows the spec's §9 order** —
 `fifo0` counter, then telemetry, then measure, then the format.
+
+**Decided 2026-10-12 — the tunnel forwards `ECLK`** (Manuel; spec
+`docs/interfaces/lvds-tunnel.md` §6.4, §6.6). `TUN_CLK` carries the 42.5 MHz
+edge clock instead of the ÷4 word clock. The spec had the companion PLL
+multiply the 10.6 MHz word clock by 4, but the LIFCL PLL's reference minimum
+is 18 MHz (`FREF`, Radiant 2025.2.1), so it could never have locked. Cost:
+the forwarded clock no longer marks byte boundaries, so the receiver finds
+them by preamble hunt plus `IDDRX4.ALIGNWD` (open item O2b). Same day: the
+gearbox word clock is renamed `WCLK`, so "SCLK" means only the SPI clock,
+and the companion's Intan-facing SPI slave is clocked by the controller's
+SCLK with no PLL (§9.1a) — passed RHX detection 2026-10-13.
 
 ---
 
