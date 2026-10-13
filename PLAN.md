@@ -2076,9 +2076,16 @@ RHD2164 ×2 → Kuntur FPGA ├─→ ch_sel → FIFO → MCU → BLE → bridge
         MISO2 polarity confirmed (CS, SCLK, VDD on 10-10). `kuntur`
         `54084a5`; bitstream SHA-256 `69e7b089…2570`.
         `log/2026-10-13.md`; spec §1.5.4, §9.1a, §9.1b.
-  - [ ] Delay margin: record RHX's chosen MISO delay per port (Configure
-        tab) as the baseline. Measure SCLK on the scope (21 MHz is
-        inferred).
+  - [x] **Bench baseline — 2026-10-13.** Bitstream `2eb6795a…` (from
+        `b11df7d`) detected, 128 ch. Port A cable delay **5**. SCLK
+        **21.1 MHz**; CS every 960 ns with no gap between sample periods.
+        A MOSI capture is consistent with 35 words per period and with
+        `CONVERT(0)` right after the aux words, but not decoded.
+        `log/2026-10-13.md`; spec §9.1a, §9.1b.
+        *Delay margin (how many of the 16 settings pass) deferred until
+        after phases A and B (Manuel): RHX does not report it.*
+  - [ ] Bit-level MOSI capture across `CONVERT(0)` (~200 ns/div) before
+        the §9.5 frame switch relies on the slot order.
   - [x] **RHX-sequence testbench — 2026-10-13.** `tb.v` replays 40
         sample periods of RHX's command stream (`CONVERT(0..31)` +
         AuxCmd1/2/3) and checks every `READ` answer two words later on
@@ -2086,9 +2093,20 @@ RHD2164 ×2 → Kuntur FPGA ├─→ ch_sel → FIFO → MCU → BLE → bridge
         values. Passes in iverilog and Questa; a one-word-deeper RTL copy
         fails (25 errors), so it catches the depth error the old
         `READ(63)` bench could not. `kuntur` `ba57867`, `5eaa2f4`;
-        `log/2026-10-13.md`. Slot order is inferred from RHX source.
-  - [ ] `WRITE` → `{0xFF, D}`; register 59 = 58 on MISO B; `CALIBRATE`
-        response; `host_write_changes` / `host_mismatch_regs` (spec §9.3).
+        `log/2026-10-13.md`. Slot order: consistent with a MOSI capture,
+        not decoded (see bench item above).
+  - [x] **Non-`CONVERT` answers — 2026-10-13 (simulation).** `WRITE` →
+        `{0xFF, D}`, absorbed rather than applied (§9.3); register 59 =
+        58 on MISO B; `CALIBRATE`/`CLEAR` → `0x0000`. Testbench passes
+        (iverilog); a copy with writes applied fails 17 `READ`s. `kuntur`
+        `b11df7d`; `log/2026-10-13.md`. Not yet on hardware: the
+        rebuilt bitstream is not committed or loaded.
+  - [ ] `host_write_changes` / `host_mismatch_regs` (spec §9.3) —
+        deferred to O8: nothing can read them before that, and the bitmap
+        needs `CONFIG` from the tunnel.
+  - [ ] `CONVERT` answers: invert bit 15 (two's complement → offset
+        binary), with the underrun sentinel inserted before the XOR (spec
+        §9.2, added 2026-10-13).
   - [ ] `CONVERT(C)` answered from a sample buffer — needs the tunnel
         receiver, the tunnel-to-SCLK triple buffer, and the frame switch on
         `CONVERT(0)` (spec §9.5; `CONVERT(0)` as sweep start unconfirmed).
@@ -2096,9 +2114,9 @@ RHD2164 ×2 → Kuntur FPGA ├─→ ch_sel → FIFO → MCU → BLE → bridge
         (O2b). **`TUN_CLK` forwards `ECLK`, not the word clock — changed
         2026-10-12** because the 10.6 MHz word clock is below the PLL's
         18 MHz reference minimum (spec §6.4, §6.6).
-  - [ ] Set `top=` explicitly in `intan_rec_adapter.rdf`: it carries only
-        `def_top`, and one 2026-10-13 synthesis silently picked
-        `…_oversampling` as top.
+  - [x] Set `top=` explicitly in `intan_rec_adapter.rdf` — done
+        2026-10-13 (`kuntur` `3e92c9b`); the next synthesis reported
+        `intan_rec_adapter` as top.
 
 ## A.5 — RHD2164 bus arbitration  *(joint design)*  — ✅ **DISCHARGED BY CONSTRUCTION 2026-09-02**
 
