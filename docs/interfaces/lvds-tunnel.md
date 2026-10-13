@@ -1290,9 +1290,14 @@ in it depends on the cable.
   (`estimateCableLengthMeters()`).
 - The 12 MHz oversampler stays usable for **link checks at a low sample
   rate only**.
-- SCLK = 2800 × fs / 4 (21 MHz at 30 kS/s) is inferred from the
-  80-clock-per-command structure, not yet measured. Confirm it on the
-  scope.
+- SCLK = 2800 × fs / 4 (21 MHz at 30 kS/s), from the
+  80-clock-per-command structure. **Measured 2026-10-13: 21.1 MHz**, CS
+  period 960 ns (expected 80 / 84 MHz = 952 ns; the difference is within
+  scope-cursor accuracy).
+- **There is no gap between sample periods.** CS runs at one word per
+  952 ns without a break, since 35 × 952 ns is exactly the 33.3 µs sample
+  period. Nothing in the CS or SCLK timing marks a frame boundary; only
+  the decoded command stream does (§9.2, §9.5).
 
 ### 9.1b What RHX sends — start-up, the sample period, and detection
 
@@ -1314,7 +1319,11 @@ visible to the emulator:
   at SCLK = clock/4 each word is 16 data clocks plus ~4 clocks of CS high.
   *The slot order — `CONVERT(0..31)` then aux1, aux2, aux3 — is inferred
   from the result offsets below and from Rhythm's known structure; it is
-  defined in Rhythm's Verilog, not in RHX. Confirm with one MOSI capture.*
+  defined in Rhythm's Verilog, not in RHX. **Consistent with a MOSI
+  capture, 2026-10-13, but not decoded.** One silent word (`CONVERT(0)`
+  = `0x0000`) recurs every ~34 µs, the densest words come just before
+  it, and sparse ones follow. At 4.1 µs/div no word was resolved bit by
+  bit; a ~200 ns/div capture across the silent word would confirm.*
 - **Data block** — **128 sample periods** (4.27 ms at 30 kS/s, 4,480
   words), the unit Rhythm hands to RHX over USB
   (`RHXDataBlock::samplesPerDataBlock()` returns 128). Aux lists are 128
@@ -1393,8 +1402,10 @@ for the scan.
 6. **`CALIBRATE`** arrives once per bank-0 run (initialisation and every
    scan run). Datasheet response, no action.
 7. **`CONVERT(0)` opens each sweep** if the slot order above holds. That
-   matters for the §9.5 frame switch; confirm on the scope before relying
-   on it.
+   matters for the §9.5 frame switch. The 2026-10-13 MOSI capture is
+   consistent with it (exactly one `CONVERT(0)` per sample period, right
+   after the aux words) but did not decode the words; get a bit-level
+   capture before the §9.5 RTL relies on it.
 
 ### 9.2 Answering `CONVERT` — decode, do not count
 
