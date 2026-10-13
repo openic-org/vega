@@ -30,6 +30,10 @@ here, not re-argued:
    the second pair on a forwarded clock rather than a return channel makes
    the link source-synchronous and **removes the line code entirely**.
    §1.3, §6.
+   **Amended 2026-10-12 (Manuel): the forwarded clock is `ECLK`
+   (42.5 MHz), not the ÷4 word clock.** The word clock is 10.6 MHz, below
+   the LIFCL PLL's 18 MHz reference minimum, so the companion PLL that
+   §6.6 relied on could never have locked to it. §6.4, §6.6.
 
 A true SPI bridge (Intan as sole master, Kuntur relaying) is **feasible**
 and is **deferred as out of scope**, not ruled out — it belongs to a
@@ -153,7 +157,7 @@ Clk so we have a synchronous link."*
 | Pair | Kuntur balls | Direction | Carries |
 |---|---|---|---|
 | `FPGA_LVDS1` | G9 (P) / F9 (N) | **out** | **`TUN_DATA`** — the serial sample stream |
-| `FPGA_LVDS2` | E9 (P) / E8 (N) | **out** | **`TUN_CLK`** — forwarded word clock (`SCLK`) |
+| `FPGA_LVDS2` | E9 (P) / E8 (N) | **out** | **`TUN_CLK`** — forwarded edge clock (`ECLK`, 42.5 MHz; amended 2026-10-12, §6.4) |
 
 This supersedes an earlier draft that required the two ports to swap so
 Kuntur could receive on the clock-capable pair. **That requirement is
@@ -249,8 +253,10 @@ and nine ordinary `LA` pairs: `LA02`, `LA04`, `LA05`, `LA07`, `LA10`,
 | **`TUN_DATA`** | **H10 / H11** (`FMC_LA04_P/N`) | **V1 / W1** | `PB6A`/`PB6B` | 5 | plain LVDS input, adjacent site, same bank |
 
 `FMC_LA02` is the standout because of **`LLC_GPLL0T_IN`**: §6.6 has the
-companion multiply the received word clock ×4 to recover `ECLK`, and this
-pin feeds a PLL directly rather than via fabric routing. Of the eleven
+companion's PLL lock to the received `ECLK` and phase-shift it to centre
+the data eye, and this pin feeds a PLL directly rather than via fabric
+routing. *(Until 2026-10-12 this read "multiply the received word clock
+×4"; that PLL could not lock, see §6.4.)* Of the eleven
 clock-capable pairs it is the only one carrying a genuine PLL *input*
 function (`FMC_LA04`'s `LLC_GPLL0T_MFGOUT1` is a manufacturing test
 *output*, not an input — the same function that appears on Kuntur's E9 and
@@ -828,9 +834,10 @@ own USB/UART:
 | `frames_sentinel_served` | Intan frames answered with `0x8000` because no valid data was held (§7.3) |
 | `slip_repeat` | an Intan frame was served a repeated Kuntur frame (§9.5) |
 | `slip_skip` | a Kuntur frame was never served to Intan (§9.5) |
-| `host_writes_absorbed` | Intan register writes absorbed and not applied (§9.3) |
+| `host_write_changes` | Intan register writes that changed the host's own value for a register — not every absorbed write, which RHX issues ~30,000/s (§9.3, corrected 2026-10-13) |
+| `host_mismatch_regs` | 22-bit bitmap, live, not a counter: registers where the host's last write differs from Kuntur's value; 3 and 6 excluded; invalid until the first `CONFIG` (§9.3) |
 
-All **saturating, never wrapping** — same convention A.7 step 1 sets for
+All counters are **saturating, never wrapping** — same convention A.7 step 1 sets for
 the FPGA overflow counter, and for the same reason: a wrapped counter
 reading zero is indistinguishable from a healthy link.
 
@@ -862,8 +869,8 @@ the datapath. It clocks only a small **always-running supervisor**, because
 logic clocked by `TUN_CLK` stops exactly when `TUN_CLK` does and so cannot
 detect its own absence. The supervisor holds:
 
-- the §7.1 `TUN_CLK`-absence watchdog (12 MHz ticks between `TUN_CLK`
-  edges; 8 `SCLK` periods ≈ 750 ns ≈ 9 ticks),
+- the §7.1 `TUN_CLK`-absence watchdog, which watches a divided-down
+  heartbeat from the `TUN_CLK` domain, never `TUN_CLK` itself (§7.1),
 - the link-down flag that forces the §7.3 sentinel,
 - receive-PLL lock/reset sequencing, so §7.4 re-insertion needs no reset,
 - the diagnostics console (O8), alive with no cable and Kuntur off.
@@ -910,10 +917,16 @@ With the line code gone, the natural gearing changes with it. 10:1
 **byte-oriented**, and so is every frame field in §4 — so 8:1 is the right
 ratio:
 
-- **`ODDRX4`** — hardened 8:1 output gearbox, `D0..D7`, `SCLK` = `ECLK`/4,
-  DDR on `ECLK`. **One byte per `SCLK` cycle**, so §4's frame maps onto
+- **`ODDRX4`** — hardened 8:1 output gearbox, `D0..D7`, `WCLK` = `ECLK`/4,
+  DDR on `ECLK`. **One byte per `WCLK` cycle**, so §4's frame maps onto
   words 1:1 with no bit-packing logic at either end.
 - **`IDDRX4`** — the matching 1:8 deserialiser on the companion.
+
+**Naming (2026-10-12).** This spec calls the gearbox's word clock
+**`WCLK`**. Lattice's primitives name that port `SCLK`, and that is the
+name to use when instantiating them, but the companion design also has the
+Intan controller's SPI clock in it, and "SCLK" in this document means
+*that* one. Older revisions and commits use `SCLK` for both.
 
 Confirmed present in the installed Radiant 2025.2.1 LIFCL primitive
 library (`cae_library/simulation/verilog/lifcl/`), alongside `ODDRX1`
@@ -928,14 +941,14 @@ would be reached for if a line code ever returns.
 |---|---|---|---|
 | `clk` | `pll0` `CLKOP` | **42.5040118 MHz** | sampling domain — retuned for λ = 28,000 (A.7) |
 | **`ECLK`** | **`clk`** | **42.5040118 MHz** | tunnel edge clock; DDR → **85.008024 Mbps** on `TUN_DATA` |
-| **`SCLK`** | **`ECLKDIV`, `ECLK_DIV=4`** | **10.6260030 MHz** | word clock — one byte per cycle; also what is forwarded on `TUN_CLK` |
+| **`WCLK`** | **`ECLKDIV`, `ECLK_DIV=4`** | **10.6260030 MHz** | word clock (Lattice port name `SCLK`) — one byte per cycle. **Not forwarded** (amended 2026-10-12) |
 
 **`ECLK` is `clk` itself.** No new PLL output is required at all — the
 second PLL stays free *and* `pll0`'s four spare outputs stay spare. This
 is the direct consequence of Manuel's observation (2026-09-03) that a
 serialiser clock at 2 × `clk` = 91.08 Mbps already clears the requirement.
 
-`SCLK` cannot come from the PLL — it would be `FVCO`/140, and `O_DIV` caps
+`WCLK` cannot come from the PLL — it would be `FVCO`/140, and `O_DIV` caps
 at **128** (`ip/lifcl/pll/plugin/plugin.py`, `PARAM_RANGE`). It comes from
 **`ECLKDIV`** instead, whose `ECLK_DIV` parameter accepts
 `{2, 3P5, 4, 5}` — **÷4 is supported**, verified in the primitive library.
@@ -943,6 +956,28 @@ Because `ECLKDIV` is fed by `ECLK`, the PLL divider limit never applies.
 
 `ECLKSYNC` is likely needed to get `clk` onto the edge-clock network
 cleanly; that is an implementation check, not an assumption (O2a).
+
+**What `TUN_CLK` carries — `ECLK`, amended 2026-10-12 (Manuel).** Until
+this date the spec forwarded the word clock, and §6.6 had the companion
+multiply it ×4 in a PLL. That cannot work: `WCLK` is 10.626 MHz (9.4875 MHz
+at the 25 kSPS bring-up rate), and the LIFCL PLL's reference input has an
+**18 MHz minimum** (`FREF` and `FPFD_I` `MIN : 18.0` in
+`ip/lifcl/pll/plugin/plugin.py`, Radiant 2025.2.1). `ECLK` at 42.504 MHz
+(37.95 MHz at 25 kSPS) clears it with margin.
+
+- **Kuntur side:** `TUN_CLK` is generated by a second `ODDRX4` driven with
+  a constant alternating pattern (`0x55` or `0xAA`). That produces a square
+  wave at `ECLK` that leaves the FPGA through the same primitive and I/O
+  type as `TUN_DATA`, so the two pairs see matched output delay. It costs
+  one more of the 102 unused DDR primitives and nothing else; no PLL output.
+  The clock is **edge-aligned** with the data, not centred.
+- **Companion side:** the PLL locks to `TUN_CLK` on `LLC_GPLL0T_IN` and
+  supplies a **phase-shifted** `ECLK` for `IDDRX4`, nominally 90°, which
+  moves the sampling edge into the middle of the data eye. Its lock output
+  goes to the supervisor (§6.1). `ECLKDIV ÷4` makes the local `WCLK`.
+- **The price:** the forwarded clock no longer marks byte boundaries. The
+  companion's `ECLKDIV` starts at an arbitrary phase relative to the byte
+  stream, so the receiver has to find the boundary itself (§6.6).
 
 **Everything in the tunnel is therefore an integer division of `clk`,**
 which is what §2.5's read-only tap needs: the serialiser reads
@@ -961,7 +996,7 @@ headroom                                                     = 1.40x
 
 At the **25,000 SPS wired-mode bring-up rate** (`stream-packet-format.md`
 §1.5.5) the same table reads: payload 51.20, required 54.40, delivered
-**75.90 Mbit/s**, `ECLK` = `clk` = 37.95 MHz exactly, `SCLK` = 9.4875 MHz
+**75.90 Mbit/s**, `ECLK` = `clk` = 37.95 MHz exactly, `WCLK` = 9.4875 MHz
 — **headroom still 1.40×**.
 
 **Rescaled 2026-09-03** for A.7's λ = 28,000 SPS decision
@@ -972,14 +1007,14 @@ this spec is invariant under a λ change and only the absolute frequencies
 move. The byte-slot budget (379.5 per frame, 272 used) is likewise a pure
 `clk` ratio and does not move at all.
 
-Per sampling frame there are `SCLK`/29,999.97 = **379.5 byte slots**, of
+Per sampling frame there are `WCLK`/29,999.97 = **379.5 byte slots**, of
 which 272 carry the frame and **107.5 are spare (28%)** for `CONFIG`,
 `STATUS` and idle. The fractional 0.5 is not a problem: idle padding
 absorbs it and the phase pattern repeats every two frames.
 
 *(An earlier draft treated "integer byte slots per sampling frame" as a
 requirement and built a divider ladder around it. It is not one — idle
-padding absorbs a fractional remainder by construction, and with `SCLK` an
+padding absorbs a fractional remainder by construction, and with `WCLK` an
 integer division of `clk` the relationship is a counter, not a
 clock-domain crossing.)*
 
@@ -992,12 +1027,22 @@ needed an 80.40 Mbps *coded minimum*, leaving almost nothing.
 No comma symbols exist, so alignment works differently from the
 bidirectional draft:
 
-- **Byte alignment is free.** `TUN_CLK` carries `SCLK`, and its edge *is*
-  the word boundary. The companion recovers `ECLK` by multiplying it ×4 in
-  its own PLL, choosing a phase that centres the data eye. At 91.08 Mbps
-  the bit period is **10.98 ns** — a wide eye for a short DC-coupled link,
-  and the reason a fixed phase relationship is sufficient rather than a
-  per-lane training sweep.
+- **Bit timing.** `TUN_CLK` carries `ECLK` (§6.4). The companion PLL
+  locks to it and supplies a phase-shifted copy that centres the data eye.
+  At 85.01 Mbps the bit period is **11.76 ns**, a wide eye for a short
+  DC-coupled link, and the reason a fixed phase setting is expected to be
+  sufficient rather than a per-lane training sweep. Confirm on the pigtail
+  (O7).
+- **Byte alignment is found, not given** *(amended 2026-10-12)*. Under the
+  earlier draft the forwarded word clock marked byte boundaries. `ECLK`
+  does not, so the companion's `WCLK` comes up at an arbitrary offset of
+  0–7 bits. The receiver hunts for the preamble: if no `0xA5 0x5A 0xA5
+  0x5A` appears within a frame's worth of words, it pulses
+  `IDDRX4.ALIGNWD` to slip the word boundary, and repeats until it does.
+  How many bits one `ALIGNWD` pulse slips in the x4 gearing is not stated
+  in the simulation model; if it is 2, odd offsets need a one-bit shift in
+  fabric (O2b). The frame-lock rule below is what makes a false preamble
+  match harmless, so no separate training pattern is needed.
 - **Frame alignment** comes from a **4-byte preamble** (`0xA5 0x5A 0xA5
   0x5A`) plus fixed cadence. Raw binary data can coincidentally contain
   the preamble, so the preamble alone is not trusted: the receiver
@@ -1020,10 +1065,19 @@ procedure, on an anaesthetised animal.
 
 The companion declares the link **down** when any of:
 
-- **`TUN_CLK` stops toggling** for more than 8 `SCLK` periods (~750 ns at
-  the retuned `SCLK`). **Must be clocked by the 12 MHz supervisor, never by
-  `TUN_CLK` itself** (§6.1, 2026-09-29) — a detector running on the clock it
-  watches stops with it, and the §7.3 sentinel would then never be served.
+- **`TUN_CLK` stops toggling.** **Must be clocked by the 12 MHz
+  supervisor, never by `TUN_CLK` itself** (§6.1, 2026-09-29) — a detector
+  running on the clock it watches stops with it, and the §7.3 sentinel
+  would then never be served. **But the supervisor cannot sample
+  `TUN_CLK` directly** *(amended 2026-10-12)*: at 42.5 MHz it is far above
+  the 12 MHz sampling clock, and even the old 10.6 MHz word clock would
+  have aliased against it. So a counter clocked by `TUN_CLK` divides it
+  down to a slow heartbeat (bit 5 of a free-running counter: a
+  664 kHz square wave, toggling every 0.75 µs), which a two-flop synchroniser brings into the 12 MHz
+  domain. The link is down when the heartbeat stops toggling for 4 µs
+  (48 ticks): longer than two heartbeat half-periods, still far below
+  anything a human or the §7.3 sentinel would notice. The PLL lock signal
+  falling is a second, independent indication of the same event.
   This is new, and it is the strongest detector in the design: under
   decision 4 the clock is a *continuous, data-independent carrier*, so its
   absence is unambiguous and near-instant. A self-clocked link could only
@@ -1223,6 +1277,108 @@ in it depends on the cable.
   80-clock-per-command structure, not yet measured. Confirm it on the
   scope.
 
+### 9.1b What RHX sends — start-up, the sample period, and detection
+
+*Added 2026-10-13. Source: Intan RHX `main` at `3c58677` (2026-08-20);
+file references below are into that tree. Applies to
+`ControllerRecordUSB3`, the controller in §9.1.*
+
+**RHX does not issue SPI commands itself.** It uploads command lists into
+the controller's FPGA (Rhythm, `ConfigRHDController_7310.bit`), and Rhythm
+plays them out on the cable. Three units matter, and only the first is
+visible to the emulator:
+
+- **SPI word** — one CS-low period, 16 SCLK cycles, one command on MOSI
+  and one answer on MISO. This is the only unit the emulator sees.
+- **Sample period** — **35 words**, one per 1/fs (33.3 µs at 30 kS/s):
+  32 amplifier `CONVERT`s, generated by Rhythm, plus **three aux slots**.
+  Each aux slot sends one entry per sample period from its own list.
+  35 × 80 = 2800 ticks of the `2800 × fs` clock in `setCableDelay()`, so
+  at SCLK = clock/4 each word is 16 data clocks plus ~4 clocks of CS high.
+  *The slot order — `CONVERT(0..31)` then aux1, aux2, aux3 — is inferred
+  from the result offsets below and from Rhythm's known structure; it is
+  defined in Rhythm's Verilog, not in RHX. Confirm with one MOSI capture.*
+- **Data block** — **128 sample periods** (4.27 ms at 30 kS/s, 4,480
+  words), the unit Rhythm hands to RHX over USB
+  (`RHXDataBlock::samplesPerDataBlock()` returns 128). Aux lists are 128
+  entries long, so each list plays through once per block.
+
+**Start-up order** (`Engine/Processing/controllerinterface.cpp`):
+
+1. `uploadFPGABitfile()` → `resetBoard()`. SPI lines are undefined before
+   this, which is why static levels measured without RHX running mean
+   nothing (§1.5.4).
+2. `initializeController()`: set sample rate; `updateChipCommandLists()`
+   uploads the three aux lists; select AuxCmd3 bank 0 (with `CALIBRATE`);
+   run **once, 128 sample periods**.
+3. `rescanPorts()` → `RHXController::findConnectedChips()`: for each of
+   the **16 MISO delay settings**, run **12 data blocks** with AuxCmd3
+   bank 0 and check the chip ID in every block (§9.1).
+4. Set each port's best delay; switch AuxCmd3 to bank 1 (bank 2 with fast
+   settle); stream continuously.
+
+**The three aux lists** (`Engine/API/Hardware/rhxregisters.cpp`):
+
+| Slot | Builder | Contents, per 128-entry list |
+|---|---|---|
+| AuxCmd1 | `createCommandListRHDUpdateDigOut` | `WRITE(3, …)` × 128 — register 3 (aux digital out, temp-sensor and MUX-load bits) **rewritten every sample period** |
+| AuxCmd2 | `createCommandListRHDSampleAuxIns` | `CONVERT(32)`, `CONVERT(33)`, `CONVERT(34)`, `READ(40)` repeating; one group has `CONVERT(48)` (supply sensor) in place of `READ(40)`. RHX uses `READ(40)` = `0x0049` **during streaming** to find the AuxIn phase (`rhxdatareader.cpp`) |
+| AuxCmd3 | `createCommandListRHDRegisterConfig` | 60 commands, padded to 128 with `READ(63)` — table below. Bank 0 includes `CALIBRATE`, bank 1 does not, bank 2 also sets fast settle |
+
+**AuxCmd3, entry by entry, and where detection reads the answers.**
+List entry *t* is sent in sample period *t* of the block. Aux3 is the last
+word of its sample period, so with the two-word pipeline (§9.2) its answer
+arrives as word 1 of period *t + 1*, and RHX files it at index *t + 1*
+(`RHXDataBlock::getChipID()`, `rhxdatablock.cpp`). That shift is
+bookkeeping on the RHX side; **the emulator implements only "answer word
+*N* during word *N + 2*"**.
+
+| Entry *t* | Command | Answer on MISO A | RHX reads at | Checked |
+|---|---|---|---|---|
+| 0–1 | `READ(63)` ×2 | dummy | — | no |
+| 2–17 | `WRITE` 0–2, 4, 5, 7–17 (skips 3 and 6) | `{0xFF, D}` | — | no |
+| **18** | `READ(63)` | `0x0004` (RHD2164) | **19** | **full value** |
+| 19 | `READ(62)` | `0x0040` | 20 | no |
+| 20 | `READ(61)` | `0x0001` | 21 | no |
+| 21 | `READ(60)` | die revision | 22 | no |
+| **22** | `READ(59)` | `0x0035` on A (`0x003A` on B) | **23** | **full value, A only** |
+| **23–25** | `READ(48–50)` | `'R' 'H' 'D'` | **24–26** | **low byte** |
+| 26–30 | `READ(51–55)` | rest of chip name | 27–31 | no |
+| **31–35** | `READ(40–44)` | `'I' 'N' 'T' 'A' 'N'` | **32–36** | **low byte** |
+| 36–53 | `READ(0–17)` | RAM readback | — | no |
+| 54 | `CALIBRATE` (bank 0) or `READ(63)` | | — | no |
+| 55–58 | `WRITE` 18–21 | `{0xFF, D}` | — | no |
+| 59–127 | `READ(63)` | dummy | — | no |
+
+Chip ID and register 59 are compared as full integers (4 and 53), so the
+answer's top byte must be zero; the letters are compared as `char`. Only
+the MISO A stream of each line is checked — RHX disables the B streams
+for the scan.
+
+**Consequences for the emulator:**
+
+1. **Pipeline depth is exact or nothing.** One word early or late shifts
+   every answer by one sample index, RHX finds no good delay at any of
+   the 16 settings, and the symptom is identical to a polarity or timing
+   fault (§1.5.4, §9.1a). A testbench that sends the same command every
+   word cannot detect this; drive it with entries 18–35 above.
+2. **ROM reads are needed continuously**, not only during detection
+   (`READ(40)` in AuxCmd2).
+3. **Host writes never stop.** `WRITE(3)` every sample period (~30,000/s)
+   and registers 0–2, 4, 5, 7–21 every 128 periods. This is why §9.3
+   counts changes, not writes.
+4. **RHX does not compare the RAM readback with what it wrote** — no code
+   in the tree does — so answering with Kuntur's real values (§9.3) does
+   not break RHX.
+5. **`CONVERT(32/33/34)` and `CONVERT(48)` have no Kuntur data behind
+   them** (AuxIn and supply are not tunnelled). Return constants; ~44,100
+   for `CONVERT(48)` reads as VDD ≈ 3.3 V. RHX only displays them.
+6. **`CALIBRATE`** arrives once per bank-0 run (initialisation and every
+   scan run). Datasheet response, no action.
+7. **`CONVERT(0)` opens each sweep** if the slot order above holds. That
+   matters for the §9.5 frame switch; confirm on the scope before relying
+   on it.
+
 ### 9.2 Answering `CONVERT` — decode, do not count
 
 **The emulator must decode the `CONVERT(C)` command word on MOSI and
@@ -1251,9 +1407,35 @@ internal advance the real chip does.
 
 `WRITE(R,D)` returns the datasheet-correct acknowledgement —
 `{8'b11111111, D}`, per `RHD_WRITE_RSPND_TOPBYTE` — so the host's protocol
-completes normally. The write is **not applied**, the replicated state is
-**not modified**, and `host_writes_absorbed` (§5) counts it at the
-companion's console.
+completes normally. The write is **not applied** and the replicated state
+is **not modified**.
+
+**What is counted — changes, not writes** *(corrected 2026-10-13)*. This
+section originally had `host_writes_absorbed` count every absorbed write.
+§9.1b shows RHX writes register 3 on every sample period and rewrites the
+whole configuration every 128, so that counter would climb at ~30,000/s
+from the moment RHX starts and say nothing. The companion keeps instead:
+
+- **`host_write_changes`** (saturating, §5): incremented when a
+  `WRITE(R,D)` carries a `D` different from the **previous host write to
+  the same `R`**. The first write to each register after reset counts.
+  Steady-state RHX rewriting the same values adds nothing; changing the
+  bandwidth in the RHX GUI (which re-uploads the lists,
+  `updateChipCommandLists()`) adds one per register that changed. Needs a
+  22 × 8-bit shadow of the host's last written values.
+- **`host_mismatch_regs`** (live 22-bit bitmap, §5): bit `R` set while the
+  host's last written value for `R` differs from Kuntur's replicated
+  value. This is the operator-relevant output: non-zero means the Intan
+  GUI is displaying settings the AFE is not running. **Registers 3 and 6
+  are excluded** — RHX drives them as streams (aux digital out; the
+  impedance-check DAC waveform), not as configuration, so they mismatch by
+  design. The bitmap reads **invalid**, not zero, until a `CONFIG` frame
+  has been received, since there is nothing to compare against.
+
+Both live in the SPI (SCLK) domain, where writes are decoded. Comparing
+against Kuntur's values needs the `CONFIG` shadow on the SCLK side, which
+is the same tunnel-to-SCLK crossing as the sample data (§9.5). Getting
+the counters out to the console is part of O8.
 
 `CALIBRATE` and `CLEAR` likewise return their datasheet responses
 (`RHD_CALIBRATE_RSPND_*`, `RHD_CLEAR_RSPND_*`) and are not forwarded.
@@ -1390,7 +1572,8 @@ first two and specify the third:
 |---|---|---|---|
 | ~~**O1**~~ | ~~FMC LPC `LA` pair → LIFCL-40 ball mapping~~ — **RESOLVED 2026-09-03**, §1.5. All FMC `LA` pairs are true differential `PB` (bottom) pairs in banks 3/4/5, `VCCIO` fixed at 1.8 V. Recommended: **`TUN_CLK` on `FMC_LA02`** (H7/H8 → Y2/Y3 → `PB8A/B`, `PCLKT5_1` + `LLC_GPLL0T_IN`) and **`TUN_DATA` on `FMC_LA04`** (H10/H11 → V1/W1 → `PB6A/B`), both bank 5, adjacent sites and adjacent connector pins. Note the trap: FMC's `_CC` pins are **not** FPGA clock-capable on this board. | — | done |
 | ~~**O2**~~ | ~~LIFCL OSERDES/ISERDES gearing ratios~~ — **RESOLVED 2026-09-02**, and **superseded 2026-09-03**. The original question (is 10:1 hardened for 8b/10b, or is an 8→10 fabric gearbox needed?) is moot now the line code is gone. Answer for the record: `ODDRX5`/`IDDRX5` are hardened 10:1. The design now uses **`ODDRX4`/`IDDRX4`, hardened 8:1**, one byte per word. §6.3. | — | done |
-| **O2a** | **Does `clk` reach the edge-clock network cleanly as `ECLK`, and is `ECLKSYNC` required?** `ECLKDIV ÷4` for `SCLK` is confirmed available; this is the remaining clocking unknown. Implementation detail, not a contract change. | Kuntur RTL | Claude |
+| **O2a** | **Does `clk` reach the edge-clock network cleanly as `ECLK`, and is `ECLKSYNC` required?** `ECLKDIV ÷4` for `WCLK` is confirmed available; this is the remaining clocking unknown. Implementation detail, not a contract change. | Kuntur RTL | Claude |
+| **O2b** | **Companion byte alignment** (new 2026-10-12, §6.6). How many bits does one `IDDRX4.ALIGNWD` pulse slip in x4 gearing — 1 or 2? Check in simulation against the Radiant model before the receiver RTL. If 2, add a one-bit fabric shift for odd offsets. Also: which PLL phase centres the eye on the real pigtail — start at 90° and sweep. | Companion RTL, link bring-up | Joint |
 | **O3** | **Does adding the tunnel perturb SPI1?** The chip0 / SCK-MOSI marginal timing is unresolved (PLAN.md B.5). Decision 4 reduces this risk materially — **no new PLL output, no second PLL, and 91.08 Mbps instead of 227.7** — but a serialiser near those pins is still the class of change that regressed it twice. Any new placement constraint goes **alongside** `mregion0`–`mregion7`, never by removing them. | Kuntur RTL bring-up | Manuel |
 | **O4** | **`SLOT_OFFSET` duplication.** Fix at source, or make this spec normative, before the companion becomes the third implementation of one hardware fact. §3.4. | Companion RTL | Joint |
 | **O5** | **Pigtail wiring must not bridge `VSTIMp`/`VSTIMm` (J1 pads 18/19) or `VCC1`/`VCC2` into the FMC breakout.** The uHDMI carries power and stimulator rails alongside the two pairs. §1.1. | Pigtail assembly | Manuel |
@@ -1411,8 +1594,10 @@ decision it could have been given earlier.
    no PCB change**; both were outputs already. Re-run PAR and confirm SPI1
    margins are unchanged — O3's first checkpoint, and the cheapest one.
 3. **Build the pigtail** (O5) once step 1 fixes which FMC pairs to use.
-4. **Physical layer alone** — `TUN_CLK` toggling and a fixed test pattern
-   on `TUN_DATA`; confirm the companion locks at 91.08 Mbps (O7, O2a).
+4. **Physical layer alone** — `TUN_CLK` (`ECLK`) toggling and a fixed
+   test pattern on `TUN_DATA`; confirm the companion PLL locks to
+   `TUN_CLK`, that byte alignment converges (O2b), and that the pattern
+   arrives intact at 85.01 Mbps (O7, O2a).
    Worth doing on its own, because it proves the cable and the clock
    recovery independently of any protocol.
 5. **`SAMPLE` frames + CRC**, companion counting `frames_received` and
