@@ -9,6 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **`android-app/`** — Kotlin + Jetpack Compose app for the Lenovo TB305FU tablet (BLE direct)
 - **`pc-app/`** — PyQt6 desktop app for Linux/Windows/macOS (WB09KE BLE→UART bridge)
 - **`wb09ke-bridge/`** — NUCLEO-WB09KE firmware acting as BLE central → USB UART bridge for the PC app
+- **Companion FPGA** (LIFCL-40-EVN, RTL in the `kuntur` repo at `kuntur144/fpga/intan_rec_adapter/`) — wired path: receives the LVDS tunnel from Kuntur and emulates two RHD2164s to the Intan RHD Recording Controller. Contract: `docs/interfaces/lvds-tunnel.md`; status: PLAN.md A.4. The Intan-facing SPI slave passes RHX detection (2026-10-13); the tunnel is not built yet.
 
 Shared: `log/`, `CLAUDE.md`.
 
