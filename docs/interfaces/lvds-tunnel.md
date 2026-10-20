@@ -1671,6 +1671,32 @@ decision it could have been given earlier.
    arrives intact at 85.01 Mbps (O7, O2a).
    Worth doing on its own, because it proves the cable and the clock
    recovery independently of any protocol.
+   **Kuntur side done 2026-10-20** with constant patterns (`TUN_CLK`
+   ≈ 45 MHz, `TUN_DATA` = `1,1,0,0,…` ≈ 22.7 MHz on the scope).
+
+   **Link test pattern** *(agreed 2026-10-20)*. The bring-up pattern
+   for the companion receiver is an **8-byte block, repeated with no
+   gaps**, one byte per `WCLK` cycle, LSB-first (§6.3):
+
+   | Byte | 0 | 1 | 2 | 3 | 4 | 5 | 6 | 7 |
+   |---|---|---|---|---|---|---|---|---|
+   | Value | `A5` | `5A` | `A5` | `5A` | `cnt[7:0]` | `cnt[15:8]` | `01` | `80` |
+
+   - Bytes 0–3 are the §4.1 preamble, so the companion's preamble hunt
+     and `ALIGNWD` loop (O2b) are the ones the real frames will use.
+   - `cnt` is a 16-bit block counter, +1 per block, wrapping at 2¹⁶
+     (~46 ms at `WCLK` = 11.385 MHz). The receiver checks that each
+     block's `cnt` is the previous one +1 (mod 2¹⁶). A dropped,
+     doubled or slipped byte breaks that.
+   - Bytes 6–7 check the bit order. `A5` and `5A` are bit palindromes
+     and read the same LSB-first and MSB-first, so the preamble alone
+     cannot catch a reversed bit order. A reversed receiver sees
+     `80 01` instead.
+   - The pattern repeats every 64 bits (703 ns at `ECLK` = 45.54 MHz),
+     so its period can be checked on a scope without decoding.
+   - This is a test mode, not a frame. It has no header and no CRC, and
+     it is never sent alongside real frames. Selected at build time
+     (`localparam`) until K4.3 adds a run-time selector.
 5. **`SAMPLE` frames + CRC**, companion counting `frames_received` and
    `frames_crc_failed`. Verifiable against Kuntur's `test_pattern_gen0`
    ramp with `flags` bit 1 set — a synthetic pattern with an exact
