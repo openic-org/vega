@@ -2068,6 +2068,19 @@ RHD2164 ×2 → Kuntur FPGA ├─→ ch_sel → FIFO → MCU → BLE → bridge
       µV-scale AFE) is moot: with the line code gone the link runs at
       **91.08 Mbps**, `ECLK` = `clk` itself, and 10:1 gearing is replaced
       by `ODDRX4`'s 8:1, one byte per word. Remaining gate is O1 only.
+  - [x] **K1–K2: LVDS ports + edge-clock chain, both pairs toggling on
+        hardware — 2026-10-20** (§12 step 2, step 4 Kuntur half).
+        `tun_data` G9/F9 and `tun_clk` E9/E8 as `LVDS_OUT`; `clk` →
+        `ECLKSYNC` → `ECLKDIV ÷4` → two `ODDRX4`s, constant patterns. Scope:
+        45 MHz clock, 22.7 MHz data (one leg, unterminated, so frequency
+        only). 0 timing errors. **O2a closed.** Bitstream `efe14d29…`,
+        not committed. `log/2026-10-20.md`.
+  - [ ] O3 on hardware: pc-app streaming with the tunnel toggling (not
+        run 10-20); `HEAD` baseline `.twr` for the SPI1 slack comparison.
+  - [ ] K3.4 start-up sequence (STOP → RST → release, on `clk`).
+  - [ ] K4.2 byte pattern on `wclk` (preamble + counter) for O2b.
+  - [ ] K5–K8: capture buffer, frame builder + CRC-32, flags/`CONFIG`
+        source, testbench. Spec gaps G1–G3 first (`log/2026-10-20.md`).
 - [ ] Companion FPGA RTL: deserialise, reassemble SPI, drive the Intan controller
   - [x] **Intan-facing SPI slave passes RHX detection on hardware —
         2026-10-13.** SCLK-clocked (CSb resets the bit counter), register
