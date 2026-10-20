@@ -936,7 +936,10 @@ ratio:
 - **`ODDRX4`** — hardened 8:1 output gearbox, `D0..D7`, `WCLK` = `ECLK`/4,
   DDR on `ECLK`. **One byte per `WCLK` cycle**, so §4's frame maps onto
   words 1:1 with no bit-packing logic at either end.
-- **`IDDRX4`** — the matching 1:8 deserialiser on the companion.
+  **Bit order: LSB first** *(2026-10-20)*. `ODDRX4` sends `D0` first and
+  `D7` last (Radiant 2025.2.1 model), and byte bit *k* drives `D`*k*.
+- **`IDDRX4`** — the matching 1:8 deserialiser on the companion. It must
+  map the first-received bit to byte bit 0.
 
 **Naming (2026-10-12).** This spec calls the gearbox's word clock
 **`WCLK`**. Lattice's primitives name that port `SCLK`, and that is the
@@ -1640,7 +1643,7 @@ first two and specify the third:
 |---|---|---|---|
 | ~~**O1**~~ | ~~FMC LPC `LA` pair → LIFCL-40 ball mapping~~ — **RESOLVED 2026-09-03**, §1.5. All FMC `LA` pairs are true differential `PB` (bottom) pairs in banks 3/4/5, `VCCIO` fixed at 1.8 V. Recommended: **`TUN_CLK` on `FMC_LA02`** (H7/H8 → Y2/Y3 → `PB8A/B`, `PCLKT5_1` + `LLC_GPLL0T_IN`) and **`TUN_DATA` on `FMC_LA04`** (H10/H11 → V1/W1 → `PB6A/B`), both bank 5, adjacent sites and adjacent connector pins. Note the trap: FMC's `_CC` pins are **not** FPGA clock-capable on this board. | — | done |
 | ~~**O2**~~ | ~~LIFCL OSERDES/ISERDES gearing ratios~~ — **RESOLVED 2026-09-02**, and **superseded 2026-09-03**. The original question (is 10:1 hardened for 8b/10b, or is an 8→10 fabric gearbox needed?) is moot now the line code is gone. Answer for the record: `ODDRX5`/`IDDRX5` are hardened 10:1. The design now uses **`ODDRX4`/`IDDRX4`, hardened 8:1**, one byte per word. §6.3. | — | done |
-| **O2a** | **Does `clk` reach the edge-clock network cleanly as `ECLK`, and is `ECLKSYNC` required?** `ECLKDIV ÷4` for `WCLK` is confirmed available; this is the remaining clocking unknown. Implementation detail, not a contract change. | Kuntur RTL | Claude |
+| ~~**O2a**~~ | ~~Does `clk` reach the edge-clock network cleanly as `ECLK`, and is `ECLKSYNC` required?~~ **RESOLVED 2026-10-20** on hardware: `clk` → `ECLKSYNC` → `ECLKDIV ÷4` → `ODDRX4` routes in bank 5 with 0 timing errors, and both pairs toggle at the expected rates. `ECLKSYNC` is required; it is what drives the gearbox edge-clock network. `log/2026-10-20.md`. | — | done |
 | **O2b** | **Companion byte alignment** (new 2026-10-12, §6.6). How many bits does one `IDDRX4.ALIGNWD` pulse slip in x4 gearing — 1 or 2? Check in simulation against the Radiant model before the receiver RTL. If 2, add a one-bit fabric shift for odd offsets. Also: which PLL phase centres the eye on the real pigtail — start at 90° and sweep. | Companion RTL, link bring-up | Joint |
 | **O3** | **Does adding the tunnel perturb SPI1?** The chip0 / SCK-MOSI marginal timing is unresolved (PLAN.md B.5). Decision 4 reduces this risk materially — **no new PLL output, no second PLL, and 91.08 Mbps instead of 227.7** — but a serialiser near those pins is still the class of change that regressed it twice. Any new placement constraint goes **alongside** `mregion0`–`mregion7`, never by removing them. | Kuntur RTL bring-up | Manuel |
 | **O4** | **`SLOT_OFFSET` duplication.** Fix at source, or make this spec normative, before the companion becomes the third implementation of one hardware fact. §3.4. | Companion RTL | Joint |
