@@ -300,7 +300,9 @@ Tunnel in bank 5, the whole Intan interface in bank 3; no pair spans a
 bank. `spi0_sck` is on LA24 rather than a non-clock-capable pair because
 the emulator is clocked by the Intan controller's SCLK. The three SPI
 inputs need 100 Ω termination (`DIFFRESISTOR=100`, on-die — nothing on
-the pigtail). MISO naming stays `miso0`/`miso1` to match Kuntur; Intan's
+the pigtail). So do the two tunnel inputs: the companion `.pdc` sets
+`DIFFRESISTOR=100` on `kuntur_clk` and `kuntur_data` (uncommitted as of
+2026-10-21). MISO naming stays `miso0`/`miso1` to match Kuntur; Intan's
 documents call the same lines MISO1/MISO2.
 
 **Kuntur end of the tunnel pigtail** (§1.1): J1 pads 3/5 → H10/H11,
@@ -991,9 +993,93 @@ at the 25 kSPS bring-up rate), and the LIFCL PLL's reference input has an
   one more of the 102 unused DDR primitives and nothing else; no PLL output.
   The clock is **edge-aligned** with the data, not centred.
 - **Companion side:** the PLL locks to `TUN_CLK` on `LLC_GPLL0T_IN` and
-  supplies a **phase-shifted** `ECLK` for `IDDRX4`, nominally 90°, which
-  moves the sampling edge into the middle of the data eye. Its lock output
+  supplies a **phase-shifted** `ECLK` for `IDDRX4`, which moves the
+  sampling edge into the middle of the data eye. The phase comes from the
+  run-time sweep in §6.6, which starts from 0° *(amended 2026-10-21;
+  previously "nominally 90°")*. Its lock output
   goes to the supervisor (§6.1). `ECLKDIV ÷4` makes the local `WCLK`.
+  *Detail added 2026-10-21, from FPGA-TN-02097 (High-Speed I/O) and
+  FPGA-TN-02095 (sysCLOCK PLL); both are in the project's `datasheets/`
+  folder.*
+  - **This is Lattice's `GDDRX4_RX.ECLK.Aligned` interface** (TN-02097
+    §5.6), with one deliberate difference. Lattice shifts the incoming
+    clock with `DDRDLL` + `DLLDEL`; this design shifts it with the PLL.
+    The reasons:
+    - `DDRDLL` skips locking at ≤ 30 MHz (TN-02097 Table 8.6 note), and
+      nothing documents whether its range covers 90° at 38–46 MHz.
+    - The PLL phase can be stepped at run time (below), which the
+      bring-up sweep needs.
+  - **PLL output to ECLK.** Only `CLKOP` and `CLKOS` have an edge-clock
+    connection (TN-02095 Table 14.5). In bank 5, the lower-left PLL's
+    `CLKOP` reaches eclk0/1 and `CLKOS` reaches eclk1/2 (TN-02095 App. D).
+    No clock to the DDR registers may come through general routing
+    (TN-02097 §5.21.3).
+  - **Run-time phase steps.** The PLL's `PHASESEL`/`PHASEDIR`/`PHASESTEP`
+    ports move one output by `360° / (8 × (DIV + 1))` per pulse, with no
+    rebuild (TN-02095 §14.6). The eye-centring sweep in §6.6 and O2b uses
+    them.
+    - **Step size: 1.286°** *(from Manuel's generated PLL, 2026-10-21)*.
+      At `PLL_FCLK` = 45.54 MHz the generator chose
+      `DIVOS_ACTUAL_STR` = 34, so `DIV + 1` = 35:
+      - VCO = 45.54 × 35 = 1594 MHz, inside the 800–1600 MHz range
+        (Radiant `ip/lifcl/pll/plugin/plugin.py`) and near its top;
+      - step = 360° / (8 × 35) = **1.286°**, which is 78 ps of the
+        21.96 ns clock period, against an 11 ns bit;
+      - 90° = 70 steps, one bit (180°) = 140 steps, and a full turn =
+        280 steps.
+
+      At the retuned 42.50 MHz the same divider would give a 1488 MHz
+      VCO. The generator may choose a different divider there, so read
+      `DIVOS_ACTUAL_STR` again after the retune; the step size follows
+      from it.
+    - **Feedback must be internal.** The dynamic phase shift works only
+      if external feedback is not used (TN-02095 §14.5.10).
+    - **Pulse timing.** `PHASESEL` and `PHASEDIR` need 5 ns of setup
+      before the falling edge of `PHASESTEP`. `PHASESTEP` must stay high,
+      and then low, for at least 4 VCO cycles each.
+  - **Receive clock chain** *(agreed 2026-10-21)*:
+
+    ```
+    kuntur_clk (Y2, PCLKT5_1 / LLC_GPLL0T_IN, LVDS, DIFFRESISTOR=100)
+       │
+       ▼
+    PLL  CLKI = kuntur_clk, 1:1, internal feedback
+       ├─ CLKOP  0°, fixed ──────────── feedback and phase reference
+       ├─ CLKOS  starts at 0°, moved by PHASESTEP (PHASESEL = 001)
+       │     └──► ECLKSYNC (STOP) ──► eclk ──┬──► IDDRX4.ECLK
+       │                                     └──► ECLKDIV ÷4 (DIVRST) ──► wclk
+       │                                                ├──► IDDRX4.SCLK
+       │                                                └──► fabric: aligner + checker
+       └─ LOCK ──► start-up logic
+    kuntur_data (V1, LVDS, DIFFRESISTOR=100) ──► IDDRX4.D ──► Q[7:0]
+                                                 IDDRX4.ALIGNWD = 0
+    ```
+
+    - **`CLKOS`, not `CLKOP`, is the phase that moves.** `PHASESEL = 001`
+      shifts only `CLKOS`, so `CLKOP` stays a fixed reference.
+    - **Start-up logic runs on `clkin`** (the 12 MHz board oscillator).
+      Its sequence:
+      1. wait for `LOCK`;
+      2. `ECLKSYNC.STOP` = 1;
+      3. pulse `ECLKDIV.DIVRST` and `IDDRX4.RST`;
+      4. `STOP` = 0.
+
+      It runs again whenever `LOCK` drops. It cannot run on `eclk` or
+      `wclk`, because `STOP` halts them. `clkin` runs even with the cable
+      unplugged, and the supervisor (§6.1) uses it already.
+    - **Phase-step control runs on `clkin` too.** It drives
+      `PHASESEL`/`PHASEDIR`/`PHASESTEP`.
+  - **Pins.** The receive clock must enter on a dedicated PCLK pin, on the
+    same side as the data (TN-02097 §5.6, §5.21.1). Y2 is `PCLKT5_1` and V1
+    is in the same bank 5, so this is met.
+  - **Start-up.** Lattice lists its `GDDRX_SYNC` start-up sequence
+    (`ECLKSYNC.STOP`, then the gearbox and `ECLKDIV` resets, then release)
+    as required for this interface family (TN-02097 §5.5). The companion
+    needs it for the same reason Kuntur does (K3.4).
+  - **Instantiate the primitives by hand.** IP Catalog's generic-DDR
+    module accepts interface clocks of 100–750 MHz only (TN-02097 §7.3,
+    Table 7.2), and `ECLK` here is 38–46 MHz. The datasheet (DS-02049) gives
+    `fMAX_GDDRX4` = 750 MHz and no minimum. O9 tracks the gap.
 - **The price:** the forwarded clock no longer marks byte boundaries. The
   companion's `ECLKDIV` starts at an arbitrary phase relative to the byte
   stream, so the receiver has to find the boundary itself (§6.6).
@@ -1050,18 +1136,113 @@ bidirectional draft:
   locks to it and supplies a phase-shifted copy that centres the data eye.
   At 85.01 Mbps the bit period is **11.76 ns**, a wide eye for a short
   DC-coupled link, and the reason a fixed phase setting is expected to be
-  sufficient rather than a per-lane training sweep. Confirm on the pigtail
-  (O7).
+  sufficient in the end. The sweep below finds that phase at bring-up;
+  whether it also runs at every lock is decided after the first bench sweep. Confirm on the
+  pigtail (O7).
 - **Byte alignment is found, not given** *(amended 2026-10-12)*. Under the
   earlier draft the forwarded word clock marked byte boundaries. `ECLK`
   does not, so the companion's `WCLK` comes up at an arbitrary offset of
-  0–7 bits. The receiver hunts for the preamble: if no `0xA5 0x5A 0xA5
-  0x5A` appears within a frame's worth of words, it pulses
-  `IDDRX4.ALIGNWD` to slip the word boundary, and repeats until it does.
-  How many bits one `ALIGNWD` pulse slips in the x4 gearing is not stated
-  in the simulation model; if it is 2, odd offsets need a one-bit shift in
-  fabric (O2b). The frame-lock rule below is what makes a false preamble
-  match harmless, so no separate training pattern is needed.
+  0–7 bits.
+- **Byte alignment is done in fabric, not with `ALIGNWD`** *(decided
+  2026-10-21, Manuel)*. `IDDRX4.ALIGNWD` is tied to 0, and `IDDRX4` is a
+  plain 1:8 deserialiser.
+  - **Window.** On each `WCLK` the receiver holds the current word and
+    the previous one as a 16-bit window, with the previous word in bits
+    7:0 and the current word in bits 15:8. The aligned byte is
+    `window[s+7 : s]`, for a bit offset `s` from 0 to 7.
+  - **Finding `s`.** A preamble hunt tests all 8 offsets for `0xA5 0x5A
+    0xA5 0x5A` and takes the offset where it appears.
+  - **Holding `s`.** `s` stays fixed while the receiver is locked, and is
+    searched for again only when lock is lost.
+  - **Why not `ALIGNWD`.** The earlier text pulsed `ALIGNWD` until the
+    preamble appeared. That made correctness depend on how far one pulse
+    moves the word boundary, which the Radiant model did not state.
+    TN-02097 (§8.7.3, Table 8.11) says one bit, but that has not been
+    checked. The fabric window costs a few LUTs, needs no answer about the
+    primitive, and is the same hunt / confirm / check logic as the K4.2.3
+    testbench checker (`block_gen_tb.sv`, `tun_checker`).
+  - **Bit order.** The first bit received must become byte bit 0 (§6.3).
+    TN-02097 says which `Q` outputs `IDDRX4` captures on rising and on
+    falling `ECLK` edges, but not which of them holds the first bit
+    received. If the first bit lands in `Q7`, the receiver reverses the
+    bit order in wiring. The link test pattern's `01 80` exposes a
+    reversed order (§12 step 4). O2b.
+  - **False matches.** The frame-lock rule below makes a false preamble
+    match harmless, so no separate training pattern is needed.
+- **Eye centring** *(procedure agreed 2026-10-21)*. The companion PLL's
+  `CLKOS` phase is swept in run-time steps (§6.4) while the link test
+  pattern is checked.
+  - **Start at 0°.** `TUN_CLK` is edge-aligned with `TUN_DATA`, so on paper
+    0° samples on a data transition. A sweep in one direction should then
+    cross the opening edge of the eye, the clean region, and the closing
+    edge. 90° would start mid-eye and need a sweep in both directions.
+  - **Do not rely on the starting point.** `TUN_CLK` reaches the PLL by a
+    different path than `TUN_DATA` takes to `IDDRX4`, and the edge-clock
+    tree adds its own insertion delay. The real eye may therefore sit
+    anywhere relative to 0°, and the procedure must find it regardless.
+  - **What is measured: bit errors per phase step** *(2026-10-21)*. The
+    result is an error-rate curve across the phase (a "bathtub curve"),
+    not just pass or fail. Near an eye edge the sampling point sits in the
+    data transitions' jitter, and errors there are occasional rather than
+    constant: 1 in 10² or 1 in 10⁵, say. Only a count over many bits
+    resolves them. The counts also show how gradual each edge is and
+    whether the eye is asymmetric. A pass/fail map would show neither.
+    The test pattern is fully predictable, so every received bit can be
+    checked as it arrives; no raw data needs to be stored for later
+    analysis.
+  - **Procedure, for each of the 280 steps:**
+    1. **Step** `CLKOS` by one increment, always in the same direction.
+       Over the sweep this covers a full 360° at 1.286° per step.
+    2. **Re-lock.** Reset the aligner and checker, then hunt as in the
+       byte-alignment bullet. Crossing an eye edge can move the byte
+       boundary, so the offset `s` is found again at every step. The
+       receiver is locked once **two consecutive blocks are clean**:
+       preamble, `01 80`, and `cnt` + 1. The expected `cnt` then comes
+       from the receiver's own counter, seeded from those blocks.
+       If no lock arrives within a timeout (e.g. 100 blocks), record
+       **no-lock** for the step and move on.
+    3. **Count bit errors over N blocks.** Build the expected block from
+       the pattern and the expected `cnt`, XOR it with the received block,
+       and add the 1s. This can be done per byte, on every `WCLK`. Keep
+       counting through any error, with no re-hunt inside the window; a
+       slip then shows up as a large count, which is correct.
+       **N = 10,000 blocks:**
+       - 640,000 bits per step, so the floor is about 1.6 × 10⁻⁶ per step;
+       - 7 ms per step, so about 2 s for the whole sweep.
+    4. **Store** for each step a `{no_lock, errors[15:0]}` word.
+       - The counter saturates at `FFFF`.
+       - 280 × 17 bits is a small table in EBR.
+    5. **Optional snapshot.** Store one raw received block (64 bits) per
+       step: the first block that contained an error, or else the first
+       block after lock.
+       - This is a diagnostic, not part of the measurement.
+       - It tells a byte-offset error, a reversed bit order (§6.3) and
+         plain noise apart.
+       - 280 × 64 bits is about one EBR.
+  - **Choosing the operating phase.** It is the **centre of the longest run
+    of steps with 0 errors** and no no-lock. The 280 steps are treated as
+    a circle, so a run that wraps from the last step to the first counts
+    as one run. The run's length × 78 ps is the measured eye width, and is
+    reported with the centre.
+  - **Expect two error-free runs, 180° apart.** The link is DDR, so a bit
+    is half a clock period long. A 180° shift samples on the opposite
+    `ECLK` edge and moves the byte boundary by one bit, which the aligner
+    absorbs by finding its offset again. Either centre is a valid
+    operating point.
+  - **Control and readout.** The sweep controller runs on `clkin`, like
+    the phase-step logic (§6.4); the counting runs on `WCLK`. For
+    bring-up the table is read with **Reveal**. Later it goes through the
+    diagnostics console (O8).
+  - **Before relying on the sweep, check:**
+    - that `PHASESTEP` keeps rotating past 360° and does not stop at an
+      end (TN-02095 does not say);
+    - `DIVOS_ACTUAL_STR` in the generated PLL source after any change to
+      `PLL_FCLK`. It is 34 at 45.54 MHz, which gives 280 steps per turn;
+      the sweep length must match it.
+  - **Open decision (after the first bench sweep):** the companion could
+    run the sweep after every PLL lock. Alternatively, the bench sweep could fix a static phase
+    built into the design. For bring-up the sweep only reports its
+    error-count table. O2b, O7.
 - **Frame alignment** comes from a **4-byte preamble** (`0xA5 0x5A 0xA5
   0x5A`) plus fixed cadence. Raw binary data can coincidentally contain
   the preamble, so the preamble alone is not trusted: the receiver
@@ -1644,13 +1825,14 @@ first two and specify the third:
 | ~~**O1**~~ | ~~FMC LPC `LA` pair → LIFCL-40 ball mapping~~ — **RESOLVED 2026-09-03**, §1.5. All FMC `LA` pairs are true differential `PB` (bottom) pairs in banks 3/4/5, `VCCIO` fixed at 1.8 V. Recommended: **`TUN_CLK` on `FMC_LA02`** (H7/H8 → Y2/Y3 → `PB8A/B`, `PCLKT5_1` + `LLC_GPLL0T_IN`) and **`TUN_DATA` on `FMC_LA04`** (H10/H11 → V1/W1 → `PB6A/B`), both bank 5, adjacent sites and adjacent connector pins. Note the trap: FMC's `_CC` pins are **not** FPGA clock-capable on this board. | — | done |
 | ~~**O2**~~ | ~~LIFCL OSERDES/ISERDES gearing ratios~~ — **RESOLVED 2026-09-02**, and **superseded 2026-09-03**. The original question (is 10:1 hardened for 8b/10b, or is an 8→10 fabric gearbox needed?) is moot now the line code is gone. Answer for the record: `ODDRX5`/`IDDRX5` are hardened 10:1. The design now uses **`ODDRX4`/`IDDRX4`, hardened 8:1**, one byte per word. §6.3. | — | done |
 | ~~**O2a**~~ | ~~Does `clk` reach the edge-clock network cleanly as `ECLK`, and is `ECLKSYNC` required?~~ **RESOLVED 2026-10-20** on hardware: `clk` → `ECLKSYNC` → `ECLKDIV ÷4` → `ODDRX4` routes in bank 5 with 0 timing errors, and both pairs toggle at the expected rates. `ECLKSYNC` is required; it is what drives the gearbox edge-clock network. `log/2026-10-20.md`. | — | done |
-| **O2b** | **Companion byte alignment** (new 2026-10-12, §6.6). How many bits does one `IDDRX4.ALIGNWD` pulse slip in x4 gearing — 1 or 2? Check in simulation against the Radiant model before the receiver RTL. If 2, add a one-bit fabric shift for odd offsets. Also: which PLL phase centres the eye on the real pigtail — start at 90° and sweep. | Companion RTL, link bring-up | Joint |
+| **O2b** | **Companion receiver: bit order and eye centring** (new 2026-10-12; restated 2026-10-21, §6.6). The original question, how many bits one `IDDRX4.ALIGNWD` pulse slips, is **moot**: byte alignment is now done in fabric and `ALIGNWD` is tied to 0. (TN-02097 says one bit; unchecked.) What remains: **(a)** which `IDDRX4` output holds the first bit received, `Q0` or `Q7`. TN-02097 does not say. The link test pattern's `01 80` gives the answer on the bench, or in simulation if the Radiant model is usable. **(b)** Which PLL phase centres the eye on the real pigtail. Start `CLKOS` at 0° and sweep one full turn with `PHASESTEP`; record bit errors per step over 10,000 blocks (a bathtub curve); the operating phase is the centre of the longest error-free run (§6.6). Also check that `PHASESTEP` keeps rotating past 360°. | Companion RTL, link bring-up | Joint |
 | **O3** | **Does adding the tunnel perturb SPI1?** The chip0 / SCK-MOSI marginal timing is unresolved (PLAN.md B.5). Decision 4 reduces this risk materially — **no new PLL output, no second PLL, and 91.08 Mbps instead of 227.7** — but a serialiser near those pins is still the class of change that regressed it twice. Any new placement constraint goes **alongside** `mregion0`–`mregion7`, never by removing them. | Kuntur RTL bring-up | Manuel |
 | **O4** | **`SLOT_OFFSET` duplication.** Fix at source, or make this spec normative, before the companion becomes the third implementation of one hardware fact. §3.4. | Companion RTL | Joint |
 | **O5** | **Pigtail wiring must not bridge `VSTIMp`/`VSTIMm` (J1 pads 18/19) or `VCC1`/`VCC2` into the FMC breakout.** The uHDMI carries power and stimulator rails alongside the two pairs. §1.1. | Pigtail assembly | Manuel |
 | **O6** | **Runbook: the operator configures via Vega, not via the Intan software.** Sharpened by decision 4 — absorbed writes are now reported only at the companion's own console (§9.4), not in the pc-app where the operator is looking. | Bench procedure, animal-test runbook | Joint |
 | **O7** | **Confirm 91.08 Mbps on the real pigtail.** Step up by raising `ECLK` if the byte-slot budget proves short; there is no need to step down, since the rate is already set by `clk` itself. §6.5. | Link bring-up | Joint |
 | **O8** | **Companion diagnostics console.** §5's counters need somewhere to be read. Scope: is a UART print enough, or does this want a small host-side reader? Not on A2's critical path but the counters are worthless unless visible. | Companion RTL | Claude |
+| **O9** | **x4 gearing below the IP Catalog's 100 MHz floor** (new 2026-10-21, §6.4). IP Catalog's generic-DDR module accepts 100–750 MHz (TN-02097 Table 7.2), and the x4 interfaces are described as "for speeds above 250 MHz" (TN-02097 §5.5–5.6). The datasheet gives a maximum only. `ECLK` is 38–46 MHz. **`ODDRX4` is shown working at 45.54 MHz on hardware** (Kuntur, 2026-10-20/21: the link test pattern seen on the scope). **`IDDRX4` is not yet shown.** Fallback if it misbehaves: x1 gearing (`IDDRX1` on a primary clock, `GDDRX1_RX.SCLK.Aligned`, specified up to 150–250 MHz in DS-02049), with the 2:8 conversion in fabric at `ECLK`. | Companion RTL, link bring-up | Joint |
 
 ## 12. Implementation order
 
@@ -1673,6 +1855,13 @@ decision it could have been given earlier.
    recovery independently of any protocol.
    **Kuntur side done 2026-10-20** with constant patterns (`TUN_CLK`
    ≈ 45 MHz, `TUN_DATA` = `1,1,0,0,…` ≈ 22.7 MHz on the scope).
+   **Link test pattern on the wire 2026-10-21**, with the pairs
+   terminated at the companion:
+   - `block_gen` passes its testbench over 65,600 blocks, across the
+     `cnt` wrap.
+   - On the scope it shows a 703 ns block period, and one 14-zero run per
+     block, which confirms LSB-first on hardware.
+   - Details in `log/2026-10-21.md`.
 
    **Link test pattern** *(agreed 2026-10-20)*. The bring-up pattern
    for the companion receiver is an **8-byte block, repeated with no
@@ -1683,7 +1872,8 @@ decision it could have been given earlier.
    | Value | `A5` | `5A` | `A5` | `5A` | `cnt[7:0]` | `cnt[15:8]` | `01` | `80` |
 
    - Bytes 0–3 are the §4.1 preamble, so the companion's preamble hunt
-     and `ALIGNWD` loop (O2b) are the ones the real frames will use.
+     and fabric byte aligner (§6.6) are the ones the real frames will
+     use.
    - `cnt` is a 16-bit block counter, +1 per block, wrapping at 2¹⁶
      (~46 ms at `WCLK` = 11.385 MHz). The receiver checks that each
      block's `cnt` is the previous one +1 (mod 2¹⁶). A dropped,
