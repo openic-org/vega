@@ -2073,12 +2073,26 @@ RHD2164 ×2 → Kuntur FPGA ├─→ ch_sel → FIFO → MCU → BLE → bridge
         `tun_data` G9/F9 and `tun_clk` E9/E8 as `LVDS_OUT`; `clk` →
         `ECLKSYNC` → `ECLKDIV ÷4` → two `ODDRX4`s, constant patterns. Scope:
         45 MHz clock, 22.7 MHz data (one leg, unterminated, so frequency
-        only). 0 timing errors. **O2a closed.** Bitstream `efe14d29…`,
-        not committed. `log/2026-10-20.md`.
+        only). 0 timing errors. **O2a closed.** Bitstream `efe14d29…`
+        (`kuntur` `904739a`). `log/2026-10-20.md`.
   - [ ] O3 on hardware: pc-app streaming with the tunnel toggling (not
         run 10-20); `HEAD` baseline `.twr` for the SPI1 slack comparison.
   - [ ] K3.4 start-up sequence (STOP → RST → release, on `clk`).
-  - [ ] K4.2 byte pattern on `wclk` (preamble + counter) for O2b.
+  - [x] **K4.2 link test pattern on the wire — 2026-10-21.**
+        - **Pattern** (spec §12 step 4): `block_gen` sends the 8-byte block
+          `A5 5A A5 5A cnt[7:0] cnt[15:8] 01 80` on `wclk`.
+        - **Testbench:** `block_gen_tb.sv` (8 bit phases plus msb/slip/skip
+          mutants) is ALL PASS at 65,600 blocks.
+        - **Bench** (scope, 04:33 bitstream `bcb2bed5…`):
+          - 703 ns period, and **LSB-first confirmed on hardware**;
+          - the pairs are terminated.
+        - **Committed:** the 04:51 rebuild, which adds only the `8'd0`
+          default (K4.2.5). It is not benched, and its SHA-256 is
+          `dcf215ba…`. `kuntur` `68255e9`.
+        - **Open:** `block_gen` resets from `rstb` with no `wclk`
+          synchroniser, so this goes with K3.4.
+
+        `log/2026-10-21.md`.
   - [ ] K5–K8: capture buffer, frame builder + CRC-32, flags/`CONFIG`
         source, testbench. Spec gaps G1–G3 first (`log/2026-10-20.md`).
 - [ ] Companion FPGA RTL: deserialise, reassemble SPI, drive the Intan controller
@@ -2130,6 +2144,64 @@ RHD2164 ×2 → Kuntur FPGA ├─→ ch_sel → FIFO → MCU → BLE → bridge
         (O2b). **`TUN_CLK` forwards `ECLK`, not the word clock — changed
         2026-10-12** because the 10.6 MHz word clock is below the PLL's
         18 MHz reference minimum (spec §6.4, §6.6).
+        **Architecture agreed 2026-10-21** (spec §6.4, §6.6):
+        - **Clock chain:** `kuntur_clk` (Y2, PCLK) → `pll0` `CLKOS` →
+          `ECLKSYNC` → `ECLKDIV ÷4` → `IDDRX4`.
+        - **Phase sweep:** `CLKOS` starts at 0° and sweeps one turn in one
+          direction, 280 steps of 1.286° (78 ps). The step size follows from
+          `DIVOS_ACTUAL_STR` = 34; recheck it after the 42.504 MHz retune.
+        - **Eye centring:** bit errors are counted per step over 10,000
+          blocks, giving a bathtub. The operating phase is the centre of
+          the longest error-free run.
+        - **Byte alignment:** in fabric, with `ALIGNWD` = 0.
+        - **Preamble convention:** `32'h5AA55AA5`. Bit k of the assembled
+          word is the k-th bit received; the newest byte is on top; fields
+          are little-endian as in §4.1.
+        - [x] **RTL front end written** (Manuel): `pll0` with `CLKOS`
+              dynamic phase, `ECLKSYNC`, `ECLKDIV`, `IDDRX4`, and the `.pdc`
+              (V1/Y2 LVDS, `DIFFRESISTOR=100`). `kuntur` `68255e9`.
+              Synthesised, but not on hardware. The companion bitstream
+              (04:07) predates this RTL and is not committed.
+        - [x] **`cdr_tb.sv` phase-sweep testbench — 2026-10-21.**
+              - **Model:** link model plus the real `block_gen`, a
+                behavioural PLL/IDDRX4, and a reference aligner/checker
+                (`rx_ref`).
+              - **Checks:** the bathtub centre and width against the
+                prediction.
+              - **Results:** PASS at default and hard link settings;
+                `+q7first` fails, as intended.
+              - **Build:** Questa via `tb_rtl/qrun.f` (`lib_rx`,
+                `-top cdr_tb`), or Icarus (header command).
+        - [x] **`frame_aligner` passes `cdr_tb` — 2026-10-21** (Icarus +
+              Questa). At every error-free step it gives exactly one
+              `bitsel`, equal to the reference. The first version had the
+              preamble constant byte-reversed.
+        - [ ] **`cdr_fsm` fixes** (found by reading the code, not
+              simulated):
+              - `data_is_aligned` is undriven; use `aligner_valid`;
+              - `aligner_rst` latches, because it has no default;
+              - `bitsel_aligned` is cleared by the next `bitsel` reset;
+              - `lock` in the top level is undeclared (probably
+                `pll_lock`).
+        - [ ] **Checker:** compares against the expected block using its own
+              `cnt`, popcounts the bit errors, and declares lock on two clean
+              blocks. It needs the byte phase (block boundary), which
+              `frame_aligner` does not output yet.
+        - [ ] **Sweep controller:**
+              - drives `PHASESTEP`/`PHASEDIR`/`PHASESEL` with the
+                TN-02095 timing (5 ns setup, ≥ 4 VCO cycles high/low);
+              - per step: re-lock, then count errors;
+              - stores `{no_lock, errors}`;
+              - picks the centre.
+
+              `cdr_tb` then needs a pin-level PHASESTEP model to test it.
+        - [ ] Start-up sequence: wait for LOCK, set STOP, pulse DIVRST and
+              IDDRX4.RST, clear STOP, and rerun on LOCK loss (§6.4).
+        - [ ] Hardware: the companion locks to the K4.2 pattern, and the
+              bench answers O2b(a): is the first bit in Q0 or Q7?
+        - [ ] O9: x4 gearing below the IP's 100 MHz floor. ODDRX4 at
+              45.54 MHz is proven; IDDRX4 is not. The fallback is IDDRX1 +
+              2:8 in fabric.
   - [x] Set `top=` explicitly in `intan_rec_adapter.rdf` — done
         2026-10-13 (`kuntur` `3e92c9b`); the next synthesis reported
         `intan_rec_adapter` as top.

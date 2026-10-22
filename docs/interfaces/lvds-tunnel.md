@@ -1152,6 +1152,18 @@ bidirectional draft:
     `window[s+7 : s]`, for a bit offset `s` from 0 to 7.
   - **Finding `s`.** A preamble hunt tests all 8 offsets for `0xA5 0x5A
     0xA5 0x5A` and takes the offset where it appears.
+  - **Bit numbering** *(2026-10-21)*. When aligned bytes are assembled
+    into a wider word, bit k of the word is the k-th bit received. The
+    newest byte therefore goes in the top bits.
+    - The preamble is then **`32'h5AA55AA5`**, which is the four bytes
+      read as a little-endian uint32.
+    - Every §4.1 field is a plain slice with no byte swap. A w-byte field
+      at byte offset n is `b[8n + 8w − 1 : 8n]`. In the link test block
+      this gives `cnt = b[47:32]` and `b[63:48] = 16'h8001`.
+    - The opposite byte order gives `32'hA55AA55A`. That is the bit-reverse
+      of the correct constant, so it looks plausible, but it is wrong.
+      It matches only when `cnt[7:0] = A5`. The first `frame_aligner`
+      had this bug (`log/2026-10-21.md`).
   - **Holding `s`.** `s` stays fixed while the receiver is locked, and is
     searched for again only when lock is lost.
   - **Why not `ALIGNWD`.** The earlier text pulsed `ALIGNWD` until the
