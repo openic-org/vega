@@ -1255,6 +1255,56 @@ bidirectional draft:
     run the sweep after every PLL lock. Alternatively, the bench sweep could fix a static phase
     built into the design. For bring-up the sweep only reports its
     error-count table. O2b, O7.
+- **Aligner outputs for the checker** *(2026-10-23)*. Besides `bitsel`,
+  `frame_aligner` outputs:
+  - `dout[7:0]`, the aligned byte stream;
+  - `pos[2:0]`, the position within the block of the byte on `dout`
+    (0 = first `A5`, 7 = `80`). At the preamble match the 4th preamble
+    byte (pos 3) has just been registered, so the next byte is pos 4;
+    a 3-bit counter seeded there wraps freely.
+
+  `pos` labels the same cycle's `dout`. A one-cycle skew between them
+  gives a large, constant error count at every step, which reads as a
+  closed eye.
+- **Checker** *(specified 2026-10-23; RTL Manuel)*. It produces one
+  `{no_lock, errors[15:0]}` measurement per phase step, as in the
+  procedure above, and must agree exactly with `rx_ref` in `cdr_tb`.
+  - **Ports:** `wclk`; `rst_sync`, pulsed at every phase step; `start`,
+    raised once the aligner reports a match; `dout`, `pos`. Outputs:
+    `done`, `no_lock`, `errors[15:0]`, and optionally `snapshot[63:0]`.
+  - **States:** HUNT → ACQ → COUNT → DONE.
+  - **ACQ: lock on two consecutive clean blocks.** Blocks are assembled
+    on `pos`. A block is clean when bytes 0–3 are `A5 5A A5 5A`, bytes
+    6–7 are `01 80`, and, for the second block, `cnt` equals the first
+    block's `cnt` + 1. The block whose preamble the aligner matched
+    counts as the first if its tail is right. An unclean block resets
+    the clean count. With no lock within 100 blocks (800 `WCLK`),
+    `no_lock` is set and the checker goes to DONE.
+  - **COUNT: N = 10,000 blocks.**
+    - The expected `cnt` is seeded once, as the last clean `cnt` + 1.
+      After that it comes only from the checker's own counter, + 1 at
+      each `pos` 7 → 0, and is never re-seeded from received data.
+    - On every `WCLK`, `errors += popcount(dout ^ expected[pos])`. All
+      64 bits are compared, preamble and tail included.
+    - No re-hunt and no early exit inside the window: a slip shows up
+      as a large count.
+    - `errors` saturates at `FFFF`.
+  - **DONE:** the outputs hold and `done` stays high until the next
+    `rst_sync`.
+  - **Easy to get wrong:**
+    - **Keep the `01 80` check in ACQ.** `A5` and `5A` read the same in
+      either bit order, so the preamble matches even when the first bit
+      lands in `Q7`; only the tail, which then reads `80 01`, exposes a
+      reversal. That case shows as *preamble found, never locks, at
+      every step*: O2b(a)'s signature. A status that reports "preamble
+      seen" separately from `no_lock` makes it visible without Reveal.
+    - `cnt` wraps from `FFFF` to `0000`; that is not an error.
+  - **Snapshot (optional):** the first block that contained an error,
+    or else the first block after lock (step 5 above).
+  - **Verification:** `cdr_tb` instantiates the checker beside `rx_ref`.
+    At every one of the 280 steps, `no_lock` must equal `rx_ref`'s
+    `!locked`, and `errors` must equal `rx_ref`'s `errors` over the same
+    N.
 - **Frame alignment** comes from a **4-byte preamble** (`0xA5 0x5A 0xA5
   0x5A`) plus fixed cadence. Raw binary data can coincidentally contain
   the preamble, so the preamble alone is not trusted: the receiver
