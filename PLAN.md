@@ -135,8 +135,9 @@ and knowledge-transfer work — external contributors are the only path to scale
 
 # PHASE A — Road to the animal test
 
-**Target: beginning of November 2026** (rebased 2026-09-29 from
-"September, flexible to October"; see *Schedule — rebased 2026-09-29*).
+**Target: week of 2026-11-30** (rebased 2026-10-23 from "beginning of
+November", itself rebased 2026-09-29 from "September, flexible to October";
+see *Schedule — rebased 2026-10-23*).
 Requires the wired path.
 
 ## Why the wired path is worth the effort
@@ -168,7 +169,61 @@ only. That loses the simultaneous reference comparison, not the test.
 | **A2** | Dual-path validated — Kuntur wireless and Intan controller agree, bench | Blocked on A.4 RTL and A.3 (injection rig). **A.4's spec is complete and all its desk-side gates closed 2026-09-03** — the boards have arrived, the pinout is resolved both ends, and the remaining work is RTL and a pigtail. |
 | **A3** | **In-vivo animal recording** | |
 
+### Schedule — rebased 2026-10-23
+
+**Decision point outcome, 2026-10-23.** The tunnel was not carrying
+`SAMPLE` frames: the transmitter sends the K4.2 pattern on hardware, the
+receiver passes only in simulation, and K5–K8 had not started. Per the
+pre-agreed rule, **the test slipped and the scope did not.** Facts from
+Manuel, 2026-10-23:
+
+- **A3: week of 2026-11-30**, agreed with the collaborators.
+- **Manuel still at 50%.**
+- **T1–T6 (tunnel to `SAMPLE` through the emulator): 2 weeks at 50%,
+  done by 2026-11-10** (Manuel's estimate).
+- **R1 (Kuntur rebuild) and R2 (telemetry) stay required for A3.**
+
+Framed as tasks and dependencies; the two dates above are the only anchors.
+
+**T: tunnel to A2** (critical path; RTL is Manuel's unless marked)
+
+| # | Task | Depends on | State 2026-10-23 |
+|---|---|---|---|
+| T1 | Receiver locks in simulation: `cdr_fsm` fixes, byte phase output, checker, sweep controller + pin-level PLL `PHASESTEP` model (model: Claude) | — | front end + `frame_aligner` pass `cdr_tb`; rest open (A.4 "Receiver") |
+| T2 | Start-up sequence both ends: K3.4 + `block_gen` reset synchroniser; companion LOCK → STOP → DIVRST/`IDDRX4.RST` → clear STOP | — | open |
+| T3 | Hardware lock to K4.2; O2b(a) Q0 vs Q7; O9 `IDDRX4` at 45 MHz | T1, T2 | open. **Risk:** if O9 fails, the `IDDRX1` + 2:8 fallback reworks T1 |
+| T4 | Spec gaps G1–G3, then K5–K8 (capture buffer, frame builder + CRC-32, flags/`CONFIG`, testbench); K4.3 | G1–G3 | not started |
+| T5 | Companion: frame receive + CRC check, triple buffer, `CONVERT(C)` from the buffer, offset binary + sentinel (§9.2, §9.5) | T3, T4 | not started |
+| T6 | `SAMPLE` through the emulator to RHX on hardware; O3 (BLE streaming with the tunnel on) | T5 | — |
+| T7 | A.3 attenuation network + capture at both endpoints | — (build), T6 (use) | not started |
+| T8 | Dual-path compare tooling: Intan file reader, 28k↔30k resampling, correlation/RMS pass/fail (Claude) | — | not started. `pc-app/compare_recordings.py` is the older before/after diff, not this |
+| T9 | **A2** bench dual-path | T6, T7, T8 | — |
+
+**R: readiness for the test** (parallel to T)
+
+| # | Task | Depends on | State 2026-10-23 |
+|---|---|---|---|
+| R1 | Kuntur rebuild: PLL 42.504 MHz + fH 7.5 kHz + A.7 step 1 counter | — | committed, never applied |
+| R2 | Telemetry `0xFFF4` (zero frames): first check whether the 2026-09-04 firmware was ever flashed; then the trace bridge build | R1's bench session | open |
+| R3 | chip0 disposition | — | no fix; mitigation is the plan: warm-up-and-verify, liveness detector armed, both animal-test channels on chip1 |
+| R4 | Animal-test runbook + recording checklist (Claude) | R3 | not drafted |
+| R5 | Dress rehearsal: cold start → warm-up-verify → ≥ 1 h on both paths, by the runbook; then freeze and tag bitstreams + firmware | T9, R1, R2, R4 | — |
+| — | **A3**, week of 2026-11-30 | R5 | — |
+
+**Sequencing to confirm (Manuel): R1 against T3.** R1 changes `clk`, and
+with it `ECLK`, `TUN_CLK` and the receiver PLL. `DIVOS_ACTUAL_STR` (280
+steps per turn) must be rechecked after the retune (§6.6), and a phase
+sweep measured before R1 does not carry over. Either R1 lands before T3's
+bench session, or T3 is repeated after it.
+
+**Budget.** T1–T6 take Manuel's time to 2026-11-10. That leaves about
+2.5 weeks at 50% (≈ 6 days) before the test week for R1, R2, T7, T9 and
+R5. T8 and R4 are desk work and do not draw on it. The one unbounded item
+is O9's fallback, inside T3.
+
 ### Schedule — rebased 2026-09-29
+
+*Superseded 2026-10-23 by the section above; kept for the record.*
 
 **Why rebased.** The September/October anchor lapsed with no work since
 2026-09-10. New facts from Manuel, 2026-09-29:
@@ -2176,17 +2231,26 @@ RHD2164 ×2 → Kuntur FPGA ├─→ ch_sel → FIFO → MCU → BLE → bridge
               Questa). At every error-free step it gives exactly one
               `bitsel`, equal to the reference. The first version had the
               preamble constant byte-reversed.
-        - [ ] **`cdr_fsm` fixes** (found by reading the code, not
-              simulated):
-              - `data_is_aligned` is undriven; use `aligner_valid`;
-              - `aligner_rst` latches, because it has no default;
-              - `bitsel_aligned` is cleared by the next `bitsel` reset;
-              - `lock` in the top level is undeclared (probably
-                `pll_lock`).
-        - [ ] **Checker:** compares against the expected block using its own
-              `cnt`, popcounts the bit errors, and declares lock on two clean
-              blocks. It needs the byte phase (block boundary), which
-              `frame_aligner` does not output yet.
+        - [x] **`cdr_fsm` fixes — 2026-10-23** (Manuel): match taken from
+              `aligner_valid`; `aligner_rst` defaults to 0 and pulses in
+              `idle`, so every hunt starts from a reset aligner; the FSM
+              stops at the first match with `bitsel` held; `idle` waits
+              for `lock`. Returning to `idle` on lock loss goes with the
+              start-up sequence below.
+        - [x] **Aligner outputs `dout[7:0]` + `pos[2:0]` — 2026-10-23**
+              (Manuel; spec §6.6). `pos` is seeded at 4 at the match.
+        - **`cdr_tb` with both — 2026-10-23:** ALL PASS in Icarus. New
+          checks: `dout` against `pos` on every fixed byte, and `cdr`
+          whole (reset per step, `lock` = 1) finishing on `rx_ref`'s
+          offset at all 256 error-free steps; worst-case hunt 130 `wclk`.
+          `kuntur` `df4fc5d` (branch `session-2026-10-23-rx-fsm`).
+          Before fixes A (`aligner_rst` in `idle`) and B (`pos` seed 4)
+          both checks failed at every step. `log/2026-10-23.md`.
+        - [ ] **Checker** (Manuel; **specified 2026-10-23**, spec §6.6):
+              locks on two clean blocks, then counts bit errors over
+              10,000 blocks against its own `cnt`, giving
+              `{no_lock, errors}`. Claude wires it into `cdr_tb` beside
+              `rx_ref`; done when both agree at all 280 steps.
         - [ ] **Sweep controller:**
               - drives `PHASESTEP`/`PHASEDIR`/`PHASESEL` with the
                 TN-02095 timing (5 ns setup, ≥ 4 VCO cycles high/low);
@@ -3953,6 +4017,10 @@ All four opening questions resolved 2026-08-04:
   scope unchanged (wired path still required); a paper is in progress
   with no deadline. Overrun slips the date, not the scope — decision
   point 2026-10-23.
+  **Rebased 2026-10-23** at the decision point: the tunnel was not
+  carrying `SAMPLE` frames, so the test moved to the **week of
+  2026-11-30** (agreed with the collaborators); scope unchanged, Manuel
+  still at 50%, tunnel to `SAMPLE` estimated done by 2026-11-10.
 
 Still to confirm (not blocking): whether the collaborator's animal protocol needs an
 amendment; RHS2116 unpopulated/disabled on test hardware; calibration status of
