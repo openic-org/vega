@@ -1301,10 +1301,21 @@ bidirectional draft:
     - `cnt` wraps from `FFFF` to `0000`; that is not an error.
   - **Snapshot (optional):** the first block that contained an error,
     or else the first block after lock (step 5 above).
-  - **Verification:** `cdr_tb` instantiates the checker beside `rx_ref`.
-    At every one of the 280 steps, `no_lock` must equal `rx_ref`'s
-    `!locked`, and `errors` must equal `rx_ref`'s `errors` over the same
-    N.
+  - **Verification** *(corrected 2026-10-26)*: `cdr_tb` instantiates the
+    checker on `cdr`'s aligned stream, beside `rx_ref`. The two lock at
+    different moments and so count different windows of a jittered link,
+    so per-step equality of `errors` holds only where the result is
+    deterministic. The tb requires:
+    - **eye interior** (`rx_ref` clean at the step and two steps either
+      side): lock, 0 errors;
+    - **closed** (`rx_ref` no-lock): no clean lock;
+    - **centre** of the longest clean run within 1 step of `rx_ref`'s.
+
+    Edge steps are reported, not judged. Because a checker that never
+    counts would pass all three, the run is repeated with `+inj=k`: the
+    tb flips one bit in every k-th block at the transmitter, so any
+    N-block window holds exactly N/k errors, and the checker must report
+    exactly that at every eye-interior step.
 - **Frame alignment** comes from a **4-byte preamble** (`0xA5 0x5A 0xA5
   0x5A`) plus fixed cadence. Raw binary data can coincidentally contain
   the preamble, so the preamble alone is not trusted: the receiver

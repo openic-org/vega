@@ -2250,7 +2250,13 @@ RHD2164 ×2 → Kuntur FPGA ├─→ ch_sel → FIFO → MCU → BLE → bridge
               locks on two clean blocks, then counts bit errors over
               10,000 blocks against its own `cnt`, giving
               `{no_lock, errors}`. Claude wires it into `cdr_tb` beside
-              `rx_ref`; done when both agree at all 280 steps.
+              `rx_ref`. **Lock part done 2026-10-27**: `frame_checker`
+              inside `cdr`, with `cdr_fsm` stepping PHASESTEP on ALIGN or
+              CHECK failure and giving up after 280 steps. `cdr_tb`
+              reworked (sweep, closed loop, no data): ALL PASS
+              (`log/2026-10-27.md`). Still open: the error count
+              (deferred; `+inj=k` kept for it), and first lock lands at
+              the eye edge, so centring is still needed.
         - [ ] **Sweep controller:**
               - drives `PHASESTEP`/`PHASEDIR`/`PHASESEL` with the
                 TN-02095 timing (5 ns setup, ≥ 4 VCO cycles high/low);
