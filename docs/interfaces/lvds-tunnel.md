@@ -1037,6 +1037,15 @@ at the 25 kSPS bring-up rate), and the LIFCL PLL's reference input has an
     - **Pulse timing.** `PHASESEL` and `PHASEDIR` need 5 ns of setup
       before the falling edge of `PHASESTEP`. `PHASESTEP` must stay high,
       and then low, for at least 4 VCO cycles each.
+      *(Checked 2026-10-27, TN-02095 rev 2.5 §14.5.9, §14.6.1.)* The
+      phase changes 4 VCO cycles after the falling edge, about 2.5 ns at
+      1594 MHz. A delaying step (`PHASEDIR` = 0) is glitch-free; an
+      advancing one may glitch the output. The TN gives no other settling
+      time and does not say that `LOCK` drops. So no wait is needed after
+      a step beyond the receiver's own re-hunt.
+    - **The PLL acts on an edge, so `PHASESTEP` comes from a register**
+      *(2026-10-27)*. A decoded FSM state can glitch, and a glitch is a
+      step.
   - **Receive clock chain** *(agreed 2026-10-21)*:
 
     ```
@@ -1069,6 +1078,30 @@ at the 25 kSPS bring-up rate), and the LIFCL PLL's reference input has an
       unplugged, and the supervisor (§6.1) uses it already.
     - **Phase-step control runs on `clkin` too.** It drives
       `PHASESEL`/`PHASEDIR`/`PHASESTEP`.
+      - **Crossing from the `WCLK` side** *(2026-10-27, Manuel; replaces
+        a req/ack handshake specified earlier the same day)*. The sweep
+        FSM (§6.6) runs on `WCLK`. No acknowledge is needed, because both
+        clocks are fixed (`clkin` 12 MHz, 83.3 ns; `WCLK` = `ECLK` / 4,
+        87.8 ns now and 94.1 ns after the R1 retune), so fixed timing
+        rules replace it:
+        1. **The FSM's output is a register** on `WCLK`. A decoded state
+           can glitch on a multi-bit state change, and the `clkin` flop
+           can catch the glitch at any instant: a glitch is a step.
+        2. **Two `clkin` flops** synchronise it, inside `cdr` (so that
+           `cdr_tb` covers them); the second drives the PLL's `PHASESTEP`.
+           Both reset to 1 with `rstb`.
+        3. **Low for at least 2 `WCLK`.** One `WCLK` is only 4.5 ns longer
+           than a `clkin` period, too little margin once setup, hold and
+           metastability are counted; two leave a full period.
+        4. **High for at least 2 `WCLK` between steps**, so back-to-back
+           steps never merge.
+        5. **Wait about 8 `WCLK` after the pulse** before the aligner
+           restarts. The step reaches the PLL 1 `WCLK` + 2–3 `clkin`
+           after the FSM decides it (about 4 `WCLK`); without the wait the
+           first bytes searched were sampled at the old phase.
+
+        `PHASEDIR` is the constant 0 (delay). `PHASESEL` is `001`.
+        Neither changes, so their 5 ns setup is met.
   - **Pins.** The receive clock must enter on a dedicated PCLK pin, on the
     same side as the data (TN-02097 §5.6, §5.21.1). Y2 is `PCLKT5_1` and V1
     is in the same bank 5, so this is met.
@@ -1251,10 +1284,13 @@ bidirectional draft:
     - `DIVOS_ACTUAL_STR` in the generated PLL source after any change to
       `PLL_FCLK`. It is 34 at 45.54 MHz, which gives 280 steps per turn;
       the sweep length must match it.
-  - **Open decision (after the first bench sweep):** the companion could
-    run the sweep after every PLL lock. Alternatively, the bench sweep could fix a static phase
-    built into the design. For bring-up the sweep only reports its
-    error-count table. O2b, O7.
+  - **Decided 2026-10-27 (Manuel): the receiver sweeps after every lock
+    and goes to the centre**, rather than stopping at the first phase
+    that locks. In `cdr_tb` a first-lock search stopped just inside the
+    eye edge: one step where the reference counted 60 bit errors in 100
+    blocks (`log/2026-10-27.md`). The FSM is specified below
+    (*Sweep controller*). Whether the bench sweep should later be
+    replaced by a static phase is still open (O2b, O7).
 - **Aligner outputs for the checker** *(2026-10-23)*. Besides `bitsel`,
   `frame_aligner` outputs:
   - `dout[7:0]`, the aligned byte stream;
@@ -1272,6 +1308,20 @@ bidirectional draft:
   - **Ports:** `wclk`; `rst_sync`, pulsed at every phase step; `start`,
     raised once the aligner reports a match; `dout`, `pos`. Outputs:
     `done`, `no_lock`, `errors[15:0]`, and optionally `snapshot[63:0]`.
+    *(2026-10-27: in the RTL, `frame_checker` inside `cdr`, with `clk`,
+    `din`, and parameters `NB_CHECK` = 100 for the lock timeout and
+    `NB_ERRORS` = 10,000 for N. Its lock part passed `cdr_tb` on
+    2026-10-27. COUNT and `errors[15:0]` were added the same day and pass
+    a standalone unit test on a clean aligned stream, with reset at
+    every byte position: 0 errors clean; exactly N/4 with one bit
+    flipped in every 4th block; exactly 64 × N with every bit wrong
+    (so the window is exactly N blocks); `FFFF` when the sum crosses
+    it, including on the window's last byte; `no_lock` after 100
+    blocks with no data, with N = 20 < `NB_CHECK`. The count window
+    starts at `pos` 1 of the block after the two clean blocks. Inside
+    `cdr`, it passed `cdr_tb` on 2026-10-28, including exactly N/4 errors
+    at every eye-interior step with `+inj=4`. Unit test:
+    `tb/frame_checker_tb.v` in the `kuntur` repo.)*
   - **States:** HUNT → ACQ → COUNT → DONE.
   - **ACQ: lock on two consecutive clean blocks.** Blocks are assembled
     on `pos`. A block is clean when bytes 0–3 are `A5 5A A5 5A`, bytes
@@ -1301,8 +1351,10 @@ bidirectional draft:
     - `cnt` wraps from `FFFF` to `0000`; that is not an error.
   - **Snapshot (optional):** the first block that contained an error,
     or else the first block after lock (step 5 above).
-  - **Verification** *(corrected 2026-10-26)*: `cdr_tb` instantiates the
-    checker on `cdr`'s aligned stream, beside `rx_ref`. The two lock at
+  - **Verification** *(corrected 2026-10-26; since 2026-10-27 the tb
+    reads the checker inside `cdr`, through the per-step measurement
+    outputs below, rather than its own instance)*: beside `rx_ref`. The
+    two lock at
     different moments and so count different windows of a jittered link,
     so per-step equality of `errors` holds only where the result is
     deterministic. The tb requires:
@@ -1316,6 +1368,113 @@ bidirectional draft:
     tb flips one bit in every k-th block at the transmitter, so any
     N-block window holds exactly N/k errors, and the checker must report
     exactly that at every eye-interior step.
+- **Sweep controller** *(specified 2026-10-27; RTL Manuel; passes
+  `cdr_tb` 2026-10-28, all four parts, see Verification below)*. `cdr_fsm`,
+  on `WCLK`, runs the eye-centring procedure above after every lock and
+  ends at the centre.
+  - **Phase.** A 9-bit counter `phase`, 0–279, counts steps from where
+    the sweep began. It is relative: the sweep never needs the PLL's
+    absolute phase. It is cleared in `idle`, and wraps 279 → 0 with the
+    PLL.
+  - **States:**
+    1. **`idle`**: reset the aligner and checker, clear `phase` and the
+       run trackers; wait for `lock`.
+    2. **Measure** the current phase: ALIGN (aligner hunt; on failure the
+       step is no-lock), then CHECK (checker lock and count over
+       `NB_ERRORS` blocks; on `no_lock` the step is no-lock).
+    3. **Record**: the step is **clean** when it locked with
+       `errors` = 0. Update the run trackers (below) and pulse the
+       measurement outputs.
+    4. **Step**: one `PHASESTEP` pulse with the timing rules of §6.4
+       (low ≥ 2 `WCLK`, then a wait of about 8 `WCLK`);
+       `phase` + 1. If that completed the turn (the step was taken at
+       `phase` 279), go to 5, else back to 2.
+    5. **Decide**: with no clean step anywhere, go to **`fail`** (`rdy`,
+       not `valid`; holds until `rstb` or lock loss). Otherwise the
+       target is `eye_center` = (`best_start` + `best_len` / 2) mod 280.
+    6. **Go to the centre**: step (as 4) until `phase` = `eye_center`. The PLL
+       is back at the sweep's start after the full turn, so this is
+       `eye_center` more steps.
+    7. **Re-lock at the centre**: ALIGN, then the checker's lock. Error
+       counting is not needed here. On success go to **`locked`** (`rdy`
+       and `valid`, holds). On failure go back to `idle`, which runs the
+       whole sweep again. Same order as a sweep step: reset the aligner
+       and wait for it; only once it is valid, reset and start the
+       checker. A checker that is reset but never started never raises
+       `done` (found 2026-10-28).
+  - **Run tracking, no table needed.** While sweeping keep `cur_start`,
+    `cur_len`, `best_start`, `best_len`, and `first_len` (the length of
+    the run that begins at `phase` 0, if step 0 was clean). A clean step
+    extends the current run, or starts one. A non-clean step ends it,
+    and a longer run replaces the best; on a tie the earlier one stays.
+    **At the end of the turn**, a run still open at 279 joins the run
+    that began at 0: its length is `cur_len` + `first_len` and it starts
+    at `cur_start`. If all 280 steps are clean, `best_len` = 280 and
+    `best_start` = 0. This is the same circular rule as `cdr_tb`'s, so
+    the two centres can be compared exactly.
+    *As built (2026-10-28):* a running maximum, updated only on clean
+    steps with the run's length including that step; a run that starts
+    at `phase` 0 keeps `first_len` equal to its length; at `phase` 279 a
+    clean step whose run did not start at 0 is compared as
+    `len + first_len`. Nothing is left to do at Decide, and the all-clean
+    case falls out as 280 from 0. Tested on its own against `cdr_tb`'s
+    rule over 3,000 sweeps (all clean, none, wrapped, ties, single steps
+    at 0 and 279, random).
+  - **The bit offset changes after a turn.** A full turn delays `CLKOS`
+    by one period while ECLKDIV keeps counting, so the word boundary
+    moves 2 bits. The `bitsel` found during the sweep is therefore not
+    reused at the centre: step 7 hunts again.
+  - **Lock loss.** `lock` (the PLL's `LOCK`, asynchronous) passes through
+    a two-flop synchroniser into `WCLK`. If it drops in any state the FSM
+    goes to `idle`, and the sweep restarts from scratch when it returns. A
+    `PHASESTEP` pulse in flight may be cut to one `WCLK`, so the PLL may
+    or may not take that step; harmless, because the new sweep is
+    relative to wherever the PLL is.
+    Restarting the clocks themselves (`ECLKSYNC.STOP`, `DIVRST`,
+    `IDDRX4.RST`) is the start-up sequence on `clkin` (§6.4). That
+    sequence should also hold `cdr`'s `rstb` low until the clocks are
+    back, since `WCLK` cannot be trusted while the PLL is unlocked.
+  - **Ports of `cdr`** (names agreed 2026-10-27): `rstb`, `wclk`,
+    `lock`, `din[7:0]`, and
+    - `clk`, the 12 MHz board clock (`clkin` at the top level) for the
+      `PHASESTEP` synchroniser;
+    - `pll_phasedir` (constant 0) and `pll_phasestep_sync` (the
+      synchroniser's output), wired straight to the PLL;
+    - `rdy`, `valid`: as above;
+    - `eye_center[8:0]`, `eye_width[8:0]` (= `best_len`; × 78 ps is the
+      measured eye), valid once `rdy`;
+    - **per-step measurement**, for the tb, Reveal and later the
+      diagnostics console (O8): `meas_en`, a one-`WCLK` pulse at
+      Record, and with it `meas_phase[8:0]`, `meas_no_lock` and
+      `meas_errors[15:0]` (saturated at `FFFF`; `FFFF` on no-lock).
+      The port `meas_en` is the FSM's pulse delayed one `WCLK`, so it
+      changes together with the registered `meas_*`. On the no-lock
+      paths the step's `PHASESTEP` pulse starts in the FSM's pulse
+      cycle, and through the 12 MHz synchroniser it can reach the PLL
+      before the port `meas_en` is seen: `meas_phase` is the phase the
+      measurement was taken at, not where the PLL is at `meas_en`.
+    - Optional: the 280 × `{no_lock, errors}` table in EBR (step 4 of
+      the procedure above), written from the same pulse.
+  - **Timing.** About 2 s per sweep with N = 10,000. The tb overrides
+    `NB_ERRORS` to 20.
+  - **Verification** (`cdr_tb`):
+    - per step, `meas_*` against `rx_ref`, with the eye-interior,
+      closed and `+inj` rules of the Checker bullet above;
+    - `eye_center` within 1 step of the centre of `rx_ref`'s longest clean
+      run, and `eye_width` within 4 steps of its length (the two count different windows at each edge);
+    - ends `locked` at `eye_center`, with `bitsel` correct there for the
+      number of turns taken;
+    - `PHASESTEP`: exactly one pulse per step at the PLL pin, low and
+      high long enough, with no glitches; 280 + `eye_center` pulses in all;
+    - no data at all: one turn, then `fail`;
+    - `lock` dropped mid-sweep: back to `idle`, then a full sweep with
+      the same result.
+
+    **Result 2026-10-28:** ALL PASS on `+n=20`, `+n=20 +inj=4`,
+    `+n=20 +start=150`, `+n=20 +seed=7 +jitter=1000` and the defaults
+    (`n` = 100). `+q7first` gives up after one turn (`rdy`, not
+    `valid`), as it must. With the defaults the centre is step 176,
+    `eye_width` 128 steps (≈ 10 ns), reached after 280 + 176 pulses.
 - **Frame alignment** comes from a **4-byte preamble** (`0xA5 0x5A 0xA5
   0x5A`) plus fixed cadence. Raw binary data can coincidentally contain
   the preamble, so the preamble alone is not trusted: the receiver
