@@ -16,6 +16,12 @@ Tunnel status (2026-10-28):
 - **Receiver:** the whole `cdr` (aligner, error-counting checker, phase
   sweep to the eye centre, lock loss) passes in simulation (`cdr_tb.sv`).
   Not yet on hardware.
+- **Start-up (T2 and system):** specified 2026-10-28 for both ends in
+  `docs/interfaces/system-startup.md` (Kuntur: power-on reset + PLL lock,
+  MCU polls a status word; companion: a reset per clock domain, emulator
+  never reset by the link, sentinel until the link is up) and
+  `lvds-tunnel.md` §6.4 (`gddr_sync`). Not implemented. Next steps:
+  `log/2026-10-28.md`, *Where to pick up*.
 
 Shared: `log/`, `CLAUDE.md`.
 
