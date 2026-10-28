@@ -992,6 +992,31 @@ at the 25 kSPS bring-up rate), and the LIFCL PLL's reference input has an
   type as `TUN_DATA`, so the two pairs see matched output delay. It costs
   one more of the 102 unused DDR primitives and nothing else; no PLL output.
   The clock is **edge-aligned** with the data, not centred.
+- **Kuntur start-up** *(T2 / K3.4, decided 2026-10-28)*. The same
+  `gddr_sync` as the companion (its sequence is under *Receive clock
+  chain* below):
+  - `SYNC_CLK` = Kuntur's `clkin` (32 MHz), **not `clk`**. `clk` is what
+    `ECLKSYNC` takes in, so it is the interface clock, which TN-02097
+    §9.1.1 rules out as the start-up clock;
+  - `START` = `pll0`'s `LOCK` through two `clkin` flops. The generated
+    `pll0` had `LOCK_EN(0)` and `lock_o` unconnected; Manuel regenerates
+    it with the lock output (same 45.54 MHz), and R1 keeps it when it
+    retunes to 42.504 MHz;
+  - `RST` = `!rst_n_clkin`, Kuntur's system reset in the `clkin` domain
+    (`system-startup.md` §1.3, R-K2/R-K4: the FPGA's power-on reset plus
+    PLL lock with a hold-off), which already contains `!rstb` and
+    `!lock_sync`;
+  - `STOP` → `ECLKSYNC.STOP`; `DDR_RESET` → `ECLKDIV.DIVRST` and both
+    `ODDRX4.RST`s;
+  - `READY` → `block_gen`'s reset: `rstb && READY`, asserted at once and
+    released through two `wclk` flops, so the pattern starts on a running
+    clock (the K4.2 open item);
+  - nothing else waits for `READY`. The rest of Kuntur's logic is reset
+    by `rst_n_clk` (`system-startup.md` §1.3), not by `rstb`.
+
+  No handshake between the ends. Kuntur's sequence stops `TUN_CLK` for
+  about 1 µs (12 cycles of 32 MHz); the companion may lose `LOCK`, which
+  reruns its own sequence and a new sweep.
 - **Companion side:** the PLL locks to `TUN_CLK` on `LLC_GPLL0T_IN` and
   supplies a **phase-shifted** `ECLK` for `IDDRX4`, which moves the
   sampling edge into the middle of the data eye. The phase comes from the
@@ -1067,15 +1092,62 @@ at the 25 kSPS bring-up rate), and the LIFCL PLL's reference input has an
     - **`CLKOS`, not `CLKOP`, is the phase that moves.** `PHASESEL = 001`
       shifts only `CLKOS`, so `CLKOP` stays a fixed reference.
     - **Start-up logic runs on `clkin`** (the 12 MHz board oscillator).
-      Its sequence:
-      1. wait for `LOCK`;
-      2. `ECLKSYNC.STOP` = 1;
-      3. pulse `ECLKDIV.DIVRST` and `IDDRX4.RST`;
-      4. `STOP` = 0.
+      It cannot run on `eclk` or `wclk`, because `STOP` halts them, and
+      TN-02097 §9.1.1 forbids the receive clock or anything divided from
+      it. `clkin` runs even with the cable unplugged, and the supervisor
+      (§6.1) uses it already.
 
-      It runs again whenever `LOCK` drops. It cannot run on `eclk` or
-      `wclk`, because `STOP` halts them. `clkin` runs even with the cable
-      unplugged, and the supervisor (§6.1) uses it already.
+      *(T2, decided 2026-10-28, Manuel.)* **Lattice's `gddr_sync`** does
+      it, instantiated as is (Radiant 2025.2.1,
+      `ip/lifcl/ddr/rtl/gddr_sync.v`; TN-02097 §9.1.1, which requires it
+      "to tolerate the skew between the ECLKSYNCB Stop input and the
+      Reset to the DDR and CLKDIV modules"). Its sequence, in `SYNC_CLK`
+      cycles (from the source; the TN gives no timing):
+
+      | Step | `STOP` | `DDR_RESET` | Length |
+      |---|---|---|---|
+      | `RST` = 1 | 0 | 1 | while held |
+      | wait for `START` | 0 | 0 | 3 cycles of `START` high |
+      | stop | 1 | 0 | 4 |
+      | reset | 1 | 1 | 4 |
+      | stop | 1 | 0 | 4 |
+      | release | 0 | 0 | 8, then `READY` = 1 |
+
+      Checked in simulation 2026-10-28 with the connections below:
+      `READY` 23 cycles after `lock_sync` rises (about 1.9 µs at
+      12 MHz), and again after a lock drop and after a one-cycle `LOCK`
+      glitch. `DDR_RESET` also falls for the 3 waiting cycles when `RST`
+      releases, with the clock running; the stopped reset that follows
+      is the one that counts.
+
+      Connections:
+      - `SYNC_CLK` = `clkin`;
+      - `START` = the PLL's `LOCK` through two `clkin` flops
+        (`lock_sync`). `pll0` has `LOCK_EN` = 1 and a non-sticky lock, so
+        `LOCK` falls when `TUN_CLK` goes away;
+      - `RST` = `!rst_n_sup || !lock_sync`, where `rst_n_sup` is the
+        supervisor's power-on-rooted reset (`system-startup.md` §2.3,
+        R-C1; it includes `rstb`). **This is what reruns it on lock
+        loss:** `gddr_sync` runs once per reset (its `stop_assert`
+        counter saturates), so a lock drop must reset it. It then holds
+        `DDR_RESET` = 1 and `READY` = 0 until `LOCK` returns. With `RST`
+        = `!rstb` alone, `READY` falls on the first lock drop and never
+        returns (simulated 2026-10-28);
+      - `STOP` → `ECLKSYNC.STOP` (`STOP_EN` = `"ENABLE"`);
+      - `DDR_RESET` → `ECLKDIV.DIVRST` and `IDDRX4.RST`;
+      - `READY` → `cdr`'s reset: `cdr_rstb` = `rst_n_sup && READY`, asserted at
+        once and released through two `wclk` flops. `cdr`'s `clkin` flops
+        (the `PHASESTEP` synchroniser) share it; their input equals
+        their reset value (1) when it releases, so the release time does
+        not matter to them. While in reset `PHASESTEP` stays high, so
+        start-up never moves the phase.
+
+      `cdr` keeps its own `lock` input (§6.6). It is now redundant, since
+      a lock loss also resets `cdr` through `READY`, and harmless.
+
+      **Each restart is a new word boundary.** `DIVRST` restarts ECLKDIV
+      at an arbitrary edge, so `bitsel` after a restart is unrelated to
+      the one before; the sweep (§6.6) runs from scratch anyway.
     - **Phase-step control runs on `clkin` too.** It drives
       `PHASESEL`/`PHASEDIR`/`PHASESTEP`.
       - **Crossing from the `WCLK` side** *(2026-10-27, Manuel; replaces
@@ -1108,7 +1180,9 @@ at the 25 kSPS bring-up rate), and the LIFCL PLL's reference input has an
   - **Start-up.** Lattice lists its `GDDRX_SYNC` start-up sequence
     (`ECLKSYNC.STOP`, then the gearbox and `ECLKDIV` resets, then release)
     as required for this interface family (TN-02097 §5.5). The companion
-    needs it for the same reason Kuntur does (K3.4).
+    needs it for the same reason Kuntur does (K3.4). Both ends use
+    `gddr_sync` itself (*Start-up logic* above for the companion,
+    *Kuntur start-up* earlier in this section).
   - **Instantiate the primitives by hand.** IP Catalog's generic-DDR
     module accepts interface clocks of 100–750 MHz only (TN-02097 §7.3,
     Table 7.2), and `ECLK` here is 38–46 MHz. The datasheet (DS-02049) gives
@@ -1432,8 +1506,9 @@ bidirectional draft:
     relative to wherever the PLL is.
     Restarting the clocks themselves (`ECLKSYNC.STOP`, `DIVRST`,
     `IDDRX4.RST`) is the start-up sequence on `clkin` (§6.4). That
-    sequence should also hold `cdr`'s `rstb` low until the clocks are
-    back, since `WCLK` cannot be trusted while the PLL is unlocked.
+    sequence also holds `cdr`'s `rstb` low until the clocks are back
+    (through `gddr_sync`'s `READY`), since `WCLK` cannot be trusted while
+    the PLL is unlocked.
   - **Ports of `cdr`** (names agreed 2026-10-27): `rstb`, `wclk`,
     `lock`, `din[7:0]`, and
     - `clk`, the 12 MHz board clock (`clkin` at the top level) for the
