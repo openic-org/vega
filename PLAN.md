@@ -189,7 +189,7 @@ Framed as tasks and dependencies; the two dates above are the only anchors.
 
 | # | Task | Depends on | State 2026-10-23 |
 |---|---|---|---|
-| T1 | Receiver locks in simulation: `cdr_fsm` fixes, byte phase output, checker, sweep controller + pin-level PLL `PHASESTEP` model (model: Claude) | — | front end + `frame_aligner` pass `cdr_tb`; rest open (A.4 "Receiver") |
+| T1 | Receiver locks in simulation: `cdr_fsm` fixes, byte phase output, checker, sweep controller + pin-level PLL `PHASESTEP` model (model: Claude) | — | **done in simulation 2026-10-28**: sweep with error count, go to the centre, re-lock, lock loss; `cdr_tb` ALL PASS on every run (A.4 "Receiver"). Next for the receiver: T2, then T3 on hardware |
 | T2 | Start-up sequence both ends: K3.4 + `block_gen` reset synchroniser; companion LOCK → STOP → DIVRST/`IDDRX4.RST` → clear STOP | — | open |
 | T3 | Hardware lock to K4.2; O2b(a) Q0 vs Q7; O9 `IDDRX4` at 45 MHz | T1, T2 | open. **Risk:** if O9 fails, the `IDDRX1` + 2:8 fallback reworks T1 |
 | T4 | Spec gaps G1–G3, then K5–K8 (capture buffer, frame builder + CRC-32, flags/`CONFIG`, testbench); K4.3 | G1–G3 | not started |
@@ -2246,7 +2246,7 @@ RHD2164 ×2 → Kuntur FPGA ├─→ ch_sel → FIFO → MCU → BLE → bridge
           `kuntur` `df4fc5d` (branch `session-2026-10-23-rx-fsm`).
           Before fixes A (`aligner_rst` in `idle`) and B (`pos` seed 4)
           both checks failed at every step. `log/2026-10-23.md`.
-        - [ ] **Checker** (Manuel; **specified 2026-10-23**, spec §6.6):
+        - [x] **Checker** (Manuel; **specified 2026-10-23**, spec §6.6):
               locks on two clean blocks, then counts bit errors over
               10,000 blocks against its own `cnt`, giving
               `{no_lock, errors}`. Claude wires it into `cdr_tb` beside
@@ -2254,17 +2254,23 @@ RHD2164 ×2 → Kuntur FPGA ├─→ ch_sel → FIFO → MCU → BLE → bridge
               inside `cdr`, with `cdr_fsm` stepping PHASESTEP on ALIGN or
               CHECK failure and giving up after 280 steps. `cdr_tb`
               reworked (sweep, closed loop, no data): ALL PASS
-              (`log/2026-10-27.md`). Still open: the error count
-              (deferred; `+inj=k` kept for it), and first lock lands at
-              the eye edge, so centring is still needed.
-        - [ ] **Sweep controller:**
-              - drives `PHASESTEP`/`PHASEDIR`/`PHASESEL` with the
-                TN-02095 timing (5 ns setup, ≥ 4 VCO cycles high/low);
-              - per step: re-lock, then count errors;
-              - stores `{no_lock, errors}`;
-              - picks the centre.
+              (`log/2026-10-27.md`). **Error count done 2026-10-28**:
+              exact over N blocks, saturating; unit test
+              `tb/frame_checker_tb.v` (6 runs PASS), and exactly N/4 per
+              eye-interior step in `cdr_tb +inj=4` (`log/2026-10-28.md`).
+        - [x] **Sweep controller — done in simulation 2026-10-28**
+              (Manuel; specified 2026-10-27, spec §6.4 + §6.6 *Sweep
+              controller*). Sweep after every lock: per step re-lock and
+              count errors; longest clean run tracked on the fly; go to
+              the centre (2 `wclk` low, 8 high per step) and hunt again
+              there (a turn shifts the word 2 bits); lock loss through a
+              `wclk` synchroniser → `idle` → new sweep. `PHASESTEP` from a
+              `wclk` register through two `clkin` flops, no ack.
 
-              `cdr_tb` then needs a pin-level PHASESTEP model to test it.
+              `cdr_tb` **ALL PASS** on `+n=20`, `+n=20 +inj=4`,
+              `+start=150`, `+seed=7 +jitter=1000` and the defaults;
+              `+q7first` gives up after one turn, as it must
+              (`log/2026-10-28.md`).
         - [ ] Start-up sequence: wait for LOCK, set STOP, pulse DIVRST and
               IDDRX4.RST, clear STOP, and rerun on LOCK loss (§6.4).
         - [ ] Hardware: the companion locks to the K4.2 pattern, and the
