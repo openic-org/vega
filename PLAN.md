@@ -2270,7 +2270,8 @@ RHD2164 ×2 → Kuntur FPGA ├─→ ch_sel → FIFO → MCU → BLE → bridge
               `cdr_tb` **ALL PASS** on `+n=20`, `+n=20 +inj=4`,
               `+start=150`, `+seed=7 +jitter=1000` and the defaults;
               `+q7first` gives up after one turn, as it must
-              (`log/2026-10-28.md`).
+              (`log/2026-10-28.md`; `kuntur` `46d47a3`, branch
+              `session-2026-10-28-rx-sweep`).
         - [ ] Start-up sequence: wait for LOCK, set STOP, pulse DIVRST and
               IDDRX4.RST, clear STOP, and rerun on LOCK loss (§6.4).
         - [ ] Hardware: the companion locks to the K4.2 pattern, and the
