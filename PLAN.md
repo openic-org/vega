@@ -190,7 +190,7 @@ Framed as tasks and dependencies; the two dates above are the only anchors.
 | # | Task | Depends on | State 2026-10-23 |
 |---|---|---|---|
 | T1 | Receiver locks in simulation: `cdr_fsm` fixes, byte phase output, checker, sweep controller + pin-level PLL `PHASESTEP` model (model: Claude) | — | **done in simulation 2026-10-28**: sweep with error count, go to the centre, re-lock, lock loss; `cdr_tb` ALL PASS on every run (A.4 "Receiver"). Next for the receiver: T2, then T3 on hardware |
-| T2 | Start-up sequence both ends: K3.4 + `block_gen` reset synchroniser; companion LOCK → STOP → DIVRST/`IDDRX4.RST` → clear STOP | — | open |
+| T2 | Start-up sequence both ends: K3.4 + `block_gen` reset synchroniser; companion LOCK → STOP → DIVRST/`IDDRX4.RST` → clear STOP | — | **specified 2026-10-28** (§6.4): Lattice `gddr_sync` on both ends, `SYNC_CLK` = each board's `clkin`, `START` = PLL lock (Kuntur `pll0` regenerated with `lock_o`, Manuel), `READY` releases `cdr` / `block_gen`. RTL Manuel; sequencer tb Claude |
 | T3 | Hardware lock to K4.2; O2b(a) Q0 vs Q7; O9 `IDDRX4` at 45 MHz | T1, T2 | open. **Risk:** if O9 fails, the `IDDRX1` + 2:8 fallback reworks T1 |
 | T4 | Spec gaps G1–G3, then K5–K8 (capture buffer, frame builder + CRC-32, flags/`CONFIG`, testbench); K4.3 | G1–G3 | not started |
 | T5 | Companion: frame receive + CRC check, triple buffer, `CONVERT(C)` from the buffer, offset binary + sentinel (§9.2, §9.5) | T3, T4 | not started |
@@ -2132,7 +2132,31 @@ RHD2164 ×2 → Kuntur FPGA ├─→ ch_sel → FIFO → MCU → BLE → bridge
         (`kuntur` `904739a`). `log/2026-10-20.md`.
   - [ ] O3 on hardware: pc-app streaming with the tunnel toggling (not
         run 10-20); `HEAD` baseline `.twr` for the SPI1 slack comparison.
-  - [ ] K3.4 start-up sequence (STOP → RST → release, on `clk`).
+  - [ ] K3.4 start-up sequence (STOP → RST → release). **Specified
+        2026-10-28** (spec §6.4 *Kuntur start-up*): Lattice `gddr_sync`
+        on Kuntur's `clkin` (32 MHz), **not `clk`** (TN-02097 §9.1.1);
+        `START` = `pll0` lock, which needs `pll0` regenerated with
+        `lock_o` (Manuel; same 45.54 MHz, kept by R1); `READY` releases
+        `block_gen` through a `wclk` reset synchroniser.
+  - [ ] **Kuntur system start-up** (spec `docs/interfaces/system-startup.md`
+        §1, agreed 2026-10-28). FPGA: `rstb` pull-up (it floats today, R15
+        not fitted); reset = power-on reset + PLL lock with a 1 ms hold-off,
+        for all `clk` logic (so the RHD config plays on a locked clock);
+        read-only status word (ID, locked, reset released, RHD config done,
+        tunnel ready). MCU: debug delay development-only; poll the status
+        word (100 ms timeout); `START_STREAMING` refuses when not ready.
+        Open O-S1: does the ROM bootloader still cost ~5 s (PA10 high)?
+  - [ ] **Companion system start-up** (spec `docs/interfaces/system-startup.md`
+        §2, agreed 2026-10-28). A reset per domain, all rooted in the
+        power-on reset: supervisor (`clkin`, never reset by the link);
+        receiver (`gddr_sync` `READY`); emulator (power-on + SW2 only,
+        **never reset by link events**). Emulator answers detection from
+        wake-up; link-down flag starts *down*, so `CONVERT` gets `0x8000`
+        until the first valid frame (T5). `rstb` G14 `PULLMODE=UP` (today
+        the default pull-down fights the board's pull-up). Status LEDs
+        (heartbeat, lock, sweeping, link up, fail). JP2 required.
+        Operation: bitstream in flash; power the companion, then RHX,
+        Kuntur any time (runbook, R4). Open O-S2: power-on to `DONE`.
   - [x] **K4.2 link test pattern on the wire — 2026-10-21.**
         - **Pattern** (spec §12 step 4): `block_gen` sends the 8-byte block
           `A5 5A A5 5A cnt[7:0] cnt[15:8] 01 80` on `wclk`.
@@ -2274,6 +2298,11 @@ RHD2164 ×2 → Kuntur FPGA ├─→ ch_sel → FIFO → MCU → BLE → bridge
               `session-2026-10-28-rx-sweep`).
         - [ ] Start-up sequence: wait for LOCK, set STOP, pulse DIVRST and
               IDDRX4.RST, clear STOP, and rerun on LOCK loss (§6.4).
+              **Specified 2026-10-28:** Lattice `gddr_sync` on `clkin`,
+              `RST` = `!rst_n_sup || !lock_sync` (it runs once per reset;
+              `rst_n_sup` from `system-startup.md` §2.3),
+              `READY` → `cdr` reset through two `wclk` flops. Retry from
+              `fail` is left to §7.
         - [ ] Hardware: the companion locks to the K4.2 pattern, and the
               bench answers O2b(a): is the first bit in Q0 or Q7?
         - [ ] O9: x4 gearing below the IP's 100 MHz floor. ODDRX4 at
@@ -3949,6 +3978,9 @@ Design the **seams**; file layout follows.
 - [ ] **PA10 external pull-down** — reframed: not a determinism nicety but *"the board
       appears dead for five seconds on every power-up."* Blocked on re-identifying
       the real PA10 net — the TP5 trace was wrong (TP5 is PB1).
+      **Net found 2026-10-28:** `/PA10` = MCU U1.L5 → R15 (not fitted) →
+      FPGA E3 (`rstb`), and J2 pin 4. Fitting R15 with the pull-down also
+      gives the MCU an FPGA reset (`system-startup.md` §1.6, O-S1).
 - [ ] **Version/name handshake** replacing the bare `"Kuntur-Headstage"` string match
       (`app_ble.c:582`) — a mismatched pair must report *"bridge v1.2 cannot talk to
       headstage v0.9"*, not scan forever in silence.
