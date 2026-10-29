@@ -497,19 +497,97 @@ agrees with the board's pull-up. `clkin` (L13) is driven by an
 oscillator; set `PULLMODE=NONE` on it.
 
 **R-C6 — status LEDs.** No MCU, so the operator reads start-up from the
-board's LEDs. Proposed (Manuel adjusts freely; the board has 14 spare):
+board's LEDs. *(Proposed 2026-10-28; made concrete 2026-10-29, Claude,
+for Manuel to adjust freely: names, pins, the module boundary.)*
 
-| LED | Meaning | Domain |
-|---|---|---|
-| 1 | heartbeat, ~1 Hz (supervisor alive) | `clkin` |
-| 2 | `pll0` locked (`lock_sync`) | `clkin` |
-| 3 | sweep in progress (`READY` and not `rdy`) | synchronised to `clkin` |
-| 4 | link up (`valid`; later the T5 link-up flag) | synchronised to `clkin` |
-| 5 | `cdr` gave up (`rdy` and not `valid`, `fail`) | synchronised to `clkin` |
+*The board (EB-02028 §7.3).* Fourteen green/yellow user LEDs in banks 1
+and 2, **lit when the pin is driven low**. Until `DONE` every user pin
+is high-impedance, so every LED is off before configuration. Today's
+design uses two: `led_out` on LED0 (E17) toggles `cnt0[21]` (2.9 Hz, not
+reset), and `led_out_2` on LED1 (F13) is `&kuntur_data_8b`, a link
+debug aid. Both are LVCMOS33 (bank 1 is 3.3 V), with no `.pdc` iobuf
+line needed.
 
-Every status bit crosses into `clkin` through two flops, like everything
-else the supervisor reads (§6.1). Later, the O8 console reports the same
-bits.
+| LED | Ball | Shows | Definition (all `clkin`, all off while `rst_n_sup` = 0) |
+|---|---|---|---|
+| LED0 | E17 | heartbeat: the supervisor runs | toggles every 2^23 `clkin` (0.70 s on, 0.70 s off); counter cleared by `rst_n_sup` |
+| LED1 | F13 | `pll0` locked | `lock_sync` |
+| LED2 | G13 | sweep in progress | `gddr_rdy && !rdy_s` |
+| LED3 | F14 | link up | `gddr_rdy && valid_s` (T5: the link-up flag instead) |
+| LED4 | L16 | `cdr` gave up | `gddr_rdy && rdy_s && !valid_s` |
+
+- `rdy_s`, `valid_s`: `cdr`'s `rdy` and `valid` (`wclk`) through two
+  `clkin` flops each, cleared by `rst_n_sup`. The two crossings are rows
+  X6 and X7 of the companion table in `lvds-tunnel.md` §6.4: first stage
+  of a 2-flop synchroniser, driven straight from a flop (`cdr_fsm`
+  registers both). Each LED is a single bit, so no bus is crossed.
+- `gddr_rdy` and `lock_sync` are already `clkin` signals.
+- **Why every receive LED is gated by `gddr_rdy`:** before `READY`,
+  `cdr` is held in reset, so `rdy` = 0 and LED2 would read "sweeping"
+  with no Kuntur at all. With the gate, LED2–LED4 are off until the
+  receive chain is up. It costs nothing on a link loss: `rdy` and
+  `valid` are cleared asynchronously by `cdr_rstb`, which falls with
+  `READY`, so they cannot freeze at 1 when `wclk` stops.
+- Each LED pin is driven from a flop (`led_n <= !on`), so nothing
+  combinational glitches onto a pin.
+
+What the operator sees:
+
+| Situation | LED0 | LED1 | LED2 | LED3 | LED4 |
+|---|---|---|---|---|---|
+| before `DONE` | off | off | off | off | off |
+| configured, no Kuntur or no cable | blinks | off | off | off | off |
+| Kuntur on, sweeping (about 2 s with N = 10,000, R-C4) | blinks | on | on | off | off |
+| link up | blinks | on | off | on | off |
+| sweep found no clean step | blinks | on | off | off | on |
+| cable out / Kuntur restart / Kuntur off | blinks | off | off | off | off |
+| SW2 held | off | off | off | off | off |
+
+LOCK may chatter while the PLL acquires (≤ 10 ms, `tLOCK`); on LED1
+that is a flicker too short to see.
+
+*Module boundary (proposal).* One module with no Lattice IP, in the top
+next to `reset_gen_adapter`, so the testbench can take it alone:
+
+```verilog
+module status_leds (
+  input  wire       clkin,      // 12 MHz board oscillator
+  input  wire       rst_n_sup,  // reset_gen_adapter
+  input  wire       lock_sync,  // reset_gen_adapter (clkin)
+  input  wire       gddr_rdy,   // gddr_sync READY (clkin)
+  input  wire       cdr_rdy,    // cdr rdy   (wclk)
+  input  wire       cdr_valid,  // cdr valid (wclk)
+  output reg  [4:0] led_n       // LED0..LED4, active low
+);
+```
+
+Its flops all reset to 0 except `led_n`, which resets to 1 (off): five
+`FD1P3BX` and nothing else preset, for `check_powerup.py --one '^led_n'`.
+
+Decided 2026-10-29 (Manuel): the `&kuntur_data_8b` debug LED goes; an
+LED for RHX activity is wanted (`spi0_csb` toggling, stretched to be
+visible: at a glance, the Intan controller is talking to the emulator),
+*deferred until after T3* (Manuel, 2026-10-29): T3 tests the link, not
+RHX. Proposed for then: LED5 (L15), on for 2^22 `clkin` (0.35 s) after
+each falling edge of `spi0_csb` (through 2 `clkin` flops; edges, so a
+`csb` stuck low with the Intan cable out does not light it).
+
+*Verification (Claude, once the RTL exists).* A unit testbench
+(`status_leds_tb.sv`): every row of the table above, the heartbeat
+period, all off at once on `rst_n_sup`, the two synchronisers (a
+change of `rdy` or `valid` reaches the pin on the third `clkin` edge:
+two synchroniser flops, then the LED flop; `lock_sync` and `gddr_rdy`
+on the first). *Done 2026-10-29: `intan_rec_adapter/source/impl_1/tb/
+status_leds_tb.sv`, ALL PASS on Manuel's `status_leds` (16:13 build)
+with seeds 1, 7, 42; its reference model passes and six mutants of it
+fail (no synchroniser, LED2 not gated by READY, active high, synchronous
+reset, heartbeat 2^21, LED4 without `!valid`). Build: `check_powerup.py
+status_leds --one '^led_n'` PASS (33 flops, the five `led_n` the only
+presets); 0 timing errors.* Then LED checks in
+`cdr_tb` parts 5 and 6, where the real chain runs: after each event the
+LEDs go link-up → off → LED1 → LED2 → LED3, never LED4; and one new
+part 5 event with `cdr`'s input held at 0 (as part 3, but with the chain
+in the loop) must end on LED4.
 
 **R-C7 — JP2 installed.** The supervisor's 12 MHz clock is the FTDI
 oscillator, reaching L13 only through JP2 (installed by default). Removing
