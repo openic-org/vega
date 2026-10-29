@@ -1240,6 +1240,8 @@ at the 25 kSPS bring-up rate), and the LIFCL PLL's reference input has an
     | X3 | `cdr_go` (`clkin`) → `wclk` | `rst_gen_0/cdr_rstb`, `cdr_rstb_1` asynchronous clear | assertion is meant to be immediate; release is retimed by the two `wclk` flops |
     | X4 | `cdr_rstb` (`wclk`) → `clkin` | `cdr0/pll_phasestep_reg`, `pll_phasestep_sync` asynchronous clear | both reset to 1 and their input is 1 at reset, so a late release cannot change them |
     | X5 | `fsm0/phasestep_reg` (`wclk`) → `clkin` | `cdr0/pll_phasestep_reg` data | first stage of a 2-flop synchroniser, driven straight from a flop (rules 1–4 under *Phase-step control*) |
+    | X6 | `cdr` `rdy` (`wclk`) → `clkin` | first `status_leds` synchroniser flop, data | *(R-C6 of `system-startup.md`; built 2026-10-29, `status_leds/rdy_q`)* first stage of a 2-flop synchroniser, driven straight from a `cdr_fsm` flop; one bit, to an LED |
+    | X7 | `cdr` `valid` (`wclk`) → `clkin` | `status_leds/valid_q`, first flop, data | same; read with `rdy`, but each LED term tolerates the two bits arriving one `clkin` apart (a one-cycle wrong state on a LED) |
 
     Not crossings, for completeness: `pll_lock` enters both domains
     through their own 2-flop synchronisers (`lock_sync` in
