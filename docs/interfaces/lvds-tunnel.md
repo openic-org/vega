@@ -1099,7 +1099,9 @@ at the 25 kSPS bring-up rate), and the LIFCL PLL's reference input has an
 
       *(T2, decided 2026-10-28, Manuel.)* **Lattice's `gddr_sync`** does
       it, instantiated as is (Radiant 2025.2.1,
-      `ip/lifcl/ddr/rtl/gddr_sync.v`; TN-02097 §9.1.1, which requires it
+      `ip/lifcl/ddr/rtl/gddr_sync.v`, copied unmodified to the kuntur
+      repo's `kuntur_fpga/source/impl_1/common/gddr_sync.v` on 2026-10-29
+      for both FPGAs; TN-02097 §9.1.1, which requires it
       "to tolerate the skew between the ECLKSYNCB Stop input and the
       Reset to the DDR and CLKDIV modules"). Its sequence, in `SYNC_CLK`
       cycles (from the source; the TN gives no timing):
@@ -1135,8 +1137,9 @@ at the 25 kSPS bring-up rate), and the LIFCL PLL's reference input has an
         returns (simulated 2026-10-28);
       - `STOP` → `ECLKSYNC.STOP` (`STOP_EN` = `"ENABLE"`);
       - `DDR_RESET` → `ECLKDIV.DIVRST` and `IDDRX4.RST`;
-      - `READY` → `cdr`'s reset: `cdr_rstb` = `rst_n_sup && READY`, asserted at
-        once and released through two `wclk` flops. `cdr`'s `clkin` flops
+      - `READY` → `cdr`'s reset: `cdr_rstb` = `rstb && READY`, asserted at
+        once and released through two `wclk` flops (`READY` already
+        falls with `rst_n_sup`, through `RST`; `system-startup.md` R-C8). `cdr`'s `clkin` flops
         (the `PHASESTEP` synchroniser) share it; their input equals
         their reset value (1) when it releases, so the release time does
         not matter to them. While in reset `PHASESTEP` stays high, so
@@ -1187,6 +1190,48 @@ at the 25 kSPS bring-up rate), and the LIFCL PLL's reference input has an
     module accepts interface clocks of 100–750 MHz only (TN-02097 §7.3,
     Table 7.2), and `ECLK` here is 38–46 MHz. The datasheet (DS-02049) gives
     `fMAX_GDDRX4` = 750 MHz and no minimum. O9 tracks the gap.
+  - **Timing constraints** *(Manuel, 2026-10-29; `intan_rec_adapter/
+    source/impl_1/impl_1.sdc`)*. Until 2026-10-29 the `.sdc` created only
+    `clkin` and `spi0_sck`, so `kuntur_clk_os` and `wclk` had period
+    +INF and nothing on the receive side was timed (1127 unconstrained
+    endpoints, "0 timing errors" meaningless for it). Now:
+
+    ```
+    create_clock -name {kuntur_clk} -period 21.9587176108915 [get_ports kuntur_clk]
+    set_clock_groups -asynchronous -group [get_clocks clkin] -group [get_clocks {kuntur_clk kuntur_clk_os wclk}] -group [get_clocks spi0_sck]
+    ```
+
+    - The period is the fastest the link has run, 45.54 MHz (before the
+      R1 retune to 42.504 MHz), so it covers both.
+    - Radiant derives `kuntur_clk_os` (PLL `CLKOS`) and `wclk` (`ECLKDIV`
+      ÷4, 87.835 ns) itself; no `create_generated_clock` is needed.
+    - The three Kuntur-derived clocks share one source and stay one
+      group, so `kuntur_clk_os` → `wclk` is still timed (+23.7 ns).
+    - Build of 2026-10-29 10:25: 0 setup and 0 hold errors at every
+      corner; `wclk` needs 9.1 ns of 87.8; coverage 94.7%. What stays
+      unconstrained: the `rstb` pin's asynchronous clears and the two
+      MISO outputs (no `set_output_delay`, a separate task).
+
+    **The clock groups hide every `clkin` ↔ Kuntur-clock path, including
+    a wrong one added later.** These crossings are safe because they are
+    the ones reviewed below; adding one means adding a row here and
+    reviewing it. Without the groups they were the build's 7 setup
+    failures (10:19 build), which is how this list was found and is the
+    way to check it again: remove the `set_clock_groups` line, build, and
+    every crossing endpoint must be a row of this table.
+
+    | # | From → to | Endpoint | Why no timing relation is needed |
+    |---|---|---|---|
+    | X1 | `gddr_sync.ddr_reset` (`clkin`) → `ECLK` | `ECLKDIV.DIVRST` | `gddr_sync` raises `STOP` 4 cycles before it moves `DDR_RESET` and holds it 4 after: the clock is stopped while it changes (TN-02097 §9.1.1) |
+    | X2 | same → `wclk` | `IDDRX4.RST` | same sequence |
+    | X3 | `cdr_go` (`clkin`) → `wclk` | `rst_gen_0/cdr_rstb`, `cdr_rstb_1` asynchronous clear | assertion is meant to be immediate; release is retimed by the two `wclk` flops |
+    | X4 | `cdr_rstb` (`wclk`) → `clkin` | `cdr0/pll_phasestep_reg`, `pll_phasestep_sync` asynchronous clear | both reset to 1 and their input is 1 at reset, so a late release cannot change them |
+    | X5 | `fsm0/phasestep_reg` (`wclk`) → `clkin` | `cdr0/pll_phasestep_reg` data | first stage of a 2-flop synchroniser, driven straight from a flop (rules 1–4 under *Phase-step control*) |
+
+    Not crossings, for completeness: `pll_lock` enters both domains
+    through their own 2-flop synchronisers (`lock_sync` in
+    `reset_gen_adapter` and in `cdr`); it has no launching clock, so
+    the timer never reported it.
 - **The price:** the forwarded clock no longer marks byte boundaries. The
   companion's `ECLKDIV` starts at an arbitrary phase relative to the byte
   stream, so the receiver has to find the boundary itself (§6.6).
@@ -1194,7 +1239,8 @@ at the 25 kSPS bring-up rate), and the LIFCL PLL's reference input has an
 **Everything in the tunnel is therefore an integer division of `clk`,**
 which is what §2.5's read-only tap needs: the serialiser reads
 `spi_master_rhd2164x2`'s capture registers with no synchroniser, no async
-FIFO, and no CDC exception in the `.sdc`.
+FIFO, and no CDC exception in Kuntur's `.sdc`. (The companion does have
+clock groups, for its receive side: *Timing constraints* above.)
 
 ### 6.5 Rate — the arithmetic
 
