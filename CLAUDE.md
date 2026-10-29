@@ -11,17 +11,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **`wb09ke-bridge/`** — NUCLEO-WB09KE firmware acting as BLE central → USB UART bridge for the PC app
 - **Companion FPGA** (LIFCL-40-EVN, RTL in the `kuntur` repo at `kuntur144/fpga/intan_rec_adapter/`) — wired path: receives the LVDS tunnel from Kuntur and emulates two RHD2164s to the Intan RHD Recording Controller. Contract: `docs/interfaces/lvds-tunnel.md`; status: PLAN.md A.4. The Intan-facing SPI slave passes RHX detection (2026-10-13).
 
-Tunnel status (2026-10-28):
-- **Transmitter:** on hardware, sending the K4.2 link test pattern.
-- **Receiver:** the whole `cdr` (aligner, error-counting checker, phase
-  sweep to the eye centre, lock loss) passes in simulation (`cdr_tb.sv`).
-  Not yet on hardware.
-- **Start-up (T2 and system):** specified 2026-10-28 for both ends in
-  `docs/interfaces/system-startup.md` (Kuntur: power-on reset + PLL lock,
-  MCU polls a status word; companion: a reset per clock domain, emulator
-  never reset by the link, sentinel until the link is up) and
-  `lvds-tunnel.md` §6.4 (`gddr_sync`). Not implemented. Next steps:
-  `log/2026-10-28.md`, *Where to pick up*.
+Tunnel status (2026-10-29):
+- **Link on hardware (T3, done for the animal test):** the companion locks
+  to Kuntur's K4.2 link test pattern by its own phase sweep (~2 s); the
+  first bit lands in `IDDRX4` `Q0` (O2b(a)); `IDDRX4` works at 45.54 MHz
+  (O9). Procedure `docs/bench/t3-link-bringup.md`, results and decisions
+  `log/2026-10-29.md`. Not yet carried: frames, CRC, samples (T4/T5).
+- **Start-up, both ends:** built (Manuel's RTL) and simulated
+  (`reset_gen_kuntur_tb`, `reset_gen_adapter_tb`, `cdr_tb` parts 5-6,
+  `status_leds_tb`); spec `docs/interfaces/system-startup.md`,
+  `lvds-tunnel.md` §6.4 (`gddr_sync`). The companion shows its state on
+  LED0-LED4 (R-C6). Deferred: the Kuntur status word (R-K5/R-K6), R-K3,
+  the R1 retune.
+- **Known limit, until after the animal test (O-S3):** the companion does
+  not always notice a Kuntur restart (MCU reset), and can stay on a stale
+  word boundary with LED3 lit; press SW2 after any Kuntur reset. Power
+  Kuntur first, then the companion (reverse to power down); never
+  hot-plug the pigtail (it carries power; DC-coupled LVDS).
 
 Shared: `log/`, `CLAUDE.md`.
 
