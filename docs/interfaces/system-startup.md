@@ -354,6 +354,111 @@ oscillator, reaching L13 only through JP2 (installed by default). Removing
 JP2 removes the companion's only always-running clock: no watchdog, no
 sentinel. A board requirement, for the bench setup notes and the runbook.
 
+**R-C8 — reset generator module** *(proposed 2026-10-29, Claude; named
+`reset_gen_adapter` by Manuel the same day, port `gddr_rdy`; Manuel
+adjusts the names and the boundary freely — the testbench follows)*. One
+module holds R-C1. `gddr_sync` stays outside it, in the top, so that the
+module has no Lattice IP inside:
+
+```verilog
+module reset_gen_adapter (   // SUP_CYCLES = 16, internal
+  input  wire clkin,      // 12 MHz board oscillator (supervisor clock)
+  input  wire rstb,       // SW2, active low, asynchronous
+  input  wire pll_lock,   // pll0 lock_o, asynchronous to clkin
+  input  wire wclk,       // receive word clock: stops (STOP), may be absent
+  input  wire gddr_rdy,   // gddr_sync READY
+  output wire rst_n_sup,  // supervisor reset, clkin domain
+  output wire lock_sync,  // pll_lock through 2 clkin flops -> gddr_sync START
+  output wire gddr_rst,   // -> gddr_sync RST
+  output wire cdr_rstb,   // receiver reset, wclk domain -> cdr rstb
+  output wire rst_n_emu   // emulator reset
+);
+```
+
+Ports:
+
+| Port | Dir | Active | Domain | Definition |
+|---|---|---|---|---|
+| `clkin` | in | — | — | 12 MHz board oscillator on L13, through JP2 (R-C7). Runs from `DONE` on, Kuntur or not. Clocks the supervisor, `lock_sync` and `gddr_sync`. |
+| `rstb` | in | low | async | SW2 on G14: board pull-up 10 kΩ, 10 nF to ground (τ = 100 µs, so a press is already debounced), `PULLMODE=UP` (R-C5). Low resets all three domains. |
+| `pll_lock` | in | high | async | `pll0.lock_o`, non-sticky. 0 with no `TUN_CLK`; chatters while the PLL acquires (≤ 10 ms, `tLOCK`). |
+| `wclk` | in | — | — | `ECLKDIV` ÷4, ≈ 10.6 MHz. Absent with Kuntur off or the cable out; stopped while `gddr_sync` holds `STOP`; restarts at an arbitrary phase after `DIVRST`. |
+| `gddr_rdy` | in | high | `clkin` | `gddr_sync` `READY`. 1 when the start-up sequence is done; falls at once on `RST`, or when `START` falls. |
+| `rst_n_sup` | out | low | `clkin` | Supervisor reset. 0 at once with `rstb`; released on a `clkin` edge after `SUP_CYCLES` with `rstb` high. Resets the watchdog, the link-down flag, the LEDs. Never depends on the link. |
+| `lock_sync` | out | high | `clkin` | `pll_lock` through 2 `clkin` flops, cleared by `rstb`. To `gddr_sync` `START`, LED 2, the supervisor. |
+| `gddr_rst` | out | high | `clkin` | `!rst_n_sup \|\| !lock_sync`, to `gddr_sync` `RST` (asynchronous). Holds `DDR_RESET` = 1, `READY` = 0 until both are up. |
+| `cdr_rstb` | out | low | `wclk` | Receiver reset: `rst_n_sup && gddr_rdy`, 0 at once, released through 2 `wclk` flops. To `cdr` `rstb` (its `wclk` logic and its `clkin` `PHASESTEP` synchroniser, §6.4). |
+| `rst_n_emu` | out | low | async | Emulator reset = `rstb`, nothing else. To `rhd2164x2_spi_slave_model`, `rhd2164_model_reg_ram` and the `data_tx` registers (`sck` domain). |
+
+**Power-up values come from the reset value, not from `initial`**
+*(checked 2026-10-29 in Radiant 2025.2.1)*. A Nexus flop's wake-up value
+is set by its primitive: `FD1P3DX` (async clear) and `FD1P3IX` (sync
+clear) have `REGSET = "RESET"` and wake up 0; `FD1P3BX` / `FD1P3JX`
+(preset) have `REGSET = "SET"` and wake up 1 (`cae_library/simulation/
+verilog/uaplatform/FD1P3*.v`). The configuration's wake-up asserts GSR to
+every flop with `GSR = "ENABLED"` (the default, and what synthesis
+writes: `intan_rec_adapter_impl_1.vm`). That wake-up GSR is the power-on
+reset; no `GSR` primitive is instantiated (one would add a user-pin GSR,
+which is not wanted; the current build's `GSR_INST` is undriven and
+clipped). Whether synthesis honours an `initial` value on a flop with no
+reset is not documented here, so the rule is:
+
+- **every flop of the generator has an asynchronous reset whose value is
+  its required power-up value** (0 here), so it maps to `FD1P3DX`;
+- **no initial values in the RTL** *(Manuel, 2026-10-29)*: the testbench
+  sets each register to its power-up value at t = 0, standing in for GSR
+  (`reset_gen_adapter_tb.sv`, *GSR stand-in*);
+- **no `GSR = "DISABLED"`** on any of them.
+
+**The check after synthesis** *(script added 2026-10-29)*: every
+generator flop in the `.vm` has `GSR = "ENABLED"` and is `FD1P3DX` or
+`FD1P3IX`, except `gddr_rst`, which is `FD1P3BX` (G5). It is scripted,
+and it is the REGSET check of R-K2 for both ends (kuntur repo, from
+`kuntur144/fpga`):
+
+```
+scripts/check_powerup.py intan_rec_adapter/impl_1/intan_rec_adapter_impl_1.vm reset_gen_adapter --one '^gddr_rst'
+scripts/check_powerup.py intan_rec_adapter/impl_1/intan_rec_adapter_impl_1.vm gddr_sync --one '^ddr_reset_d'
+```
+
+`gddr_sync`'s `ddr_reset_d` wakes up 1 by Lattice's design (set by
+`rst`), which holds `ECLKDIV` and `IDDRX4` in reset from configuration.
+Both pass on the 2026-10-29 10:25 build (11 and 12 flops).
+
+It walks the module and everything it instantiates in the netlist (which
+keeps the RTL hierarchy), and exits 0 on PASS, 1 on a wrong flop, 2 if the
+module is missing (not built yet, or its hierarchy dissolved:
+`syn_hier = "hard"` keeps it). `--one REGEX` names flops that must wake
+up 1. It warns when the RTL is newer than the netlist. Tried on the
+2026-10-28 builds: the companion's 549 flops (= a `grep` count) pass with
+its six intended presets named (`cdr`'s `PHASESTEP` synchroniser, two
+FSM state bits, the emulator's `cnt0`); Kuntur shows 11 presets, all
+FSM state bits or regbank defaults (channel bits, `stream_enable`). Simulation cannot see
+it: the testbench's mutant 8 (`lock_sync` with no reset, initial value
+only) fails there only through `rstb`, not through its power-up value.
+
+What the testbench holds it to (`tb/reset_gen_adapter_tb.sv`):
+
+| # | Requirement |
+|---|---|
+| G1 | Every flop but `gddr_rst` (G5) has initial value 0, so `rst_n_sup`, `lock_sync` and `cdr_rstb` are 0 at wake-up, with or without `clkin` running. |
+| G2 | `rst_n_sup` = 0 at once (no clock edge) whenever `rstb` = 0, however short the pulse. |
+| G3 | `rst_n_sup` rises on a `clkin` edge, after `SUP_CYCLES` (20 in the RTL) to `SUP_CYCLES` + 4 edges of `rstb` continuously high (room for a `rstb` synchroniser), and does rise. |
+| G4 | `lock_sync` = `pll_lock` through exactly 2 `clkin` flops, and 0 at once whenever `rstb` = 0. |
+| G5 | `gddr_rst` = `!rst_n_sup \|\| !lock_sync`, registered on `clkin` (Manuel's RTL, 2026-10-29): one `clkin` late, initial value 1, set to 1 at once by `rstb`. So it is a preset flop (`FD1P3BX`), the one generator flop that wakes up 1. |
+| G6 | `cdr_rstb` = 0 at once (no `wclk` edge) when `rst_n_sup` or `gddr_rdy` falls; rises on a `wclk` edge after 2 (at most 3) edges of both high. |
+| G7 | `rst_n_emu` = `rstb`, from t = 0 with no clock running, and nothing else: not `pll_lock`, `gddr_rdy`, `wclk`. |
+| G8 | With `gddr_sync` in the loop: `READY` 20–26 `clkin` edges after `rst_n_sup && lock_sync`, and back after every lock drop and every `rstb` press. |
+
+Two notes for the RTL:
+- *(Done 2026-10-29: Manuel registered `gddr_rst`, G5.)* An unregistered
+  `gddr_rst` ORs two `clkin` flops and can glitch low for a moment when
+  `rst_n_sup` rises on the same edge as `lock_sync` falls.
+- `cdr_rstb` and Kuntur's `block_gen` reset and `rst_n_clk` are the same
+  circuit (assert at once, release through 2 flops of the destination
+  clock). One small common module (e.g. `common/rst_sync.v`) would serve
+  all three.
+
 ### 2.4 Order with Kuntur and RHX (runbook material)
 
 | Event | Companion | Status |
@@ -380,15 +485,49 @@ JTAG loading, the same order applies with "programmed" for "`DONE`".
 
 ### 2.6 Verification
 
-- **`cdr_tb` part 5 (Claude, already planned for T2):** `gddr_sync` in
-  the loop; `DIVRST` at a new divider phase; `STOP` freezing the receive
-  clock; a lock drop re-running the sequence and the sweep.
+- **Reset generator testbench (Claude, 2026-10-29):**
+  `intan_rec_adapter/source/impl_1/tb/reset_gen_adapter_tb.sv`, checks
+  G1–G8 of R-C8 continuously. Scenarios: wake-up with no Kuntur; LOCK
+  chattering during acquisition; a sub-cycle glitch; a 2-cycle drop; cable
+  out 50 µs; a 20 ns `rstb` pulse; SW2 held 100 µs; SW2 with the cable
+  out; variants `clkin` 20 µs late and Kuntur locked before wake-up.
+  Passes against a behavioural model of R-C8 kept in the testbench
+  (`-DREF_MODEL`); nine deliberate mutants of it all fail. **Passes on
+  Manuel's `reset_gen_adapter` RTL (2026-10-29)**: all six runs (default,
+  `+late_clkin`, `+early_kuntur`, seeds 7, 42, 1234), after three fixes
+  the testbench found (`gddr_rst` cleared instead of set by `rstb`; no
+  power-up values in simulation, now set by the testbench; `cdr_go`
+  inverted). READY 25 `clkin` edges after `lock_sync`.
+- **Top-level integration (Manuel, 2026-10-29), checked by Claude:**
+  `rst_gen_0` and `u_gddr_sync` wired as in `lvds-tunnel.md` §6.4
+  (`STOP` → `ECLKSYNC`, `DDR_RESET` → `ECLKDIV.DIVRST` and `IDDRX4.RST`,
+  `cdr` on `cdr_rstb`, the emulator on `rst_n_emu`); `kuntur_rst` gone.
+  Build of 10:25: netlist check passes for both modules (§2.3 R-C8);
+  timing clean with the new receive-side constraints (`lvds-tunnel.md`
+  §6.4, *Timing constraints*). Not yet on hardware.
+- **`cdr_tb` part 5 (Claude, 2026-10-29):** the real
+  `reset_gen_adapter` and `gddr_sync` in the loop, wired as the top;
+  `STOP` gates the model's ECLK (glitch-free, on a falling edge),
+  `DDR_RESET` holds the ECLKDIV and IDDRX4 models. Four events from a
+  locked link: SW2 with Kuntur locking 20 µs late; `LOCK` low 1 µs;
+  cable out 50 µs; SW2 with `LOCK` held. After each: `READY` fell and
+  rose (26–27 `clkin` after `LOCK`, 46 after SW2), `cdr` was reset and
+  released 1–2 `wclk` after `READY`; the last `DDR_RESET` release before
+  `READY` came with ECLK stopped; no `PHASESTEP` pulse during reset; one
+  whole sweep (judged as part 2) locked at its centre; `bitsel` equal to
+  a fresh reference receiver's offset (it moved at every restart: a new
+  word boundary each time, as §6.4 says); `rst_n_emu` fell for SW2 only.
+  All pass, also with `+inj=4` (part 5 skipped) and `+start=100
+  +seed=7`. Three testbench mutants (ECLKSYNC ignoring `STOP`; `cdr`
+  reset by `rstb` alone; `gddr_sync` `RST` = `!rstb` alone) must fail:
+  see the run notes in `cdr_tb.sv`.
 - **Emulator reset independence (Claude, with T5's testbench):** a lock
   drop, a `READY` drop and a watchdog trip mid-SPI-word leave the register
   RAM and the detection answers unchanged; `CONVERT` answers `0x8000`
   from wake-up until the first valid frame.
 - **Radiant:** the REGSET check of R-K2, for the companion's supervisor
-  and emulator flops too; the pad report shows G14 `PULLMODE:UP`.
+  and emulator flops too. *Pad report, 10:42 build:* G14 `PULLMODE:UP`,
+  L13 (`clkin`) `PULLMODE:NONE`: R-C5 done.
 - **Bench:** boot from flash and time power-on to `DONE`; start RHX
   before and after `DONE`; plug and unplug the cable with RHX running and
   watch LEDs 2–4 and the sentinel rail.
