@@ -83,6 +83,24 @@ initial value, but nothing in that sequence knows about `clkin` or the PLL.
 6. Kuntur's `pll0` is regenerated with its lock output, at the same
    45.54 MHz; R1 keeps it when it retunes (also T2).
 
+*Added 2026-10-29 (Manuel), for the T3 bench test of the link:*
+
+7. **R1 (the 42.504 MHz retune) is deferred.** T3 runs at the current
+   45.54 MHz.
+8. **The status word is deferred:** R-K5, R-K6 and with them the MCU's
+   R-M3 and R-M4. For T3 the MCU needs nothing beyond MCO, which already
+   runs.
+9. **R-K3 comes after T3.** Moving the `clk` blocks onto `rst_n_clk`
+   changes the regbank's wake-up behaviour (its preset flops include
+   `stream_enable`, §2.3 R-C8), which T3 does not need. Until then they
+   stay on `rstb`.
+10. **A lock drop resets at once, with no clock** (R-K2). If the MCU
+    resets or is reflashed, MCO, and so `clkin`, stops; the PLL then
+    loses lock, but a `lock_sync` sampled on `clkin` could never fall.
+    So `!pll_lock` clears the generator asynchronously, like `rstb`.
+    Release stays synchronous. The companion does not need this: its
+    `clkin` is a free-running oscillator.
+
 ### 1.3 Kuntur FPGA requirements
 
 **R-K1 — `rstb` pin.** `PULLMODE=UP` on `rstb` in `impl_1.pdc`, so that it
@@ -94,15 +112,21 @@ gets an FPGA reset through it with no RTL change.
 reference; `clk` is the clock that is settling):
 
 ```
-lock_sync   = pll0.lock_o through 2 clkin flops   (initial value 0)
+lock_sync   = pll0.lock_o through 2 clkin flops   (power-up value 0;
+              cleared at once by rstb = 0 or pll_lock = 0)
 hold-off    = counter on clkin, cleared while lock_sync = 0 or rstb = 0,
               counts while lock_sync = 1, saturates at HOLDOFF
-rst_n_clkin = 1 when the counter has reached HOLDOFF  (initial value 0;
-              registered on clkin; cleared at once when lock_sync or rstb
-              falls)
+rst_n_clkin = 1 when the counter has reached HOLDOFF  (power-up value 0;
+              registered on clkin; cleared at once when pll_lock or rstb
+              falls, with no clkin edge: decision 10)
 rst_n_clk   = rst_n_clkin through 2 clk flops: asserted (0) at once,
-              released in step with clk                (initial value 0)
+              released in step with clk                (power-up value 0)
 ```
+
+*(Amended 2026-10-29: "initial value" now means power-up value, set by
+each flop's asynchronous reset value as on the companion, §2.3 R-C8; and
+the lock drop clears asynchronously, decision 10. The module, its ports
+and the checks are R-K7.)*
 
 - **`HOLDOFF` ≈ 1 ms** (32,768 `clkin` cycles). The PLL's lock time is
   ≤ 10 ms (DS-02049, `tLOCK`) and its `LOCK` is non-sticky
@@ -117,7 +141,7 @@ rst_n_clk   = rst_n_clkin through 2 clk flops: asserted (0) at once,
   one look at the map report, or a post-synthesis simulation. It is the
   only assumption in this section.
 
-**R-K3 — who uses it.** Every block that is reset by `rstb` today in the
+**R-K3 — who uses it** *(deferred until after T3, decision 9)*. Every block that is reset by `rstb` today in the
 `clk` domain is reset by `rst_n_clk` instead: the SPI slave and its
 controller, `main_controller`, the regbank's logic, `rhd2164_controller` and
 `spi_master_rhd2164x2`, `ch_sel`, the FIFO and its mux, the test-pattern
@@ -135,10 +159,18 @@ generator. Two consequences:
 replaces the `RST = !rstb || !lock_sync` given there for Kuntur; the
 companion keeps its own (§2).
 
-**R-K5 — RHD config done.** A flag set when `rhd2164_controller` finishes
+**While `RST` is high, `DDR_RESET` is high too** (`gddr_sync`'s
+`ddr_reset_d` is set by `rst`). So a Kuntur reset holds `ECLKDIV` and both
+`ODDRX4`s in reset and **`TUN_CLK` stops for the whole reset**: at least
+the 1.024 ms hold-off after a lock drop, then the 12 `STOP` cycles of the
+sequence (with a burst of about 90 ns of `TUN_CLK` just before them,
+`lvds-tunnel.md` §6.4). The companion's PLL loses lock every time, and
+re-runs its sequence and a sweep.
+
+**R-K5 — RHD config done** *(deferred, decision 8)*. A flag set when `rhd2164_controller` finishes
 the config table (leaves `op0d` for `op1a`) and cleared by `rst_n_clk`.
 
-**R-K6 — status word.** One **read-only** regbank word, returning live
+**R-K6 — status word** *(deferred, decision 8)*. One **read-only** regbank word, returning live
 status (not RAM), at an address Manuel chooses in the control region:
 
 | Bits | Meaning |
@@ -153,6 +185,85 @@ status (not RAM), at an address Manuel chooses in the control region:
 A later version can widen the ID into a bitstream version, which is what
 the PLAN's version/name handshake needs.
 
+**R-K7 — reset generator module and the T3 work** *(proposed 2026-10-29,
+Claude; agreed with Manuel the same day. Manuel names the module and the
+ports when the RTL is written; the testbench follows)*. One module holds
+R-K2, the counterpart of `reset_gen_adapter` (§2.3 R-C8). `gddr_sync`
+stays outside it, in the top.
+
+| Port | Dir | Active | Domain | Definition |
+|---|---|---|---|---|
+| `clkin` | in | — | — | 32 MHz MCO from the MCU (PB14 → R12 → G8). **May be absent at wake-up, and stops whenever the MCU resets or is reflashed.** Clocks the generator, `lock_sync` and `gddr_sync`. |
+| `rstb` | in | low | async | E3, R15 not fitted, `PULLMODE=UP` (R-K1): always high for now. Low resets everything. |
+| `pll_lock` | in | high | async | `pll0.lock_o`, non-sticky; chatters while the PLL acquires (≤ 10 ms). Falls when `clkin` stops. |
+| `clk` | in | — | — | `pll0` CLKOP, 45.54 MHz. Drifts and stops without `clkin`. |
+| `wclk` | in | — | — | `ECLKDIV` ÷4, 11.4 MHz. Stopped while `DDR_RESET` or `STOP` is high. |
+| `gddr_rdy` | in | high | `clkin` | `gddr_sync` `READY`; falls at once on `RST`. |
+| `lock_sync` | out | high | `clkin` | `pll_lock` through 2 `clkin` flops, cleared at once by `!rstb` or `!pll_lock`. To `gddr_sync` `START`. |
+| `rst_n_clkin` | out | low | `clkin` | System reset, `clkin` side: released after the hold-off, cleared at once by `!rstb` or `!pll_lock`. |
+| `gddr_rst` | out | high | `clkin` | `!rst_n_clkin`, registered; set at once by `!rstb` or `!pll_lock`. To `gddr_sync` `RST`. |
+| `rst_n_clk` | out | low | `clk` | Reset of the `clk` blocks (R-K3, consumers after T3). |
+| `blk_rstb` | out | low | `wclk` | `block_gen` reset: `rst_n_clkin && gddr_rdy`, 0 at once, released through 2 `wclk` flops (the circuit of the companion's `cdr_rstb`). |
+
+What the testbench holds it to (K1–K8, the counterparts of G1–G8):
+
+| # | Requirement |
+|---|---|
+| K1 | Every flop wakes up in reset, with or without `clkin`: all wake up 0 except `gddr_rst`, which wakes up 1. As on the companion: each flop's asynchronous reset value is its power-up value, no initial values in the RTL, no `GSR = "DISABLED"`; the testbench sets the power-up values (GSR stand-in). |
+| K2 | `lock_sync` = `pll_lock` through exactly 2 `clkin` flops; 0 at once (no clock edge) when `rstb` or `pll_lock` is 0. |
+| K3 | `rst_n_clkin` rises on a `clkin` edge after `HOLDOFF` (32,768) to `HOLDOFF` + 4 edges of `lock_sync` continuously 1 and `rstb` high, never sooner, and does rise. Every lock drop restarts the count. |
+| K4 | `rst_n_clkin` = 0 at once, with no `clkin` edge, when `rstb` or `pll_lock` falls, however short the pulse, **including with `clkin` stopped** (decision 10). |
+| K5 | `gddr_rst` = `!rst_n_clkin`, one `clkin` late, set to 1 at once by `!rstb` or `!pll_lock` (a preset flop, `FD1P3BX`). |
+| K6 | `rst_n_clk` = 0 at once when `rst_n_clkin` falls (no `clk` edge); rises on a `clk` edge after 2 (at most 3) `clk` edges of `rst_n_clkin` high. |
+| K7 | `blk_rstb` = 0 at once when `rst_n_clkin` or `gddr_rdy` falls (no `wclk` edge); rises on a `wclk` edge after 2 (at most 3) edges of both high. |
+| K8 | With `gddr_sync` in the loop: `READY` 20–26 `clkin` edges after `rst_n_clkin` rises, and back after every lock drop, every `rstb` pulse and every MCO stop. |
+
+*A runt on `LOCK`* can clear some generator flops and not others. Every
+outcome is still a clean reset of every domain (assertion asynchronous,
+release synchronous); at worst that one restart has a shorter hold-off.
+Accepted.
+
+**The T3 work, block by block** (Manuel's RTL and constraints unless
+marked Claude):
+
+1. **`pll0`:** regenerated with `LOCK_EN` and `lock_o` (decision 6),
+   nothing else changed: CLKOP 45.539955 MHz, CLKOS +90°, lock non-sticky.
+   Check that the `.sdc`'s `get_nets clk` and `get_nets clk90` still
+   resolve. **"Enable reference clock pin" must be off**
+   (`gui_en_refclk_pin` false, `PLL_REFCLK_FROM_PIN(0)`): with it on, the
+   IP puts its own `BB` on `clki_i`, and once the fabric also uses
+   `clkin` synthesis fails with "Multiple Non-Tristate drivers exist for
+   net clkin" (found 2026-10-29). The pad's `IO_TYPE` then comes from
+   `impl_1.pdc` alone. *Done 2026-10-29 (Manuel).*
+2. **The generator** above.
+3. **`gddr_sync`:** `common/gddr_sync.v`, with `RST` = `gddr_rst`,
+   `SYNC_CLK` = `clkin`, `START` = `lock_sync`. `STOP` → `eclksync_0.STOP`
+   (tied to `1'b0` today); `DDR_RESET` → `eclkdiv_0.DIVRST`,
+   `oddrx4_0.RST` (`tun_clk`) and `oddrx4_1.RST` (`tun_data`), which
+   replaces `tun_rst = ~rstb`.
+4. **`block_gen`:** reset by `blk_rstb` instead of `rstb`; nothing else
+   changes. It sends 0x00 on a running clock until released, then starts
+   with the A5 5A preamble.
+5. **`impl_1.pdc`:** R-K1, `PULLMODE=UP` on `rstb` (E3; `NONE` today, and
+   with R15 not fitted the pin floats). `clkin` (G8) stays
+   `PULLMODE=NONE`.
+6. **`impl_1.sdc`:** clock groups and a reviewed crossing table
+   (`lvds-tunnel.md` §6.4, *Timing constraints*, Kuntur). *Done 2026-10-29 (Manuel), 0 timing
+   errors.*
+7. **Checks after the build (Claude):** `check_powerup.py` on the
+   generator (`--one '^gddr_rst'`) and on `gddr_sync`
+   (`--one '^ddr_reset_d'`), with
+   `kuntur_fpga/impl_1/kuntur_fpga_impl_1.vm`; pad report E3
+   `PULLMODE:UP`; the timing report against the crossing table.
+8. **Testbenches (Claude):** §1.7.
+
+Not in T3: R-K3 (decision 9), R-K5/R-K6 (decision 8), R1 (decision 7).
+On the bench Kuntur has no LEDs and no status word, so its side is read
+with a scope at the uHDMI connector: `TUN_CLK` running means locked,
+hold-off done and `STOP` released; A5 5A on `TUN_DATA` means `block_gen`
+was released. Reveal if more is needed. `cmd_is_00` is not reused, since
+that would bring back the T3.3 debug hijack.
+
 ### 1.4 Kuntur MCU requirements
 
 **R-M1 — debug delay.** `HAL_Delay(5000)` only in a development build (a
@@ -161,14 +272,16 @@ the PLAN's version/name handshake needs.
 **R-M2 — MCO first.** Start MCO as early as `main()` allows (it already
 is: before the delay).
 
-**R-M3 — poll, don't wait.** After MCO starts, read the status word every
+**R-M3 — poll, don't wait** *(deferred with the status word,
+decision 8)*. After MCO starts, read the status word every
 1 ms until the ID matches and bits 0–3 are all 1, with a 100 ms timeout.
 - On success: log the time taken, carry on (BLE, advertising).
 - On timeout: log the word read, carry on anyway, and keep the
   "not ready" state (R-M4). The headstage must still be reachable over BLE
   to be diagnosed.
 
-**R-M4 — refuse to stream when not ready.** `START_STREAMING` reads the
+**R-M4 — refuse to stream when not ready** *(deferred, decision 8)*.
+`START_STREAMING` reads the
 status word first (it runs in the streaming-stopped branch, where regbank
 access is already allowed) and answers `success = 0` if it is not all
 ready. `SET_CHANNELS` and the register console are unaffected.
@@ -185,7 +298,7 @@ later item.
 |---|---|---|
 | 0 | power-on | power-on reset, configuration from flash |
 | a few ms | application starts *(if PA10 reads low, O-S1)*; MCO on | wakes up; `rst_n_*` = 0, logic held in reset |
-| + ≤ 10 ms | polls the status word | PLL locks; 1 ms hold-off; reset released |
+| + ≤ 10 ms | polls the status word *(deferred, decision 8)* | PLL locks; 1 ms hold-off; reset released |
 | + < 1 ms | | RHD config (≈ 25 commands); tunnel `gddr_sync` (23 `clkin` cycles); status bits set |
 | ≈ 20 ms | status OK; BLE up, ready to stream | waits for `stream_enable` |
 
@@ -220,12 +333,61 @@ which is PB1.)
 
 ### 1.7 Verification
 
-- **Reset generator testbench (Claude):** `clkin` starting before and
-  after wake-up; `LOCK` toggling during acquisition; a short and a long
-  lock drop mid-run; `rstb` low. Checks: no release before `HOLDOFF`
-  cycles of continuous lock; release synchronous to `clk`; immediate
-  assertion on any drop; initial state in reset.
-- **Radiant:** the REGSET check of R-K2.
+- **Reset generator testbench (Claude):** checks K1–K8 of R-K7
+  continuously, reusing the companion testbench's structure (`rst_check`,
+  GSR stand-in, a behavioural reference model and deliberate mutants of
+  it, all of which must fail). Scenarios: `clkin` starting after
+  wake-up; Kuntur already locked at wake-up; `LOCK` chattering during
+  acquisition; the hold-off edge (no release at 32,767 cycles, release by
+  32,772); a sub-cycle and a long lock drop; a `rstb` pulse; **MCO
+  stopping mid-run** (`clkin` stops, `LOCK` falls some µs later, MCO
+  returns: K4 with no clock).
+  *Written 2026-10-29:* `kuntur_fpga/source/impl_1/tb/reset_gen_kuntur_tb.sv`
+  (placeholder DUT name `reset_gen_kuntur`, R-K7's ports), with the
+  checker in `tb/rst_check.sv`, now shared with the companion's testbench.
+  Passes against its reference model (`-DREF_MODEL`; default,
+  `+late_clkin`, `+early_kuntur`, seeds 7, 42, 1234; READY 25 `clkin`
+  after `rst_n_clkin`); ten mutants all fail, among them a release after
+  32,767 edges and a lock drop cleared synchronously only. Not yet run on
+  RTL: the GSR stand-in needs the RTL's register names.
+  **Passes on Manuel's `reset_gen_kuntur` RTL (2026-10-29 13:28)**, all
+  six runs, after two rounds the testbench and the netlist found:
+  `lock_sync` cleared by `rstb && lock_sync` (it could never rise), and a
+  one-cycle supervisor in place of the hold-off, which LSE folded to a
+  constant together with `gddr_sync` and all of `block_gen`. Build of
+  13:28: `check_powerup.py` passes for `reset_gen_kuntur` (22 flops,
+  `--one '^gddr_rst'`) and `gddr_sync` (12, `--one '^ddr_reset_d'`);
+  pad report E3 `PULLMODE:UP` (R-K1 done). Without clock groups the
+  build has 5 setup failures, exactly K-X1 to K-X3 of `lvds-tunnel.md`
+  §6.4 (K-X4 has no endpoint until R-K3 gives `rst_n_clk` a load). Build of 13:38, with the clock-group line: 0 setup and 0 hold
+  errors at all three corners.
+- **`cdr_tb`, transmitter side (Claude):** Kuntur's generator,
+  `gddr_sync` and `block_gen`'s release in front of the receiver. A Kuntur
+  restart (lock drop, MCO stop) stops `TUN_CLK` for the whole reset; the
+  companion must lose lock, re-run its sequence and lock to a clean first
+  block. *Written 2026-10-29 as `cdr_tb` part 6, on Manuel's RTL of
+  13:28; ALL PASS.* Three Kuntur events from a locked link (`rstb` low
+  100 µs; `pll0` LOCK low 1 µs; MCO stopped 100 µs), with the companion's
+  chain of part 5 in the loop and its LOCK following `TUN_CLK` (low after
+  1 µs without an edge, high after 20 µs of clock). After each: Kuntur's
+  READY fell and rose, `block_gen` was reset, the last `DDR_RESET`
+  release came with the transmit ECLK stopped, `TUN_CLK` was stopped
+  1.025–1.143 ms (≥ the hold-off), and `block_gen`'s first 16 bytes are
+  two whole blocks, cnt 0 and 1; on the companion, part 5's checks
+  (READY, `cdr` reset and one whole sweep to the centre, `bitsel` right,
+  emulator not reset). Mutants `MUT6=1, 2, 4` (transmit ECLKSYNC ignores
+  STOP; `block_gen` on `rstb`; Kuntur's `gddr_sync` on `!rstb`) each
+  fail. `MUT6=3` (the companion's LOCK held through the restart) shows the
+  one dependency left: `cdr` stays `rdy` and `valid` on the old `bitsel`
+  (1, where the link now needs 2 or 0) and never recovers, because `cdr`
+  re-sweeps only on a LOCK drop, not on data errors. So the recovery rests
+  on the companion's PLL dropping LOCK when `TUN_CLK` stops for ≥ 1 ms:
+  a bench check for T3 (pull Kuntur's `rstb` with the link up, watch the
+  companion's LOCK and `cdr` restart). Found on the way: `kuntur_fpga.v` now includes `gddr_sync.v`,
+  whose `` `timescale 100 fs `` reached `cdr_tb`'s own modules (part 1
+  failed). Manuel removed that line from `gddr_sync.v` (it has no
+  delays, so it set nothing but the time unit of what came after it).
+- **Radiant:** the REGSET check of R-K2 (R-K7 item 7).
 - **Bench:** power-on to status-OK time on the MCU's UART, with and
   without the debug delay; status bits after an MCO stop and restart
   (a lock loss).

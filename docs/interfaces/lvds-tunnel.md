@@ -1008,15 +1008,28 @@ at the 25 kSPS bring-up rate), and the LIFCL PLL's reference input has an
     `!lock_sync`;
   - `STOP` → `ECLKSYNC.STOP`; `DDR_RESET` → `ECLKDIV.DIVRST` and both
     `ODDRX4.RST`s;
-  - `READY` → `block_gen`'s reset: `rstb && READY`, asserted at once and
-    released through two `wclk` flops, so the pattern starts on a running
-    clock (the K4.2 open item);
+  - `READY` → `block_gen`'s reset: `rst_n_clkin && READY` *(was
+    `rstb && READY`; amended 2026-10-29, `system-startup.md` R-K7)*,
+    asserted at once and released through two `wclk` flops, so the
+    pattern starts on a running clock (the K4.2 open item);
   - nothing else waits for `READY`. The rest of Kuntur's logic is reset
     by `rst_n_clk` (`system-startup.md` §1.3), not by `rstb`.
 
-  No handshake between the ends. Kuntur's sequence stops `TUN_CLK` for
-  about 1 µs (12 cycles of 32 MHz); the companion may lose `LOCK`, which
-  reruns its own sequence and a new sweep.
+  No handshake between the ends. **A Kuntur reset stops `TUN_CLK` for
+  the whole reset**, not just the sequence: `DDR_RESET` is high while
+  `RST` is, so the clock is held for at least the 1.024 ms hold-off after
+  a lock drop, plus the sequence's 12 `STOP` cycles (375 ns). *(Corrected
+  2026-10-29: this said "about 1 µs (12 cycles of 32 MHz)", which counted
+  the sequence only, and 12 cycles of 32 MHz are 375 ns.)* One detail
+  inside that: when `RST` falls, `gddr_sync`'s INIT state releases
+  `DDR_RESET` once with `STOP` still low, so `TUN_CLK` runs for about
+  90 ns (4–5 cycles) before `STOP` stops it and the real `STOP` →
+  `DDR_RESET` → release sequence follows. That burst carries no data
+  (`block_gen` is still in reset) and is far shorter than the
+  companion's lock time; the companion does the same on its side
+  (`cdr_tb` part 5 judges only the last release before `READY` for that
+  reason). The companion loses `LOCK` every time, which reruns its own
+  sequence and a new sweep. *Simulated 2026-10-29: `cdr_tb` part 6.*
 - **Companion side:** the PLL locks to `TUN_CLK` on `LLC_GPLL0T_IN` and
   supplies a **phase-shifted** `ECLK` for `IDDRX4`, which moves the
   sampling edge into the middle of the data eye. The phase comes from the
@@ -1232,6 +1245,41 @@ at the 25 kSPS bring-up rate), and the LIFCL PLL's reference input has an
     through their own 2-flop synchronisers (`lock_sync` in
     `reset_gen_adapter` and in `cdr`); it has no launching clock, so
     the timer never reported it.
+  - **Timing constraints, Kuntur** *(specified 2026-10-29, for T3; in
+    `kuntur_fpga/source/impl_1/impl_1.sdc` since the 13:38 build, 0 timing
+    errors)*. Before the generator, `clkin` drove only `pll0`, and the
+    `.sdc` comment said so ("no clock-group statement is needed"). With
+    the generator and `gddr_sync` on `clkin` that stops being true, and
+    the comment goes. The line:
+
+    ```
+    set_clock_groups -asynchronous -group [get_clocks clkin] -group [get_clocks {clk clk90 spi1_sck}]
+    ```
+
+    `clk`, `clk90`, `spi1_sck` and `wclk` share `pll0`, so they stay one
+    group and stay timed against each other (the §2.5 tap depends on it).
+    `wclk` is not named: the `.sdc` does not create it. Radiant derives it
+    from `ECLKDIV` later (`create_generated_clock … -source ECLKIN`), so at
+    the time the line is read `get_clocks wclk` matches nothing and gives
+    `WARNING 1026001/1027013 "No clock matched 'wclk'"`. As a clock
+    generated from `clk`, `wclk` joins `clk`'s group anyway: the 13:38
+    `.twr` reports `clkin` ↔ `wclk` as *False path* both ways, and
+    `wclk` → `clk` still timed (+63.8 ns).
+    The rule is the companion's: build once without the line, and every
+    crossing endpoint must be a row here. Expected:
+
+    | # | From → to | Endpoint | Why no timing relation is needed |
+    |---|---|---|---|
+    | K-X1 | `gddr_sync.ddr_reset` (`clkin`) → `ECLK` | `ECLKDIV.DIVRST` | as X1: `STOP` is high while it changes |
+    | K-X2 | same → `wclk` / `ECLK` | `ODDRX4.RST`, both instances | same sequence |
+    | K-X3 | `rst_n_clkin`, `gddr_rdy` (`clkin`) → `wclk` | `blk_rstb` flops, asynchronous clear | assertion is meant to be immediate; release is retimed by the two `wclk` flops |
+    | K-X4 | `rst_n_clkin` (`clkin`) → `clk` | `rst_n_clk` flops, asynchronous clear | same, two `clk` flops |
+
+    If a synchroniser takes its first flop's D from the other domain
+    (rather than a constant 1), that input is a fifth row. `pll_lock` and
+    `rstb` have no launching clock (`rstb` is already a false path), so
+    their asynchronous clears of the generator are not reported; they
+    are covered by K4 of `system-startup.md` R-K7.
 - **The price:** the forwarded clock no longer marks byte boundaries. The
   companion's `ECLKDIV` starts at an arbitrary phase relative to the byte
   stream, so the receiver has to find the boundary itself (§6.6).
@@ -1239,8 +1287,9 @@ at the 25 kSPS bring-up rate), and the LIFCL PLL's reference input has an
 **Everything in the tunnel is therefore an integer division of `clk`,**
 which is what §2.5's read-only tap needs: the serialiser reads
 `spi_master_rhd2164x2`'s capture registers with no synchroniser, no async
-FIFO, and no CDC exception in Kuntur's `.sdc`. (The companion does have
-clock groups, for its receive side: *Timing constraints* above.)
+FIFO, and no CDC exception in Kuntur's `.sdc` for the data path. (Both ends
+have clock groups for their start-up logic on `clkin`: *Timing
+constraints* above.)
 
 ### 6.5 Rate — the arithmetic
 
