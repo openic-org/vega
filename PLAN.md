@@ -191,7 +191,7 @@ Framed as tasks and dependencies; the two dates above are the only anchors.
 |---|---|---|---|
 | T1 | Receiver locks in simulation: `cdr_fsm` fixes, byte phase output, checker, sweep controller + pin-level PLL `PHASESTEP` model (model: Claude) | — | **done in simulation 2026-10-28**: sweep with error count, go to the centre, re-lock, lock loss; `cdr_tb` ALL PASS on every run (A.4 "Receiver"). Next for the receiver: T2, then T3 on hardware |
 | T2 | Start-up sequence both ends: K3.4 + `block_gen` reset synchroniser; companion LOCK → STOP → DIVRST/`IDDRX4.RST` → clear STOP | — | **specified 2026-10-28** (§6.4): Lattice `gddr_sync` on both ends, `SYNC_CLK` = each board's `clkin`, `START` = PLL lock (Kuntur `pll0` regenerated with `lock_o`, Manuel), `READY` releases `cdr` / `block_gen`. RTL Manuel; sequencer tb Claude |
-| T3 | Hardware lock to K4.2; O2b(a) Q0 vs Q7; O9 `IDDRX4` at 45 MHz | T1, T2 | open. **Risk:** if O9 fails, the `IDDRX1` + 2:8 fallback reworks T1 |
+| T3 | Hardware lock to K4.2; O2b(a) Q0 vs Q7; O9 `IDDRX4` at 45 MHz | T1, T2 | **done for the animal test 2026-10-29** (`docs/bench/t3-link-bringup.md`, `log/2026-10-29.md`): locks by its own sweep (~2 s), O2b(a) = `Q0`, O9: `IDDRX4` works at 45.54 MHz, SW2 recovery works. Open after A3: O-S3 (a Kuntur restart is not always seen by the companion), S5b/S8 (power-cycling with the DC-coupled cable in) |
 | T4 | Spec gaps G1–G3, then K5–K8 (capture buffer, frame builder + CRC-32, flags/`CONFIG`, testbench); K4.3 | G1–G3 | not started |
 | T5 | Companion: frame receive + CRC check, triple buffer, `CONVERT(C)` from the buffer, offset binary + sentinel (§9.2, §9.5) | T3, T4 | not started |
 | T6 | `SAMPLE` through the emulator to RHX on hardware; O3 (BLE streaming with the tunnel on) | T5 | — |
@@ -206,7 +206,7 @@ Framed as tasks and dependencies; the two dates above are the only anchors.
 | R1 | Kuntur rebuild: PLL 42.504 MHz + fH 7.5 kHz + A.7 step 1 counter | — | committed, never applied |
 | R2 | Telemetry `0xFFF4` (zero frames): first check whether the 2026-09-04 firmware was ever flashed; then the trace bridge build | R1's bench session | open |
 | R3 | chip0 disposition | — | no fix; mitigation is the plan: warm-up-and-verify, liveness detector armed, both animal-test channels on chip1 |
-| R4 | Animal-test runbook + recording checklist (Claude) | R3 | not drafted |
+| R4 | Animal-test runbook + recording checklist (Claude) | R3 | not drafted. Items from T3 collected in `log/2026-10-29.md` (power order Kuntur → companion, reverse to power down; no hot-plugging the pigtail; SW2 after a Kuntur reset; all bitstreams in flash beforehand) |
 | R5 | Dress rehearsal: cold start → warm-up-verify → ≥ 1 h on both paths, by the runbook; then freeze and tag bitstreams + firmware | T9, R1, R2, R4 | — |
 | — | **A3**, week of 2026-11-30 | R5 | — |
 

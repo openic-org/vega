@@ -93,22 +93,28 @@ says link up**. Record that as a T3 finding (it needs a data-error
 re-sweep in `cdr`, Manuel's call).
 - S5a: reset Kuntur's MCU (NRST). MCO stops, Kuntur's LOCK falls, its
   generator holds off, `TUN_CLK` stops for the whole reset.
-- S5b: power-cycle Kuntur.
+- S5b: power-cycle Kuntur. *Not with the cable in* (Manuel,
+  2026-10-29): the LVDS is DC-coupled, and switching one board off with
+  the cable connected can damage the chips. Deferred until a safe way is
+  worked out.
 - S5c: if E3 (Kuntur `rstb`, the MCU's PA10 through R15) is reachable:
   pull it low for a moment with the MCU running. Optional.
 - Expect each time: LED3 off, LED2 ~2 s, LED3.
 
-**S6 — cable out / in.** Unplug the pigtail for a few seconds, plug it in.
-- Expect: LED1–LED3 off while out (LED0 keeps blinking); on re-insertion
-  LED1, LED2 ~2 s, LED3.
+**S6 — cable out / in.** *Not to be run with power on* (Manuel,
+2026-10-29): the pigtail carries power, hot-plugging it can damage the
+chips, and the micro-HDMI needs force to remove. Kept for a setup with a
+cable that does not carry power; the expected result would be LED1–LED3
+off while out, then LED1, LED2 ~2 s, LED3.
 
 **S7 — SW2 with the link up.**
 - Expect: all off while held; on release LED1, LED2 ~2 s, LED3. (The
   emulator is reset too, by design; nothing on the Intan side is
   connected in T3.)
 
-**S8 — repeatability.** Power-cycle both boards five times, in either
-order. Each time: LED3 or LED4, and the sweep time.
+**S8 — repeatability.** *Deferred until after the animal test.* Power-cycle
+both boards five times, in either order (within the power-sequencing
+limits of S5b). Each time: LED3 or LED4, and the sweep time.
 
 ## 4. If it gives up (LED4)
 
