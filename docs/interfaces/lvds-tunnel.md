@@ -3,7 +3,7 @@
 **Status: DRAFT 2026-09-02; partly implemented.** *2026-10-13:* the
 companion's Intan-facing SPI slave (§9.1a, §9.1b) passes RHX detection on
 hardware, from a register ROM; the tunnel itself is not yet built. *2026-11-02:* spec gaps G1–G5 closed for K5–K7
-(§4.3.1 slot alignment, §4.4 `CONFIG`, §4.4a `STATUS` (proposed), §4.7
+(§4.3.1 slot alignment, §4.4 `CONFIG`, §4.4a `STATUS`, §4.7
 wire sharing and idle, §6.6 *Frame mode*: fixed phase in operation). Written before any RTL, per
 PLAN.md working principle 5 and the standing rule that cross-boundary
 interfaces get a spec first. This is PLAN.md **A.4**'s first checkbox
@@ -893,7 +893,7 @@ Rules:
   answering (chip0, PLAN.md A.1.2) is not seen here either. Copying a
   value across a cable does not make it truer.
 
-### 4.4a `STATUS` (`0x03`) — Kuntur-side state *(G3, proposed 2026-11-02, Claude; Manuel to confirm)*
+### 4.4a `STATUS` (`0x03`) — Kuntur-side state *(G3, agreed 2026-11-02, Manuel)*
 
 The companion has no way to ask Kuntur anything (§3.3). `STATUS` is what
 Kuntur tells it unasked, for the companion's console (O8) and log. It
@@ -901,7 +901,7 @@ gates nothing: a companion that ignores `STATUS` still serves correct
 data.
 
 ```
-payload[0..1]   uint16  design_id        # constant; R-K6's ID, later a bitstream version
+payload[0..1]   uint16  design_id        # {variant[3:0], release[11:0]}, below
 payload[2]      uint8   valid            # bit0 fifo0_overflow_samples, bit1 alt_answer,
                                          # bit2 RHD config done (R-K5); bits 7:3 zero
 payload[3]      uint8   reserved, zero
@@ -923,6 +923,26 @@ payload[14..17] uint32  fifo0_overflow_samples   # saturating; 0 while valid.bit
   and the field reads 0, so "cannot be read" does not look like "read as
   zero" (the rule `stream-packet-format.md` §6.2 sets for the BLE
   telemetry frame's `fpga_counters_valid`). This closes the open note in `log/2026-10-20.md`.
+- **`design_id`** *(agreed 2026-11-02)*. Which Kuntur bitstream this
+  is. The same value goes into R-K6's status word when that is built
+  (`system-startup.md`), so the MCU and pc-app can read it too.
+
+  | Bits | Field | Set by |
+  |---|---|---|
+  | 15:12 | `variant`: 1 = 28 kSPS (`clk` 42.504 MHz); 2 = 25 kSPS operating (frames); 3 = 25 kSPS bench (K4.2 pattern). 0 and F are never used | **The build**: derived from the same `localparam`s that select the PLL and pattern/frames, never typed separately |
+  | 11:0 | `release`: 1, 2, 3, …; **0 = development build** | **By hand**, one `` `define `` (`` `KUNTUR_RELEASE ``) |
+
+  - **Bump `release`** for every bitstream flashed for a session whose
+    data is kept (logged bench runs, R5, the animal test). Iteration
+    builds stay at 0. Builds of different variants from the same commit
+    share a `release`.
+  - **Release 1** is the first such build that contains the `` `define ``.
+    Earlier bitstreams have no ID and are identified by their SHA-256 in
+    the logs.
+  - **`0x0000` and `0xFFFF` can never be valid**, since variants 0 and F
+    are reserved, so a stuck or floating bus cannot read as a build.
+  - Every release is recorded in `docs/releases.md`.
+  - Variant 3 sends no frames, so it is seen only through R-K6.
 - **Nothing else from R-K6 is here.** Its *locked*, *reset released* and
   *tunnel ready* bits are true by construction whenever Kuntur is
   sending a frame at all.
