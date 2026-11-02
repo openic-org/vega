@@ -183,7 +183,11 @@ status (not RAM), at an address Manuel chooses in the control region:
 | 0 | PLL locked (`lock_sync`) |
 
 A later version can widen the ID into a bitstream version, which is what
-the PLAN's version/name handshake needs.
+the PLAN's version/name handshake needs. *(2026-11-02:* decided: when R-K6 is
+built, the word carries the 16-bit `design_id` of `lvds-tunnel.md`
+§4.4a, `{variant, release}`, in place of the 8-bit constant; the status
+bits then need a second word. The pc-app can check `variant` against its
+rate setting, PLAN.md R7.)*
 
 **R-K7 — reset generator module and the T3 work** *(proposed 2026-10-29,
 Claude; agreed with Manuel the same day. Manuel names the module and the
