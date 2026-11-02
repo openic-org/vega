@@ -192,7 +192,7 @@ Framed as tasks and dependencies; the two dates above are the only anchors.
 | T1 | Receiver locks in simulation: `cdr_fsm` fixes, byte phase output, checker, sweep controller + pin-level PLL `PHASESTEP` model (model: Claude) | — | **done in simulation 2026-10-28**: sweep with error count, go to the centre, re-lock, lock loss; `cdr_tb` ALL PASS on every run (A.4 "Receiver"). Next for the receiver: T2, then T3 on hardware |
 | T2 | Start-up sequence both ends: K3.4 + `block_gen` reset synchroniser; companion LOCK → STOP → DIVRST/`IDDRX4.RST` → clear STOP | — | **specified 2026-10-28** (§6.4): Lattice `gddr_sync` on both ends, `SYNC_CLK` = each board's `clkin`, `START` = PLL lock (Kuntur `pll0` regenerated with `lock_o`, Manuel), `READY` releases `cdr` / `block_gen`. RTL Manuel; sequencer tb Claude |
 | T3 | Hardware lock to K4.2; O2b(a) Q0 vs Q7; O9 `IDDRX4` at 45 MHz | T1, T2 | **done for the animal test 2026-10-29** (`docs/bench/t3-link-bringup.md`, `log/2026-10-29.md`): locks by its own sweep (~2 s), O2b(a) = `Q0`, O9: `IDDRX4` works at 45.54 MHz, SW2 recovery works. Open after A3: O-S3 (a Kuntur restart is not always seen by the companion), S5b/S8 (power-cycling with the DC-coupled cable in) |
-| T4 | Spec gaps G1–G3, then K5–K8 (capture buffer, frame builder + CRC-32, flags/`CONFIG`, testbench); K4.3 | G1–G3 | not started |
+| T4 | Spec gaps G1–G3, then K5–K8 (capture buffer, frame builder + CRC-32, flags/`CONFIG`, testbench); K4.3 | G1–G3 | **G1–G4 closed in the spec 2026-11-02** (`lvds-tunnel.md` §4.3.1, §4.4, §4.4a, §4.7; `log/2026-11-02.md`): capture aligned at source (G2), `CONFIG` = 22 B from a MOSI-snooped shadow (G1), `STATUS` proposed (G3, Manuel to confirm), wire sharing + idle `0x00` (G4). Next: K5–K7 RTL (Manuel); K8 tb + an RHD2164 model with the answer pipeline (Claude) |
 | T5 | Companion: frame receive + CRC check, triple buffer, `CONVERT(C)` from the buffer, offset binary + sentinel (§9.2, §9.5) | T3, T4 | not started |
 | T6 | `SAMPLE` through the emulator to RHX on hardware; O3 (BLE streaming with the tunnel on) | T5 | — |
 | T7 | A.3 attenuation network + capture at both endpoints | — (build), T6 (use) | not started |
@@ -2173,7 +2173,8 @@ RHD2164 ×2 → Kuntur FPGA ├─→ ch_sel → FIFO → MCU → BLE → bridge
 
         `log/2026-10-21.md`.
   - [ ] K5–K8: capture buffer, frame builder + CRC-32, flags/`CONFIG`
-        source, testbench. Spec gaps G1–G3 first (`log/2026-10-20.md`).
+        source, testbench. Spec gaps G1–G3 first (`log/2026-10-20.md`);
+        closed 2026-11-02 with G4 (`log/2026-11-02.md`).
 - [ ] Companion FPGA RTL: deserialise, reassemble SPI, drive the Intan controller
   - [x] **Intan-facing SPI slave passes RHX detection on hardware —
         2026-10-13.** SCLK-clocked (CSb resets the bit counter), register

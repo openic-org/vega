@@ -2,7 +2,9 @@
 
 **Status: DRAFT 2026-09-02; partly implemented.** *2026-10-13:* the
 companion's Intan-facing SPI slave (§9.1a, §9.1b) passes RHX detection on
-hardware, from a register ROM; the tunnel itself is not yet built. Written before any RTL, per
+hardware, from a register ROM; the tunnel itself is not yet built. *2026-11-02:* spec gaps G1–G4 closed for K5–K7
+(§4.3.1 slot alignment, §4.4 `CONFIG`, §4.4a `STATUS` (proposed), §4.7
+wire sharing and idle). Written before any RTL, per
 PLAN.md working principle 5 and the standing rule that cross-boundary
 interfaces get a spec first. This is PLAN.md **A.4**'s first checkbox
 ("Interface spec, written before implementation — framing, clocking,
@@ -688,11 +690,23 @@ compensated, make this spec the single normative statement and have every
 consumer cite it. Do not let the companion become the third copy. Tracked
 as open item **O4**.
 
-For v1 the tunnel's contract is deliberately dumb and therefore safe:
+~~For v1 the tunnel's contract is deliberately dumb and therefore safe:
+`SAMPLE` payload slot *s* carries exactly what the SPI master captured in
+conversion slot *s*, with no offset correction applied.~~ **Replaced
+2026-11-02 (G2, Manuel).** "Captured in conversion slot *s*" had two
+readings, and the one an implementer would take first is wrong (§4.3). The
+contract is now:
 
-> `SAMPLE` payload slot *s* carries exactly what the SPI master captured
-> in conversion slot *s*, in acquisition order, with no reordering and no
-> offset correction applied. Interpretation is the receiver's job.
+> `SAMPLE` payload slot *s* carries the RHD2164's **answer to the command
+> in sampling-table entry *s***, aligned on Kuntur by the capture buffer
+> (§4.3). With the default table that is channel *s*. Values are raw:
+> no reordering across chips or halves, no scaling, no format change.
+
+**O4, for the tunnel: resolved at source.** The two-transfer pipeline is
+undone in one place, Kuntur's capture buffer, next to the SPI master that
+causes it. The companion serves `CONVERT(C)` from payload slot *C* and
+holds no copy of the offset. The BLE path's `SLOT_OFFSET` (pc-app) is
+unchanged and remains O4's Phase B item.
 
 ---
 
@@ -726,8 +740,11 @@ must compare it modularly rather than with `<`.
 | Value | Name | Direction | Cadence |
 |---|---|---|---|
 | `0x01` | `SAMPLE` | ↓ | one per sampling frame, 29,999.97 Hz |
-| `0x02` | `CONFIG` | ↓ | on change, plus a full refresh every 1000 frames (~33 ms) |
+| `0x02` | `CONFIG` | ↓ | on change, plus a full refresh every 1000 frames (~33 ms); none before the config walk is done (§4.4) |
 | `0x03` | `STATUS` | ↓ | every 300 frames (~10 ms) |
+
+How `CONFIG` and `STATUS` share the wire with `SAMPLE`, and what is sent
+between frames, is §4.7.
 
 `0x81`/`0x82` were upstream types in the bidirectional draft and are now
 **permanently reserved** — never emitted, never accepted — so that a
@@ -749,55 +766,175 @@ payload[0..255]:
     uint16  data_rx_b1 [chip 1, MISO B]  # bytes 8s+6, 8s+7
 ```
 
-`payload_len` = 256, always. The values are **raw**, exactly as captured:
-two's complement (`RHD_TWOSCMP = 1'b1`, `rhd2164_defs.vh`), no offset
-correction (§3.4), no scaling, no sentinel substitution.
+`payload_len` = 256, always. The values are **raw**: two's complement
+(`RHD_TWOSCMP = 1'b1`, `rhd2164_defs.vh`), no scaling, no sentinel
+substitution. They are **aligned** to the command that produced them,
+as below (§3.4).
 
-The 33rd slot — the alternate-command slot — is **not** carried. It holds
-whatever `RB_SAMPLING_BASE + 32` was configured with, which is control
-plane traffic, not signal. If a future mode needs it (an aux-channel or
-temperature read), it becomes `payload_len` = 264 with a `flags` bit
-announcing it, which is why `payload_len` exists as a field rather than
-being implied by `frame_type`.
+#### 4.3.1 Which capture goes in which slot *(G2, decided 2026-11-02, Manuel)*
+
+The RHD2164 returns the answer to a command **two transfers later**.
+Number the 33 SPI transfers of a sampling frame by their sampling-table
+entry, *t* = 0…32. Transfer *t* clocks in the answer to command
+(*t* − 2) mod 33:
+
+| Transfer *t* (frame *N*) | carries the answer to |
+|---|---|
+| 0 | entry 31 of frame *N* − 1: `CONVERT`, channel 31 |
+| 1 | entry 32 of frame *N* − 1: the alternate command |
+| 2 … 32 | entries 0 … 30 of frame *N*: channels 0 … 30 |
+
+The capture buffer therefore writes transfer *t*'s four halves to slot
+(*t* − 2) mod 33 and **drops slot 32**:
+
+- **`SAMPLE` *N* is complete after transfer 0 of frame *N* + 1** (slot
+  31). Its `frame_index` is *N*, the frame whose commands it answers.
+- **Transfer 1 is the dropped one.** It is the alternate command's answer,
+  control plane traffic and not signal. `STATUS` carries a sample of it
+  (§4.4a).
+- **The trap this section exists for.** Reading "the 33rd slot is not
+  carried" as "drop transfer 32" loses channel 30 and puts the alternate
+  command's answer in a channel slot. Nothing on the wire would show it.
+- **Cost:** the capture runs two transfers behind the command walk:
+  2 × 46 `clk` ≈ 2 µs of latency (§8), and a ping-pong swap at the end of
+  transfer 1 rather than transfer 32.
+- **Default table:** `CONVERT(0)`, `CONVERT(1)`, then `CONVERT(63)` ×30,
+  which auto-increments, so entry *s* converts channel *s*
+  (`fpga-diagnostic-access.md` §1.3). If the MCU writes another command
+  into an entry 0–31 (a diagnostic), that slot carries its answer. The
+  contract is "answer to entry *s*", not "channel *s*".
+- **Why the BLE path shows an offset of 3, not 2.** `ch_sel` latches
+  `data_rx_*` when `ch_cnt` *becomes* *k*, which is the end of transfer
+  *k* − 1, one more transfer behind. The tunnel's capture takes each
+  transfer's data at its own `rhd_done`, so its offset is the chip's 2.
+
+**Verification.** In simulation (K8), against an RHD2164 model that
+decodes MOSI, implements the two-transfer pipeline and `CONVERT(63)`'s
+auto-increment, and answers each channel with a value that names it.
+`rhd2164_model.v` does none of this today; the model is Claude's (K8).
+On hardware (§12 step 5): write `READ(40)` into sampling entry 31, after
+which `SAMPLE` slot 31 must read the `"I"` that A.1.1 rung `L` already
+knows (`0x49`), and slot 30 must still be a sample. Slot 31 is the right
+one to test, because it is the slot that comes from the next frame's
+transfer. Restore `CONVERT(63)` afterwards. Entry 0's explicit
+`CONVERT(0)` resets the channel counter, so the rest of the table is
+unaffected.
+
+If a future mode needs the alternate command's answer in every frame (an
+aux-channel or temperature read), it becomes `payload_len` = 264 with a
+`flags` bit announcing it, which is why `payload_len` exists as a field
+rather than being implied by `frame_type`.
 
 ### 4.4 `CONFIG` (`0x02`) — configuration replication
 
-This is decision 1's mechanism (§2.3): the companion's answer to any
-Intan-controller `READ(R)` comes from here.
+This is decision 1's mechanism (§2.3): the companion's answer to an
+Intan-controller `READ(R)` for a RAM register, R = 0…21, comes from here.
+
+**Rewritten 2026-11-02 (G1, Manuel).** The earlier format,
+`{reg, val_chip0, val_chip1}` × `reg_count` with the ROM registers
+included, did not fit: a full refresh was 114 B against ~107 spare bytes
+per sampling period (§6.5). Its source, "the config table walked out of
+`RB_CONFIG_BASE`", was also wrong in two ways, below.
 
 ```
-payload[0]      uint8   chip_mask        # bit0 = chip0, bit1 = chip1
-payload[1]      uint8   reg_count        # number of (reg, val) pairs following
-payload[2..]    { uint8 reg; uint8 val_chip0; uint8 val_chip1; } × reg_count
+payload[0..21]  uint8   reg[0..21]       # RHD2164 RAM registers 0–21, in order
 ```
+
+`payload_len` = 22. The frame is 38 B and goes out whole: no chunking.
+
+**Source: a shadow of the writes Kuntur actually issues.** Kuntur keeps a
+22 × 8-bit shadow. Every transfer whose command word is
+`WRITE(R, D)` (`2'b10`, R, D; `rhd2164_defs.vh`) with R ≤ 21 sets
+`shadow[R] = D`. The tap is the command word the SPI master shifts out
+on MOSI; where to take it is Manuel's choice. Why not the regbank:
+
+- **The config table is walked once.** `rhd2164_controller` runs the
+  config walk after reset, then stays in the sampling cycle. A later
+  regbank write to the config table does not reach the chips, so a
+  `CONFIG` built from the table would report a value the chips are not
+  running.
+- **Writes also arrive through sampling entry 32.** The MCU injects
+  commands there (`fpga-diagnostic-access.md`); §10's ZCHECK marker
+  writes registers 5–7 that way. The table never sees them. The shadow
+  sees both paths.
+- **No regbank read port is needed.** Both are taken (K7 in
+  `log/2026-10-20.md`).
+
+**Both chips hold the same values.** One MOSI drives both RHD2164s
+(`spi_master_rhd2164x2`), so every `WRITE` reaches both, and one byte per
+register is the whole state. A board with a MOSI per chip would send
+`payload_len` = 44, chip 0 in `payload[0..21]` and chip 1 in
+`payload[22..43]`. Reserved; the v1 companion accepts only 22.
+
+**The ROM registers are not sent.** 40–44, 48–55 and 59–63 are answered
+from the companion's own ROM, which is what passed RHX detection on
+2026-10-13 (§9.1). Kuntur has no source for them but a compile-time
+table, which is what the rule below forbids. (The earlier text included
+them "so the companion has exactly one code path"; the 2026-10-13 build
+showed the ROM path is needed anyway.)
 
 Rules:
 
-- **Kuntur is the sole source.** A `CONFIG` frame is emitted whenever
-  Kuntur's regbank configuration table changes, and unconditionally as a
-  full refresh every 1000 frames so a companion that joined late, or lost
-  sync, converges within ~33 ms without any request/response handshake
-  existing to go wrong.
-- The values must be Kuntur's **real** register state — the config table
-  actually walked by `rhd2164_controller` out of `RB_CONFIG_BASE` — not a
-  compile-time constant table. A replicated fiction is worse than no
-  replication, because it looks authoritative.
-- The **ROM registers 40–44, 59–63 are included** even though they are
-  constants, so the companion has exactly one code path for answering
-  reads. §9.1.
-- Read-back verification is not part of this frame. Whether Kuntur's
-  regbank matches what the silicon actually holds is A.1.1's ladder
-  question and `fpga-diagnostic-access.md`'s, and it is not made truer by
-  copying it across a cable.
+- **Kuntur is the sole source.** A `CONFIG` frame is emitted when a
+  `WRITE` changes a shadow value, and unconditionally every 1000 frames,
+  so a companion that joined late, or lost sync, converges within ~33 ms
+  with no request/response handshake to go wrong. The `SAMPLE` of the
+  frame in which the changing `WRITE` was issued carries `CONFIG_DIRTY`
+  (§4.5).
+- **None before the config walk is done** (R-K5's flag, which this
+  needs, so R-K5 is no longer deferred for the tunnel). Before then the
+  shadow is incomplete. The companion's `host_mismatch_regs` stays
+  *invalid* until the first `CONFIG` (§9.3), which covers this window.
+- The values must be what Kuntur **issued**, not a compile-time table.
+  A replicated fiction is worse than no replication, because it looks
+  authoritative.
+- **Issued is not held.** Whether the silicon took a write is A.1.1's
+  ladder question and `fpga-diagnostic-access.md`'s. A chip that stops
+  answering (chip0, PLAN.md A.1.2) is not seen here either. Copying a
+  value across a cable does not make it truer.
+
+### 4.4a `STATUS` (`0x03`) — Kuntur-side state *(G3, proposed 2026-11-02, Claude; Manuel to confirm)*
+
+The companion has no way to ask Kuntur anything (§3.3). `STATUS` is what
+Kuntur tells it unasked, for the companion's console (O8) and log. It
+gates nothing: a companion that ignores `STATUS` still serves correct
+data.
+
+```
+payload[0..1]   uint16  design_id        # constant; R-K6's ID, later a bitstream version
+payload[2]      uint8   valid            # bit0 fifo0_overflow_samples, bit1 alt_answer,
+                                         # bit2 RHD config done (R-K5); bits 7:3 zero
+payload[3]      uint8   reserved, zero
+payload[4..5]   uint16  alt_cmd          # command word issued in sampling entry 32
+payload[6..13]  uint16  alt_answer[4]    # its answer: chip 0 A, chip 0 B, chip 1 A, chip 1 B
+payload[14..17] uint32  fifo0_overflow_samples   # saturating; 0 while valid.bit0 = 0
+```
+
+`payload_len` = 18; the frame is 34 B.
+
+- **`alt_cmd` / `alt_answer`: the capture `SAMPLE` drops** (§4.3.1).
+  The answer is transfer 1 of frame *N* + 1, paired with the entry-32
+  command of frame *N* that produced it. Both are latched together, so
+  they always belong to each other. It is a sample every 10 ms, not a
+  stream: enough for the console to show what a slot-32 diagnostic
+  (e.g. an MCU-injected `READ`) returned, with no second path.
+- **`fifo0_overflow_samples`** is A.7 step 1's counter, from the same
+  source as `flags` bit 3. Until that counter exists, `valid.bit0` = 0
+  and the field reads 0, so "cannot be read" does not look like "read as
+  zero" (the rule `stream-packet-format.md` §6.2 sets for the BLE
+  telemetry frame's `fpga_counters_valid`). This closes the open note in `log/2026-10-20.md`.
+- **Nothing else from R-K6 is here.** Its *locked*, *reset released* and
+  *tunnel ready* bits are true by construction whenever Kuntur is
+  sending a frame at all.
 
 ### 4.5 `flags`
 
 | Bit | Name | Meaning |
 |---|---|---|
 | 0 | `STREAM_ENABLE` | mirrors the regbank `stream_enable` bit; when 0 the BLE path is stopped but the tunnel keeps running |
-| 1 | `TEST_PATTERN` | `data_source_sel` selects `test_pattern_gen0` — **the samples are synthetic** |
+| 1 | `TEST_PATTERN` | `data_source_sel` selects `test_pattern_gen0`: **the BLE path's samples are synthetic**. The tunnel's are not (below) |
 | 2 | `CONFIG_DIRTY` | configuration changed within this frame; a `CONFIG` frame follows |
-| 3 | `FIFO_OVERFLOW` | `fifo0` discarded a write since the last frame (A.7 step 1) |
+| 3 | `FIFO_OVERFLOW` | `fifo0` discarded a write since the last frame (A.7 step 1). **0 until that counter exists**; `STATUS` `valid.bit0` says whether this bit means anything (§4.4a) |
 | 4–7 | reserved, zero | |
 
 Bit 1 is not optional bookkeeping. PLAN.md A.1's original defect was
@@ -807,6 +944,14 @@ that can be compared against a reference instrument must state, in band,
 whether it is showing real silicon. Bit 3 is the tunnel's view of A.7
 step 1's overflow counter and should be wired from the same source, not a
 second one.
+
+**What bit 1 describes** *(corrected 2026-11-02)*. `test_pattern_gen0` is
+a two-channel ramp that feeds `fifo_din_mux` and so only the BLE path. The
+capture buffer (§4.3.1) takes `data_rx_*` straight from the SPI master,
+so `SAMPLE` payloads always come from the chips. Bit 1 tells the
+companion, and A2's comparison, that **the BLE recording made at the same
+time** is synthetic. It does not mark the tunnel's own samples. The
+earlier text implied it did, and §12 step 5 relied on that; see there.
 
 ### 4.6 CRC-32
 
@@ -830,6 +975,33 @@ LUTs against the 4% currently used.
 **On CRC failure the companion must not serve the frame.** See §7.3 — the
 rule is that a corrupt frame becomes a visible gap, never silently
 repeated previous data.
+
+### 4.7 Sharing the wire, and what goes between frames *(G4, added 2026-11-02)*
+
+Not stated before: how `CONFIG` and `STATUS` fit around `SAMPLE`, and
+what Kuntur sends when it has no frame to send.
+
+- **Budget.** 379.5 byte slots per sampling period (§6.5). `SAMPLE` takes
+  272. The rest, 107 or 108 alternately, is for one auxiliary frame and
+  idle. `CONFIG` is 38 B and `STATUS` 34 B (§4.4, §4.4a).
+- **Order.** `SAMPLE` *N* goes out as soon as it is complete
+  (§4.3.1). An auxiliary frame, if one is due, follows it directly.
+- **At most one auxiliary frame per period.** If both are due, `CONFIG`
+  goes first and `STATUS` waits one period. Both would fit (344 B), but
+  one rule keeps the frame builder simple, and a 33 µs delay on a 10 ms
+  report does not matter.
+- **Idle byte: `0x00`.** It cannot form the preamble, and a run of it
+  carries no frame type. Kuntur sends it whenever no frame is in flight.
+  Also sent before the first frame after reset.
+- **A late `SAMPLE` is a builder bug, not a policy.** With these sizes the
+  builder always finishes within the period. A `SAMPLE` that is not
+  complete when the next one is must never delay or merge with it: K8's
+  testbench checks that every period carries exactly one `SAMPLE` with
+  consecutive `frame_index`.
+- **Receiver.** In frame mode the companion keeps its bit offset `s`
+  (§6.6), reads `payload_len` from the header, skips idle bytes, and
+  looks for the next preamble only after the CRC. A false preamble inside
+  a payload is never examined.
 
 ---
 
@@ -1756,7 +1928,7 @@ targets to be confirmed on hardware**, not measurements.
 | Stage | Estimate | Basis |
 |---|---|---|
 | RHD2164 conversion → captured in `data_rx_*` | ≤ 1 slot = **1.01 µs** | 46 `clk` @ 45.539955 MHz |
-| Frame assembly (32 slots complete) | **33.33 µs** | one sampling frame; a frame cannot be sent before it exists |
+| Frame assembly (32 slots complete) | **33.33 µs + 2.02 µs** | one sampling frame; a frame cannot be sent before it exists. The +2 transfers are the answer pipeline (§4.3.1, added 2026-11-02) |
 | Kuntur serialisation, 272 B @ 11.385 MB/s | **23.89 µs** | §6.5 |
 | Cable propagation | **< 10 ns** | ~2 m at ~5 ns/m |
 | Companion deserialise + CRC validate | **23.89 µs** | symmetric; the frame must be CRC-valid before it may be served (§7.3) |
@@ -1848,7 +2020,8 @@ values A.1.1's ladder rung `L` checks and that passed on real hardware on
 2026-08-31 — the emulator can be validated against the very same rung.
 
 Registers 0–21 (configuration) are answered from the replicated `CONFIG`
-state, §4.4.
+state, §4.4. The ROM registers (40–44, 48–55, 59–63) are answered from the
+companion's own ROM; Kuntur does not send them (§4.4, 2026-11-02).
 
 ### 9.1a MISO timing — clock the emulator from SCLK, do not oversample it
 
@@ -2231,7 +2404,7 @@ first two and specify the third:
 | ~~**O2a**~~ | ~~Does `clk` reach the edge-clock network cleanly as `ECLK`, and is `ECLKSYNC` required?~~ **RESOLVED 2026-10-20** on hardware: `clk` → `ECLKSYNC` → `ECLKDIV ÷4` → `ODDRX4` routes in bank 5 with 0 timing errors, and both pairs toggle at the expected rates. `ECLKSYNC` is required; it is what drives the gearbox edge-clock network. `log/2026-10-20.md`. | — | done |
 | **O2b** | **Companion receiver: bit order and eye centring** (new 2026-10-12; restated 2026-10-21, §6.6). The original question, how many bits one `IDDRX4.ALIGNWD` pulse slips, is **moot**: byte alignment is now done in fabric and `ALIGNWD` is tied to 0. (TN-02097 says one bit; unchecked.) What remains: **(a)** which `IDDRX4` output holds the first bit received, `Q0` or `Q7`. TN-02097 does not say. The link test pattern's `01 80` gives the answer on the bench, or in simulation if the Radiant model is usable. **(b)** Which PLL phase centres the eye on the real pigtail. Start `CLKOS` at 0° and sweep one full turn with `PHASESTEP`; record bit errors per step over 10,000 blocks (a bathtub curve); the operating phase is the centre of the longest error-free run (§6.6). Also check that `PHASESTEP` keeps rotating past 360°. | Companion RTL, link bring-up | Joint |
 | **O3** | **Does adding the tunnel perturb SPI1?** The chip0 / SCK-MOSI marginal timing is unresolved (PLAN.md B.5). Decision 4 reduces this risk materially — **no new PLL output, no second PLL, and 91.08 Mbps instead of 227.7** — but a serialiser near those pins is still the class of change that regressed it twice. Any new placement constraint goes **alongside** `mregion0`–`mregion7`, never by removing them. | Kuntur RTL bring-up | Manuel |
-| **O4** | **`SLOT_OFFSET` duplication.** Fix at source, or make this spec normative, before the companion becomes the third implementation of one hardware fact. §3.4. | Companion RTL | Joint |
+| **O4** | **`SLOT_OFFSET` duplication.** Fix at source, or make this spec normative, before the companion becomes the third implementation of one hardware fact. §3.4. **For the tunnel: resolved at source 2026-11-02** (§4.3.1, Kuntur's capture buffer aligns; the companion holds no offset). Still open for the BLE path (pc-app `channel_mapping.py`, MCU `FPGA_SPI_ChannelToRaw()`), Phase B. | BLE path cleanup | Joint |
 | **O5** | **Pigtail wiring must not bridge `VSTIMp`/`VSTIMm` (J1 pads 18/19) or `VCC1`/`VCC2` into the FMC breakout.** The uHDMI carries power and stimulator rails alongside the two pairs. §1.1. | Pigtail assembly | Manuel |
 | **O6** | **Runbook: the operator configures via Vega, not via the Intan software.** Sharpened by decision 4 — absorbed writes are now reported only at the companion's own console (§9.4), not in the pc-app where the operator is looking. | Bench procedure, animal-test runbook | Joint |
 | **O7** | **Confirm 91.08 Mbps on the real pigtail.** Step up by raising `ECLK` if the byte-slot budget proves short; there is no need to step down, since the rate is already set by `clk` itself. §6.5. | Link bring-up | Joint |
@@ -2292,12 +2465,21 @@ decision it could have been given earlier.
      it is never sent alongside real frames. Selected at build time
      (`localparam`) until K4.3 adds a run-time selector.
 5. **`SAMPLE` frames + CRC**, companion counting `frames_received` and
-   `frames_crc_failed`. Verifiable against Kuntur's `test_pattern_gen0`
-   ramp with `flags` bit 1 set — a synthetic pattern with an exact
-   expected value is the right thing to bring a link up on.
+   `frames_crc_failed`. ~~Verifiable against Kuntur's `test_pattern_gen0`
+   ramp with `flags` bit 1 set.~~ *(Corrected 2026-11-02: that ramp is two
+   channels into the BLE path only and never reaches the tunnel, §4.5.)*
+   The known values come from the chips instead: the slot-31 `READ(40)`
+   check of §4.3.1, which also proves the slot alignment, and the
+   chips' constant answers that A.1.1 rung `L` already uses. In
+   simulation, K8's RHD2164 model answers every channel with a value
+   that names it.
 6. **Link-loss behaviour** (§7), including the `0x8000` sentinel and the
-   `TUN_CLK`-absence detector. Test by unplugging the cable, which is the
-   actual failure being designed against.
+   `TUN_CLK`-absence detector. ~~Test by unplugging the cable, which is the
+   actual failure being designed against.~~ *(2026-11-02: not with power
+   on. The pigtail carries power and the LVDS is DC-coupled, so T3 ruled
+   out hot-plugging it (`log/2026-10-29.md`, S6). Test with a Kuntur MCU
+   reset, which stops `TUN_CLK` (S5a), until a safe unplug procedure
+   exists.)*
 7. **`CONFIG` replication and the RHD2164 emulator** (§9), validated with
    the A.1.1 ladder's own rung `L` against the emulator instead of the
    real chip — the expected values (`0x0035`/`0x003A`) are already known
