@@ -2295,6 +2295,41 @@ truth, two consumers.
 
 ### 9.5 Rate slip — a systematic offset at production λ
 
+**Settled 2026-11-02 (Manuel): the tunnel runs at 25,000 SPS only.**
+Kuntur is rebuilt at `clk` = 37.95 MHz for any session that uses the
+Intan controller, and the 28,000 discussion below no longer applies to
+the tunnel (`stream-packet-format.md` §1.5.5, PLAN.md decisions log).
+What remains is crystal tolerance, §9.5a. The two sides' command counts
+(Kuntur 33 per frame, RHX 35) do not need to match: the emulator decodes
+each command (§9.2), and only the frame rates must agree, which
+37.95 MHz = 25,000 × 33 × 46 gives.
+
+**Slip-rate figure to correct** *(found 2026-11-02)*. §6.1 and §9.5a
+quote "~1 event every 5.6 s" for ±100 ppm. At 25 kHz, 100 ppm is
+2.5 frames/s; 1 per 5.6 s is about 7 ppm. The real rate depends on the
+two crystals (Kuntur's `clkin`, the XEM7310's) and should be measured
+with `slip_repeat`/`slip_skip` at the first 25k session, before A2.
+
+**The two clocks, from the parts** *(2026-11-02)*:
+
+- **Kuntur:** `clkin` is the STM32WB09's HSE, passed undivided on MCO3
+  (`main.c`), from an **ECS-320-CDX-2152** 32 MHz crystal (`mcuble.kicad_sch`):
+  **±10 ppm tolerance, ±10 ppm stability** (ECS, DigiKey). The PLL to
+  37.95 MHz is exact, so Kuntur's frame rate is 25,000 Hz × (1 ± ~20 ppm),
+  given correct load capacitance (8 pF).
+- **Intan:** the XEM7310's 200 MHz oscillator, **±50 ppm** (Opal Kelly
+  XEM7310 specifications; part number not published). RHX sets the rate
+  as 100 MHz × M/D / 2 / 2800 with M/D = 35/25 at 25 kS/s
+  (`rhxcontroller.cpp`, `setSampleRate`), which is 25,000 exactly, so no
+  design offset either.
+- **Worst case ±70 ppm combined: 1.75 slips/s**, ~1,050 in 10 minutes,
+  each a single held or skipped frame, counted. Typical will be smaller,
+  but the XEM7310 dominates and is not specified tighter.
+- **To measure, not assume:** Kuntur's MCO with a frequency counter, and
+  the slip counters over a session. Both before A2.
+
+*Text before 2026-11-02:*
+
 **Changed 2026-09-03 by A.7's λ decision** (`stream-packet-format.md`
 §1.5.2). This section was written assuming both sides run ≈30 kSPS and
 differ only by crystal tolerance. That is no longer true.

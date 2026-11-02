@@ -316,7 +316,18 @@ actionable input is the `CLKOP` target, and whatever `CLKOP_FREQ_ACTUAL`
 comes back is what A.6.5's sidecar records, exactly as 45.539955 →
 29,999.97 does today.
 
-#### 1.5.5 25,000 SPS as a wired-mode bring-up step
+#### 1.5.5 25,000 SPS — the wired-mode rate
+
+**Superseded 2026-11-02 (Manuel): 25,000 SPS is the wired-mode rate, not
+a bring-up step, and wired at 28 kSPS is no longer a goal.** Production
+and the animal recording stay at 28,000 (wireless). Whenever Kuntur is
+compared against the Intan controller, in the animal as on the bench, it
+runs at 25,000 with the tunnel on; the switch is a mid-surgery reflash
+(PLAN.md R6). The arguments below for 25,000 stand; the "bring-up aid,
+not the target" paragraph does not. No `mode_id` is assigned to the
+2 ch × 25,000 × 16-bit configuration for now.
+
+*Original text, kept for the record:*
 
 **Decided 2026-09-03 (Manuel):** *"For initial work with wired mode, we
 can start with 25 kSPS, but the goal is to make it work with 28 kSPS."*
