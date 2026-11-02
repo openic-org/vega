@@ -2,9 +2,9 @@
 
 **Status: DRAFT 2026-09-02; partly implemented.** *2026-10-13:* the
 companion's Intan-facing SPI slave (§9.1a, §9.1b) passes RHX detection on
-hardware, from a register ROM; the tunnel itself is not yet built. *2026-11-02:* spec gaps G1–G4 closed for K5–K7
+hardware, from a register ROM; the tunnel itself is not yet built. *2026-11-02:* spec gaps G1–G5 closed for K5–K7
 (§4.3.1 slot alignment, §4.4 `CONFIG`, §4.4a `STATUS` (proposed), §4.7
-wire sharing and idle). Written before any RTL, per
+wire sharing and idle, §6.6 *Frame mode*: fixed phase in operation). Written before any RTL, per
 PLAN.md working principle 5 and the standing rule that cross-boundary
 interfaces get a spec first. This is PLAN.md **A.4**'s first checkbox
 ("Interface spec, written before implementation — framing, clocking,
@@ -985,7 +985,8 @@ what Kuntur sends when it has no frame to send.
   272. The rest, 107 or 108 alternately, is for one auxiliary frame and
   idle. `CONFIG` is 38 B and `STATUS` 34 B (§4.4, §4.4a).
 - **Order.** `SAMPLE` *N* goes out as soon as it is complete
-  (§4.3.1). An auxiliary frame, if one is due, follows it directly.
+  (§4.3.1). An auxiliary frame, if one is due, follows it directly and
+  carries the same `frame_index` *N*.
 - **At most one auxiliary frame per period.** If both are due, `CONFIG`
   goes first and `STATUS` waits one period. Both would fit (344 B), but
   one rule keeps the frame builder simple, and a 33 µs delay on a 10 ms
@@ -1001,7 +1002,11 @@ what Kuntur sends when it has no frame to send.
 - **Receiver.** In frame mode the companion keeps its bit offset `s`
   (§6.6), reads `payload_len` from the header, skips idle bytes, and
   looks for the next preamble only after the CRC. A false preamble inside
-  a payload is never examined.
+  a payload is never examined. Lock and loss of lock in frame mode: §6.6
+  *Frame mode* (G5).
+- **Idle carries no eye measurement.** `0x00` has no transitions. That is
+  acceptable because the eye is measured on the bench build, not in
+  operation (G5).
 
 ---
 
@@ -1514,7 +1519,9 @@ bidirectional draft:
   DC-coupled link, and the reason a fixed phase setting is expected to be
   sufficient in the end. The sweep below finds that phase at bring-up;
   whether it also runs at every lock is decided after the first bench sweep. Confirm on the
-  pigtail (O7).
+  pigtail (O7). **Decided 2026-11-02 (G5): in operation the phase is
+  fixed, and the sweep runs only in the bench build** (*Frame mode*
+  below).
 - **Byte alignment is found, not given** *(amended 2026-10-12)*. Under the
   earlier draft the forwarded word clock marked byte boundaries. `ECLK`
   does not, so the companion's `WCLK` comes up at an arbitrary offset of
@@ -1633,7 +1640,54 @@ bidirectional draft:
     eye edge: one step where the reference counted 60 bit errors in 100
     blocks (`log/2026-10-27.md`). The FSM is specified below
     (*Sweep controller*). Whether the bench sweep should later be
-    replaced by a static phase is still open (O2b, O7).
+    replaced by a static phase is still open (O2b, O7). **Closed
+    2026-11-02 (G5): it is, for operation.** The sweep-after-every-lock
+    rule now applies to the bench build only.
+- **Frame mode: a fixed phase, no sweep** *(G5, decided 2026-11-02,
+  Manuel)*. The sweep counts errors against the K4.2 test pattern.
+  Kuntur never sends that pattern alongside frames, and with no upstream
+  it cannot know when the companion would need it. So:
+  - **Two builds of each end.**
+    - The **bench build** has Kuntur sending the test pattern and the
+      companion sweeping, as above. It is used to measure the eye.
+    - The **operating build** has Kuntur sending frames and the companion
+      at a fixed phase.
+    - The choice is a build-time `localparam` at both ends; K4.3 needs no
+      run-time selector.
+  - **Where the phase comes from.** The bench sweep at the operating
+    clock (`ECLK` = 37.95 MHz, the only tunnel rate since 2026-11-02,
+    §9.5) on the pigtail that will be used: R1a. The centre of the
+    longest error-free run is written into the operating build as the
+    number of `PHASESTEP` pulses issued after lock. Re-measure after any
+    change to either bitstream's I/O placement, the companion PLL, or the
+    pigtail.
+  - **Why a fixed phase holds.** With internal feedback, the PLL's output
+    phase relative to `TUN_CLK` is set by the build and the routing, not
+    by the moment of lock. At 37.95 MHz a bit is 13.2 ns.
+  - **Margin rule at R1a.** The stored phase must be at least **25% of a
+    bit** (3.3 ns; a bit is 180°, so 25% is `DIV + 1` steps, 35 with
+    today's divider) from the
+    nearest step with any error, on both sides. If the eye is narrower
+    than that, fixed phase is not safe, and G5 is reopened.
+  - **Start-up, operating build.** After `gddr_sync` `READY`, issue the
+    stored number of phase steps, then hunt the preamble on the frame
+    stream (all 8 offsets, as in *Byte alignment*).
+  - **Lock rule in frame mode** (replaces "two clean blocks"). The
+    receiver is locked after **two consecutive `SAMPLE` frames with a
+    good CRC whose `frame_index` differ by one**. Auxiliary frames between
+    them must pass their CRC but do not count. (An auxiliary frame
+    carries the `frame_index` of the `SAMPLE` it follows, §4.7.) A false
+    preamble match fails the CRC and the hunt resumes. No lock within 100 sampling
+    periods (≈ 4 ms) restarts the hunt.
+  - **Once locked**, `s` is held (as before), and a bad CRC is counted in
+    `frames_crc_failed` and dropped (§4.6, §7.3), with no re-hunt. **Loss
+    of lock in frame mode:** the PLL loses lock (§7.1), or **8 consecutive
+    frames fail their CRC**, after which the receiver re-hunts at the same
+    phase. A slowly rising `frames_crc_failed` is how a closing eye shows
+    in operation; read it on the console (O8).
+  - **What stays from the sweep work.** The `cdr` sweep controller,
+    checker and `cdr_tb` remain the bench build's receiver, and the tool
+    that produces the stored phase.
 - **Aligner outputs for the checker** *(2026-10-23)*. Besides `bitsel`,
   `frame_aligner` outputs:
   - `dout[7:0]`, the aligned byte stream;
@@ -2498,7 +2552,10 @@ decision it could have been given earlier.
      so its period can be checked on a scope without decoding.
    - This is a test mode, not a frame. It has no header and no CRC, and
      it is never sent alongside real frames. Selected at build time
-     (`localparam`) until K4.3 adds a run-time selector.
+     (`localparam`). ~~until K4.3 adds a run-time selector~~ *(2026-11-02,
+     G5: K4.3 stays build-time. The pattern is the bench build's, used to
+     measure the eye; the operating build sends frames at a fixed phase,
+     §6.6 Frame mode.)*
 5. **`SAMPLE` frames + CRC**, companion counting `frames_received` and
    `frames_crc_failed`. ~~Verifiable against Kuntur's `test_pattern_gen0`
    ramp with `flags` bit 1 set.~~ *(Corrected 2026-11-02: that ramp is two
