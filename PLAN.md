@@ -14,7 +14,9 @@ Assembled 2026-08-04. Restructured into **Phase A** (road to the animal test) an
 **In:**
 
 - Kuntur headstage: **2 runtime-selectable channels** of 128 available (2× RHD2164),
-  **30 kSPS/channel**, 16-bit
+  **28 kSPS/channel** (production; was 30 kSPS before A.7), 16-bit. **25 kSPS
+  only when comparing against the Intan controller** (wired mode, below and
+  the 2026-11-02 decision)
 - **Wireless mode** — BLE → WB09KE bridge → USB → Vega PC app; live view + recording
 - **Wired mode** — RHD2164 SPI tunnelled bidirectionally over LVDS/uHDMI to a
   **companion FPGA** feeding the **Intan controller**, with simultaneous BLE
@@ -29,6 +31,17 @@ aggregate budget and one packet rate (474.6–476.7 pkt/s, a 0.45% spread),
 so `μ_low` measured once covers all of them. `mode_id` 0 stays reserved
 for *unknown*; modes are numbered **1–10**. **Mode 1 alone is needed for
 the animal test; Modes 1–5 for public release; 6–10 are future versions.**
+
+**Rates for the animal test, and which rate the tunnel serves (decided
+2026-11-02, Manuel).** Production and the animal recording run at
+**28 kSPS** (`clk` 42.504 MHz), wireless. The Intan controller offers only
+25 or 30 kSPS, so the **comparison against it runs at 25 kSPS** (`clk`
+37.95 MHz = 25,000 × 33 × 46), wireless and wired together. **The tunnel
+targets 25 kSPS only**; wired at 28 kSPS is no longer a goal. Kuntur keeps
+its 33-command frame; the companion answers RHX's 35 commands by decoding
+them (`lvds-tunnel.md` §9.2), so the command counts need not match, only
+the frame rates. No new `mode_id` for now. **The comparison runs in the
+animal too: Kuntur is reflashed mid-surgery, target 5–10 min** (R6).
 
 | Mode | N | F | k | SPS/ch | bits | needed for |
 |---|---|---|---|---|---|---|
@@ -203,11 +216,14 @@ Framed as tasks and dependencies; the two dates above are the only anchors.
 
 | # | Task | Depends on | State 2026-10-23 |
 |---|---|---|---|
-| R1 | Kuntur rebuild: PLL 42.504 MHz + fH 7.5 kHz + A.7 step 1 counter | — | committed, never applied |
+| R1 | Kuntur rebuild: PLL 42.504 MHz + fH 7.5 kHz + A.7 step 1 counter | — | committed, never applied. **Two builds since 2026-11-02:** 42.504 MHz (28 kSPS, the recording) and 37.95 MHz (25 kSPS, tunnel on, the comparison). The companion is built for a 37.95 MHz `TUN_CLK` only: regenerate its receive PLL (made for 45.54 MHz) and re-read `DIVOS_ACTUAL_STR` (steps per turn, §6.4) |
+| R1a | T3 re-check at 37.95 MHz: lock, eye sweep, O9 (`IDDRX4`, the lowest `ECLK` yet) | R1 (37.95 build) | not started. T3's results were at 45.54 MHz, neither test rate |
+| R6 | **Mid-surgery switch 25k → 28k, target 5–10 min** (procedure Claude + Manuel; RTL/flash Manuel). **Order (Manuel, 2026-11-02): the 25k comparison first** (wired + wireless), then companion off, Kuntur off, **remove the pigtail with both off**, reflash Kuntur to the 28k image over the programming adapter, then the 28k session, wireless only. The pigtail never sees the 28k clock. One MCU firmware for both rates (to confirm by reading it: the rate is set by the FPGA's `clk`). RHX set to 25 kSPS, and its cable-delay scan done after the companion is up. Two images in flash with a multi-boot select (a switch by reset, not by reflash) is planned **last, lowest priority** | R1, R1a, R7 | not started. Rehearsed and timed in R5 |
+| R7 | **pc-app rate setting** (Claude): a 25 kSPS / 28 kSPS dropdown that sets the rate everywhere it is used (timestamps, sidecar `sample_rate.channel_hz`; today hard-coded 30,000 and 29,999.97), plus the **rate measured from the packet timestamps, shown live during measurements**, so a wrong flash or wrong setting shows at once. Spec first (`recording-format.md`) | — | not started |
 | R2 | Telemetry `0xFFF4` (zero frames): first check whether the 2026-09-04 firmware was ever flashed; then the trace bridge build | R1's bench session | open |
 | R3 | chip0 disposition | — | no fix; mitigation is the plan: warm-up-and-verify, liveness detector armed, both animal-test channels on chip1 |
 | R4 | Animal-test runbook + recording checklist (Claude) | R3 | not drafted. Items from T3 collected in `log/2026-10-29.md` (power order Kuntur → companion, reverse to power down; no hot-plugging the pigtail; SW2 after a Kuntur reset; all bitstreams in flash beforehand) |
-| R5 | Dress rehearsal: cold start → warm-up-verify → ≥ 1 h on both paths, by the runbook; then freeze and tag bitstreams + firmware | T9, R1, R2, R4 | — |
+| R5 | Dress rehearsal: cold start → warm-up-verify → 28k session → timed switch to 25k (R6) → ≥ 1 h on both paths, by the runbook; then freeze and tag bitstreams + firmware | T9, R1, R2, R4, R6 | — |
 | — | **A3**, week of 2026-11-30 | R5 | — |
 
 **Sequencing to confirm (Manuel): R1 against T3.** R1 changes `clk`, and
@@ -4127,6 +4143,18 @@ them by preamble hunt plus `IDDRX4.ALIGNWD` (open item O2b). Same day: the
 gearbox word clock is renamed `WCLK`, so "SCLK" means only the SPI clock,
 and the companion's Intan-facing SPI slave is clocked by the controller's
 SCLK with no PLL (§9.1a) — passed RHX detection 2026-10-13.
+
+**Decided 2026-11-02 — 28 kSPS is production; the tunnel serves 25 kSPS
+only** (Manuel). The animal recording is 28 kSPS, wireless. The Intan
+controller cannot run at 28 kSPS (25 or 30 only), so the comparison against
+it runs Kuntur at 25 kSPS, wired and wireless together, and the tunnel is
+specified for that rate alone. This replaces the 2026-09-03 wording that 25k
+was a wired bring-up step with wired at 28k as the goal
+(`stream-packet-format.md` §1.5.5, `lvds-tunnel.md` §9.5). Kuntur keeps 33
+commands per frame; RHX's 35 need no matching because the emulator decodes
+commands, and the rates match through Kuntur's `clk` alone (37.95 MHz =
+25,000 × 33 × 46). The comparison also runs in the animal, by reflashing
+Kuntur mid-surgery in 5–10 min (R6). No new `mode_id` for now.
 
 ---
 
