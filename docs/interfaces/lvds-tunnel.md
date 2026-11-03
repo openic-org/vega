@@ -731,9 +731,15 @@ preamble.
 | 8+*n* | 4 | `crc32` | §4.6 |
 
 `frame_index` is deliberately the same shape and the same reasoning as
-`stream-packet-format.md` §3.1's `sample_index`: a `uint32` at ~30 kHz
-wraps in **39.8 hours**, well past any plausible session, and receivers
+`stream-packet-format.md` §3.1's `sample_index`: a `uint32` at 25 kHz
+wraps in **47.7 hours**, well past any plausible session, and receivers
 must compare it modularly rather than with `<`.
+
+**The first `SAMPLE` after reset has `frame_index` 0** *(2026-11-03,
+Manuel)*. It counts the complete frames announced before this one; the
+partial frame the capture buffer discards after `cfg_done` (§4.3.1) is
+not counted. A Kuntur reset, including a PLL lock drop, restarts it at 0.
+Aux frames carry the `frame_index` of the `SAMPLE` they follow (§4.7).
 
 ### 4.2 Frame types
 
