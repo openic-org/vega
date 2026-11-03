@@ -4,7 +4,7 @@
 companion's Intan-facing SPI slave (§9.1a, §9.1b) passes RHX detection on
 hardware, from a register ROM; the tunnel itself is not yet built. *2026-11-02:* spec gaps G1–G5 closed for K5–K7
 (§4.3.1 slot alignment, §4.4 `CONFIG`, §4.4a `STATUS`, §4.7
-wire sharing and idle, §6.6 *Frame mode*: fixed phase in operation). Written before any RTL, per
+wire sharing and idle, §6.6 *Frame mode*: fixed phase in operation). *2026-11-03:* Kuntur K5 (capture buffer) and K6 (`SAMPLE` frames + CRC-32) built and simulated against an RHD2164 model; K7's split decided (§4.8). Written before any RTL, per
 PLAN.md working principle 5 and the standing rule that cross-boundary
 interfaces get a spec first. This is PLAN.md **A.4**'s first checkbox
 ("Interface spec, written before implementation — framing, clocking,
@@ -745,9 +745,12 @@ Aux frames carry the `frame_index` of the `SAMPLE` they follow (§4.7).
 
 | Value | Name | Direction | Cadence |
 |---|---|---|---|
-| `0x01` | `SAMPLE` | ↓ | one per sampling frame, 29,999.97 Hz |
-| `0x02` | `CONFIG` | ↓ | on change, plus a full refresh every 1000 frames (~33 ms); none before the config walk is done (§4.4) |
-| `0x03` | `STATUS` | ↓ | every 300 frames (~10 ms) |
+| `0x01` | `SAMPLE` | ↓ | one per sampling frame, 25,000 Hz (§9.5) |
+| `0x02` | `CONFIG` | ↓ | on change, plus a full refresh every 1000 frames (40 ms); none before the config walk is done (§4.4) |
+| `0x03` | `STATUS` | ↓ | every 300 frames (12 ms); first with frame 1 (§4.8) |
+
+*(Cadence figures corrected 2026-11-03 to the tunnel's 25 kSPS. They were
+written for 29,999.97 Hz: ~33 ms and ~10 ms.)*
 
 How `CONFIG` and `STATUS` share the wire with `SAMPLE`, and what is sent
 between frames, is §4.7.
@@ -852,7 +855,9 @@ payload[0..21]  uint8   reg[0..21]       # RHD2164 RAM registers 0–21, in orde
 22 × 8-bit shadow. Every transfer whose command word is
 `WRITE(R, D)` (`2'b10`, R, D; `rhd2164_defs.vh`) with R ≤ 21 sets
 `shadow[R] = D`. The tap is the command word the SPI master shifts out
-on MOSI; where to take it is Manuel's choice. Why not the regbank:
+on MOSI. *(Decided 2026-11-03, Manuel: taken as `regbank_dout1` at
+`rhd_spi1_start`, the word the master latches as `data_tx`, in both the
+config walk and the sampling cycle; §4.8.)* Why not the regbank:
 
 - **The config table is walked once.** `rhd2164_controller` runs the
   config walk after reset, then stays in the sampling cycle. A later
@@ -883,10 +888,25 @@ Rules:
 
 - **Kuntur is the sole source.** A `CONFIG` frame is emitted when a
   `WRITE` changes a shadow value, and unconditionally every 1000 frames,
-  so a companion that joined late, or lost sync, converges within ~33 ms
+  so a companion that joined late, or lost sync, converges within 40 ms
   with no request/response handshake to go wrong. The `SAMPLE` of the
   frame in which the changing `WRITE` was issued carries `CONFIG_DIRTY`
   (§4.5).
+- **"Changed" and "the frame it was issued in", exactly** *(2026-11-03)*.
+  A `WRITE` whose `D` differs from `shadow[R]` sets `dirty`. At each
+  announcement of `SAMPLE` *N* (§4.3.1), Kuntur copies `dirty` into *N*'s
+  `flags` bit 2, decides whether a `CONFIG` follows *N*, and clears
+  `dirty`. So "within frame *N*" means since the announcement of *N* − 1.
+  A `WRITE` in transfer 0 or 1 of frame *N* + 1 (entries 0 and 1) goes out
+  before *N* is announced, and is counted with *N*. That is two transfers'
+  difference, and harmless: the `CONFIG` that follows still carries the
+  value.
+- **What a `CONFIG` carries is a snapshot**, copied from the shadow at the
+  same announcement. A `WRITE` during the send cannot tear it (§4.8).
+- **The config walk counts as a change.** It fills the shadow from
+  reset values of 0, so `SAMPLE` 0 has `CONFIG_DIRTY` = 1 and the first
+  `CONFIG` follows it. A walk that writes 0 to a register leaves that
+  byte 0 and unchanged, which is also correct.
 - **None before the config walk is done** (R-K5's flag, which this
   needs, so R-K5 is no longer deferred for the tunnel). Before then the
   shadow is incomplete. The companion's `host_mismatch_regs` stays
@@ -910,6 +930,7 @@ data.
 payload[0..1]   uint16  design_id        # {variant[3:0], release[11:0]}, below
 payload[2]      uint8   valid            # bit0 fifo0_overflow_samples, bit1 alt_answer,
                                          # bit2 RHD config done (R-K5); bits 7:3 zero
+                                         # v1: 0b110 (below)
 payload[3]      uint8   reserved, zero
 payload[4..5]   uint16  alt_cmd          # command word issued in sampling entry 32
 payload[6..13]  uint16  alt_answer[4]    # its answer: chip 0 A, chip 0 B, chip 1 A, chip 1 B
@@ -952,6 +973,16 @@ payload[14..17] uint32  fifo0_overflow_samples   # saturating; 0 while valid.bit
 - **Nothing else from R-K6 is here.** Its *locked*, *reset released* and
   *tunnel ready* bits are true by construction whenever Kuntur is
   sending a frame at all.
+- **`valid` in v1 is `0b110`** *(2026-11-03)*. `STATUS` only ever
+  follows a `SAMPLE`, and a `SAMPLE` exists only after the config walk
+  and a whole frame, so bits 1 and 2 are always 1 when sent. They are
+  kept so that a later sender (e.g. a `STATUS` before the first
+  `SAMPLE`) can say otherwise. Bit 0 stays 0 until A.7 step 1's counter
+  exists.
+- **Byte order:** every multi-byte field is little-endian (§4.1),
+  `alt_answer[0]` (chip 0 A) first.
+- **Cadence:** every 300 frames, and with frame 1 after every reset, so
+  the companion has `design_id` within two frames (§4.8).
 
 ### 4.5 `flags`
 
@@ -959,7 +990,7 @@ payload[14..17] uint32  fifo0_overflow_samples   # saturating; 0 while valid.bit
 |---|---|---|
 | 0 | `STREAM_ENABLE` | mirrors the regbank `stream_enable` bit; when 0 the BLE path is stopped but the tunnel keeps running |
 | 1 | `TEST_PATTERN` | `data_source_sel` selects `test_pattern_gen0`: **the BLE path's samples are synthetic**. The tunnel's are not (below) |
-| 2 | `CONFIG_DIRTY` | configuration changed within this frame; a `CONFIG` frame follows |
+| 2 | `CONFIG_DIRTY` | configuration changed within this frame; a `CONFIG` frame follows. "Within this frame" is defined exactly in §4.4 |
 | 3 | `FIFO_OVERFLOW` | `fifo0` discarded a write since the last frame (A.7 step 1). **0 until that counter exists**; `STATUS` `valid.bit0` says whether this bit means anything (§4.4a) |
 | 4–7 | reserved, zero | |
 
@@ -1012,7 +1043,8 @@ what Kuntur sends when it has no frame to send.
   idle. `CONFIG` is 38 B and `STATUS` 34 B (§4.4, §4.4a).
 - **Order.** `SAMPLE` *N* goes out as soon as it is complete
   (§4.3.1). An auxiliary frame, if one is due, follows it directly and
-  carries the same `frame_index` *N*.
+  carries the same `frame_index` *N*, and the same `flags` byte
+  *(2026-11-03)*.
 - **At most one auxiliary frame per period.** If both are due, `CONFIG`
   goes first and `STATUS` waits one period. Both would fit (344 B), but
   one rule keeps the frame builder simple, and a 33 µs delay on a 10 ms
@@ -1033,6 +1065,48 @@ what Kuntur sends when it has no frame to send.
 - **Idle carries no eye measurement.** `0x00` has no transitions. That is
   acceptable because the eye is measured on the bench build, not in
   operation (G5).
+
+### 4.8 Kuntur side: who decides what, and when *(K7, decided 2026-11-03, Manuel)*
+
+Everything a frame carries besides the samples is decided in **one
+`clk` edge per frame**: the announcement of `SAMPLE` *N*, the edge in
+which the capture buffer toggles `frame_rdy` (§4.3.1). The `wclk` side
+only formats what it was handed. That keeps every policy in one clock
+domain, and makes every value the builder reads stable for a whole
+sampling period, the same argument that already covers `frame_index`
+and `rbank`. Nothing new crosses with its own synchroniser.
+
+- **`capture_buffer`** gains an `announce` output: a one-`clk` pulse in
+  the same edge as the toggle.
+- **`tun_aux`** (new, `clk`, `rst_n_clk`) holds:
+  - **the shadow** (§4.4): on every `rhd_spi1_start` whose
+    `regbank_dout1` is `WRITE(R, D)` with R ≤ 21, `shadow[R] = D`; if
+    `D` differs, `dirty` = 1;
+  - **at `announce`**, in that edge:
+    - `flags_snap` = `{4'b0, 1'b0 (FIFO_OVERFLOW, §4.5), dirty,
+      data_source_sel == 2'd1, stream_enable}`;
+    - `shadow_snap` = shadow (22 bytes; 176 flops);
+    - `send_config` = `dirty`, or 1000 frames since the last `CONFIG`;
+    - `send_status` = 300 frames since the last `STATUS`, or one
+      already pending; if `send_config` is also set, `STATUS` stays
+      pending and goes with the next frame (§4.7);
+    - `dirty` cleared.
+  - **After reset** both counters start due. `SAMPLE` 0 is dirty from
+    the walk, so it carries `CONFIG`; `SAMPLE` 1 carries the pending
+    `STATUS`. From then on: `CONFIG` on change and at least every 1000
+    frames, `STATUS` every 300.
+- **`frame_builder`** (`wclk`) sends `SAMPLE` *N* with `flags_snap` in
+  byte 5. If `send_config` or `send_status`, it then sends that frame
+  straight after the `SAMPLE`'s CRC: the same preamble, `flags` and
+  `frame_index`, its own `frame_type`, `payload_len` and CRC (the same
+  `crc32`). Worst case 272 + 38 = 310 of 379.5 byte slots.
+- **`design_id`** comes from one build header, `kuntur_build.vh`:
+  `` `KUNTUR_RELEASE `` (12 bits, by hand, 0 = development build,
+  `docs/releases.md`) and `` `KUNTUR_VARIANT `` (4 bits). The same
+  `` `KUNTUR_VARIANT `` selects what drives `tun_data_8b`: 2 = frames,
+  3 = the K4.2 link test pattern (`block_gen`). PLAN.md R1 adds the PLL
+  choice to it, so `variant` stays derived from the build rather than
+  typed separately (§4.4a).
 
 ---
 
