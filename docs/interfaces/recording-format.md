@@ -516,6 +516,92 @@ capacity). When that lands, only `channel_hz`'s *value* changes — the
 schema doesn't, which is exactly what this section argued for before it
 was implemented.
 
+## 3a. Rate setting and live rate measurement (PLAN.md R7) — AGREED 2026-11-04
+
+**Status: agreed by Manuel 2026-11-04 (D1–D3 as recommended). Not implemented.**
+
+**Why.** Kuntur will run at two rates from two bitstreams: 25,000 S/s per
+channel (`clk` 37.95 MHz, variants 2/3) and 28,000 (42.504 MHz, variant
+1); PLAN.md R1, `docs/releases.md`. The pc-app hard-codes 30,000
+(`packet_parser.SAMPLE_RATE_HZ`) and writes 29,999.97 into every sidecar
+(`main_window.SAMPLE_RATE_CHANNEL_HZ`): both wrong for every session from
+now on. The rate has to follow the session, and a wrong flash or a wrong
+setting has to show at once, not after the recording.
+
+**3a.1 The setting.** A "Kuntur rate" selector in the main window:
+**25 kS/s**, **28 kS/s**, and **30 kS/s (legacy)** while the 45.54 MHz
+`impl_1` is still in use (removed with it, PLAN.md R1 #6 D4). Changing it
+is refused while recording. It is remembered between runs. The one value
+replaces every rate constant in the pc-app:
+
+| Today | Use |
+|---|---|
+| `packet_parser.SAMPLE_RATE_HZ` = 30,000 | spacing of samples inside a packet |
+| `serial_reader._step_us` = 33 | monotonicity clamp step |
+| `ChannelHealthMonitor(_SR)` | dead-run length in time |
+| `GraphWidget(delivered_sps=30_000)` | display window length |
+| `main_window.SAMPLE_RATE_CHANNEL_HZ` = 29,999.97 | sidecar `sample_rate.channel_hz` |
+
+`plot_template.py` and `analyze_recording.py` take it from the sidecar.
+
+**Per-sample timestamps** become
+`packet_base_us + round(i × 1e6 / rate)`, not `i × (1e6 // rate)`: the
+integer step is exact at 25k (40 µs) but 2% short at 28k (35 µs for
+35.71), so the last sample of a packet would sit 41 µs early. (At 30k it
+was 33 for 33.33 µs.)
+
+**3a.2 The live measurement.** The rate Kuntur actually produces,
+measured the way `pc-app/measure_rate.py` does it (packet first-row RTC
+times, real samples only, `seq_num` gaps filled, least-squares slope), so
+it is independent of the setting:
+- shown in the panel next to the setting, over the last 60 s and since
+  the start of streaming, with the padding share;
+- **mismatch alarm** when the measurement disagrees with the setting by
+  more than 0.5% after 10 s of streaming, or 0.05% after 60 s: "measured
+  25,001 S/s, set to 28,000: wrong bitstream or wrong setting";
+- **saturation warning** when padding is under 0.5%: the transport may be
+  saturated and `fifo0` overflowing, so the measurement is a lower bound
+  (as at 30k, A.7).
+
+**3a.3 The sidecar.** `sample_rate` keeps its shape (§3); the values
+change, and three keys are added at `stop()`:
+
+```json
+"sample_rate": {
+  "config": "2ch_v1",
+  "channel_hz": 25000.0,
+  "source": "operator setting: 25 kS/s (variant 2/3 build, clk 37.95 MHz, docs/releases.md)",
+  "measured_channel_hz": 24999.7,
+  "measured_padding": 0.151,
+  "measured_lost_packets": 0
+}
+```
+
+`channel_hz` stays the nominal rate the build is designed for (what a
+reader should use); `measured_*` is the evidence that it was the right
+one. Additive keys: `format_version` stays 1.
+
+**3a.4 Not in R7.**
+- Reading the rate from Kuntur itself. Once R-K6 exposes `design_id`
+  (`system-startup.md`), the pc-app can read the variant over
+  `REG_READ16` and the selector becomes a check. Until then the setting
+  plus the measurement is the guard.
+- The Android app (`BleManager.DELIVERED_SPS`): not used at the animal
+  test.
+- The timing model inside a packet (samples spaced forward from the
+  assembly time). Unchanged.
+
+**3a.5 Decisions (Manuel, 2026-11-04: all three as recommended).**
+- D1: offer 30 kS/s (legacy) until `impl_1` is retired? **Yes**,
+  the hardware runs it until #6.
+- D2: no default on first start (the operator must choose), then
+  remembered? **Yes**, so a first session cannot record under
+  a silent default.
+- D3: the alarm thresholds above (0.5% / 10 s, 0.05% / 60 s)?
+  **As written**: 25k and 28k differ by 12%, so any wrong
+  setting trips the first threshold within seconds; the second catches a
+  wrong PLL solution.
+
 ## 4. `format_version`
 
 Integer, starts at `1`. Bump on any breaking change to this schema (field
