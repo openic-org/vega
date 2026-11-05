@@ -1,7 +1,10 @@
 # SPI1 MOSI eye scan (task #6a): interface spec
 
-**Status: SPEC ONLY, written 2026-11-04. Nothing here is implemented.**
-Decisions D1–D7 agreed with Manuel (`log/2026-11-04.md`). Schedule:
+**Status: SPEC, written 2026-11-04; RTL in progress (Manuel).** Decisions
+D1–D7 agreed with Manuel (`log/2026-11-04.md`); RTL structure decisions
+S1–S7 (§3.6) agreed 2026-11-04. Updated after #6 for its PLLs
+(`pll_25k`/`pll_28k` in `clock_gen`; O1 closed, §3.2); stepper
+requirements and reset behaviour 2026-11-05 (§3.2). Schedule:
 PLAN.md R1, task #6a, after #6 (the 25k/28k clocks) and before #6b.
 
 **Lane split:**
@@ -78,8 +81,9 @@ changing only just after one kind of `clk` edge:
 
 For `mosi_sel` 0–3 the chosen source goes through one register on
 `clk_tx` rising, and that register drives `spi1_mosi`. `clk_tx` is
-`pll0`'s `CLKOS` (today's unused `clk90`), same frequency as `clk`, with
-dynamic phase (§3.2). `clk_tx`'s phase φ (a fraction of a turn, 0 at
+the `CLKOS` of `clock_gen`'s PLL (`pll_25k` or `pll_28k`, #6; the old
+`clk90`), same frequency as `clk`, static phase 0°, dynamic phase
+(§3.2). `clk_tx`'s phase φ (a fraction of a turn, 0 at
 the static phase) moves the launch:
 
   x = (φ·T − *o*) mod T,   Δ = *o* + x
@@ -114,32 +118,73 @@ buffer. With `mosi_sel` = 4 the design is today's.
 
 ### 3.2 Phase stepper
 
-`pll0` gets dynamic phase on `CLKOS` (`gui_en_dyn_phase`), as the
-companion's PLL already has (`lvds-tunnel.md` §6.4 *Run-time phase
-steps*, TN-02095 §14.5.9, §14.6.1):
+Both #6 PLLs already have dynamic phase on `CLKOS`
+(`gui_en_dyn_phase`), as the companion's PLL does (`lvds-tunnel.md` §6.4
+*Run-time phase steps*, TN-02095 §14.5.9, §14.6.1). `clock_gen`'s phase
+inputs are constants today; the stepper drives them.
 
-- **One step** = 360° / (8 × (DIV + 1)), DIV from `DIVOS_ACTUAL_STR` of the
-  generated IP. **Steps per turn (SPT)** = 8 × (DIV + 1), a parameter
-  per implementation (`impl_25k`, `impl_28k`), readable by the MCU.
+- **One step** = 1/8 of a VCO period (TN-02095 §14.6.1) = 360° /
+  (8 × (DIV + 1)), DIV from the IP's `DIVOS_ACTUAL_STR`. **Steps per turn
+  (SPT)** = 8 × (DIV + 1):
+
+  | PLL | VCO | `DIVOS_ACTUAL_STR` | SPT | One step |
+  |---|---|---|---|---|
+  | `pll_25k` | 1593.90 MHz | 41 | **336** | 78.4 ps |
+  | `pll_28k` | 1572.65 MHz | 36 | **296** | 79.5 ps |
+
+  A `localparam` per `clock_gen` branch, readable by the MCU (S5).
 - **Delaying steps only** (`PHASEDIR` = 0): glitch-free per the TN. An
   advancing step may glitch `CLKOS`. A full turn is SPT delaying steps.
-- `PHASESEL` selects `CLKOS` (`3'b001` on the companion: confirm for
-  Kuntur's IP). `PHASESEL`/`PHASEDIR` held ≥ 5 ns before `PHASESTEP`
-  falls. `PHASESTEP` from a register (a glitch is a step), idle high,
+- `PHASESEL` = `3'b001` selects `CLKOS` (TN-02095 Table 14.3; what
+  `clock_gen` ties). `PHASESEL`/`PHASEDIR` held ≥ 5 ns before `PHASESTEP`
+  falls: `PHASEDIR` registered at least one `clk` before the first pulse. `PHASESTEP` from a register (a glitch is a step), idle high,
   each pulse low ≥ 4 VCO cycles then high ≥ 4 VCO cycles: one `clk` low,
   one `clk` high satisfies both.
-- **Internal feedback** (the TN requires it for dynamic phase): check
-  Kuntur's `pll0`.
-- One write of `PHASE_STEP_CMD` = N steps. `PHASE_POS` counts them mod
-  SPT and returns to 0 with `rst_n_clk` (a lock drop also puts `CLKOS`
-  back at its static phase, so the two stay consistent). A write while
-  busy is ignored.
+- **Internal feedback** (the TN requires it for dynamic phase): both
+  PLLs have `FBK_MODE` `INTCLKOP`.
+- One write of `PHASE_STEP_CMD` = N steps (N = 0: nothing; N up to
+  1023, more than a turn, so one write reaches any position). The
+  stepper takes it on a one-`clk` strobe from the regbank when word 233
+  is written, not from a change of the stored word (the scan writes
+  N = 1 over and over). A write while busy is ignored. Busy from the
+  `clk` after the write until the last pulse rises (2N `clk`).
+- `PHASE_POS` counts the steps mod SPT: + 1 per delaying step, − 1 per
+  advancing one. It **accumulates across writes**: it is the only record
+  of where `CLKOS` is, because the PLL takes relative steps and keeps
+  them. There is no way to clear it on its own (that would leave `CLKOS`
+  where it was); back to 0 is SPT − `PHASE_POS` more delaying steps,
+  which moves both.
+- **Reset.** `PHASE_POS`, busy, `PHASESTEP` (high) and `PHASEDIR` (0)
+  reset with `rst_n_clk`, which follows `rstb && pll_lock` at once
+  (`reset_gen_kuntur`); nothing new at the top. The counter and `CLKOS`
+  agree after each event as follows:
+
+  | Event | `PHASE_POS` | `CLKOS` phase | Agree |
+  |---|---|---|---|
+  | Power-up, reconfiguration | 0 | static (bitstream) | yes |
+  | `rstb` (MCU resets the FPGA, PA10) | 0 | keeps its steps: `rstb` does not reach the PLL | **no** |
+  | Lock drop | 0 | not known (the PLL has no reset port); `pll_sim` assumes static | unverified |
+
+  A disagreement is harmless outside a scan: `mosi_sel` = 4 does not use
+  `clk_tx`, and the #6b setting is a static phase in the bitstream, not
+  run-time steps. Within a scan the script detects it (a jump of
+  `PHASE_POS`, §5.2) and stops; only reconfiguring the FPGA (power-cycle
+  Kuntur) brings the two together again. A scan therefore starts from a
+  power-cycled Kuntur: `PHASE_POS` = 0 alone does not prove `CLKOS` is
+  static. Resetting `PHASE_POS` only at configuration would fix the
+  `rstb` row but tie the lock-drop row to the unverified PLL behaviour,
+  and the stepper's FSM needs `rst_n_clk` anyway: not done.
+- Optional bench check (R1a session, not before): step to SPT / 4, make
+  the PLL lose lock, repeat one scan point; if the eye is where SPT / 4
+  predicts, the phase survives a lock drop.
 
 ### 3.3 Known-answer checker
 
 In the `clk` domain, on sampling transfers (`xfer_done`).
-- The command shifted out in transfer *t* (`regbank_dout1` as the master
-  loads it) goes into a two-deep history. At the end of transfer *t*,
+- The command shifted out in transfer *t* (`cmd_sent`, latched by
+  `spi_master_rhd2164x2` on `tx_load`, S3) goes into a two-deep history,
+  advanced at the end of **every** SPI1 transfer (`done`), config walk
+  included, so the first sampling answers are paired correctly. At the end of transfer *t*,
   the four answers (`data_rx_a`, `data_rx_b`, `data_rx_a1`,
   `data_rx_b1`) belong to the command of transfer *t* − 2.
 - **Checked commands**, with their expected answer on all four halves:
@@ -194,6 +239,38 @@ In every build, idle unless commanded (D5): `mosi_sel` = 4 and `CHK_EN`
 build as the reset value of `mosi_sel` and the static `CLKOS` phase of
 that rate's PLL (§5.4). No MCU action at boot.
 
+The three implementations (#6) share the RTL, so the logic is in all of
+them (S7). Develop on `impl_25k`; before a push, `scripts/build_kuntur.py`
+(all three, timing) and `scripts/run_kuntur_tb.sh` (all three variants).
+
+### 3.6 RTL structure (S1–S7, agreed 2026-11-04)
+
+- **S1** `m_early` comes from a new `a_next` output of `sr_p2s`
+  (`load ? data[n-1] : en ? areg[n-2] : areg[n-1]`), passed up by
+  `spi_master_rhd2164x2`: one definition, the shift register's own.
+  Other `sr_p2s` users leave it open.
+- **S2** Two new modules in the top: `mosi_scan` (sources, mux, the
+  `clk_tx` register, stepper) and `mosi_checker`. `spi_master_rhd2164x2`
+  only gains outputs (`a_next`, `cmd_sent`); its unused `clk90` input
+  can go.
+- **S3** The checker's command is `cmd_sent`, latched on `tx_load`, not
+  `regbank_dout1` sampled at the end (the next command may be on it).
+- **S4** The bypass mux sits after the `clk_tx` register, before the pad
+  (no I/O register): `mosi_sel` = 4 must stay bit-identical to today,
+  and a fixed mux delay shifts the whole map, not the window.
+- **S5** SPT is a `localparam` per `clock_gen` branch, beside the
+  `DIVOS_ACTUAL_STR` comment, exported as an output.
+- **S6** `clock_gen`'s variant `generate` gets a name: both branches
+  are `g_pll` (done 2026-11-05; `kuntur_tb` uses it), a stable
+  testbench path, and no Questa `vsim-8852`.
+- **S7** In all three builds, idle at reset.
+- The RTL does not enforce the allowed (`PHASE_POS`, `mosi_sel`) pairs;
+  the script does. A forbidden pair garbles commands, which the
+  power-cycle after the scan clears (§5.3).
+- `rst_n_clk` resets everything in §3.1–3.4; the `clk_tx` register
+  resets asynchronously with it (`csb` is high then). It does not reset
+  the PLL's phase: §3.2 *Reset* for what that means for `PHASE_POS`.
+
 ## 4. What it does not do
 
 - No MISO capture change (D1: later, if needed).
@@ -205,6 +282,10 @@ that rate's PLL (§5.4). No MCU action at boot.
 
 ## 5. Scan procedure (Claude: script; bench: both)
 
+Script: `pc-app/mosi_eye_scan.py` (written 2026-11-04; tested against a
+fake regbank, `pc-app/test_mosi_eye_scan.py`). `--analyze FILE.csv`
+re-reads a run.
+
 ### 5.1 Set-up
 
 Driven from the PC with the existing `REG_WRITE16`/`REG_READ16`
@@ -214,7 +295,8 @@ running, so the chips answer at the full transfer rate (825k transfers/s
 at 25k, 924k at 28k). The script writes a CSV per run, one row per
 point.
 
-1. Read `PHASE_INFO`: SPT, not busy. `PHASE_POS` = 0.
+1. Kuntur power-cycled since the last scan or FPGA reset (§3.2
+   *Reset*). Read `PHASE_INFO`: SPT, not busy. `PHASE_POS` = 0.
 2. Load the 33 sampling entries (words 48–80) with the known-answer
    pattern (D3), repeating every 8 entries:
    `WRITE(6, 55)`, `READ(40)`, `WRITE(6, AA)`, `READ(41)`, `WRITE(6, 00)`,
@@ -233,15 +315,22 @@ each of the two `mosi_sel` values allowed at that φ (§3.1):
    longer).
 2. Clear the checker; wait the dwell (default 10,000 transfers checked,
    about 12 ms; the script reads `CHK_COUNT` until it is reached).
-3. Read 242–249. Row: rate, SPT, `PHASE_POS`, `mosi_sel`, Δ (ns), count,
-   the four error counts, first error.
+3. Read 242–249, then `PHASE_POS` again. Row: rate, SPT, `PHASE_POS`,
+   `mosi_sel`, Δ (ns), count, the four error counts, first error. The
+   row is kept only if `PHASE_POS` is still where the scan put it; it is
+   also checked after every step.
 
-That is 2 × SPT points (about 600), each a handful of BLE commands.
+That is 2 × SPT points (672 at 25k, 592 at 28k), each a handful of BLE
+commands.
 
 ### 5.3 Afterwards
 
 - `mosi_sel` = 4, `CHK_EN` = 0, step on to complete the turn
   (`PHASE_POS` = 0), restore the sampling table.
+- If `PHASE_POS` jumped during the scan (an FPGA reset or a lock drop),
+  the script does not step: the counter no longer says where `CLKOS` is.
+  It restores the rest, keeps the rows measured before the jump, and
+  says to power-cycle before the next scan.
 - **Power-cycle Kuntur** before any recording. Points outside the window
   can garble commands into `WRITE`s to any register 0–21, or a
   `CALIBRATE`; the known answers do not depend on that state, but a
@@ -263,11 +352,26 @@ That is 2 × SPT points (about 600), each a handful of BLE commands.
 
 ## 6. Testbench (Claude)
 
-- `kuntur_prims_sim.v`: `pll0` `CLKOS` with a static delay and a
-  `PHASESTEP` model (reuse the companion `cdr_tb` model).
-- `rhd2164_bfm.v`: each chip samples MOSI at its SCK rising plus a
-  per-chip delay, with a setup/hold window; a violation corrupts the bit.
-  Two chips with different delays give a known pair of windows.
+- `kuntur_prims_sim.v` (done 2026-11-04): `pll_sim`'s `clkos` delayed by
+  `phase_pos` × T / SPT plus the static delay, moved by `PHASESTEP`
+  falling edges with `PHASESEL` 001 (`PHASEDIR` 0 = later), SPT 336 / 296
+  per wrapper, back to 0 on a lock drop; `n_step_viol` counts pulses
+  that break TN-02095's 5 ns setup or 4-VCO-cycle widths.
+- `rhd2164_bfm.v`: parameters `MOSI_DELAY`, `SETUP`, `HOLD` (ns, default
+  0 = no change): the chip sees MOSI `MOSI_DELAY` late and needs it
+  stable `SETUP` before and `HOLD` after SCK rising; a violation in a
+  transfer makes it decode wrong (the word inverted) and counts in
+  `n_viol`. Two chips with different delays give a known pair of windows.
+- Both models are checked on their own by `tb/eye_models_tb.sv` (15
+  checks, done 2026-11-04), run by `scripts/run_kuntur_tb.sh`.
+- `tb/phase_stepper_tb.sv` (2026-11-05, 86 checks per rate, run at 25k
+  and 28k by `run_kuntur_tb.sh`): the stepper driving `pll_sim`, so each
+  command also checks that `PHASE_POS` and the model's phase agree. N
+  steps = N falling edges; both directions and both wraps; a full turn;
+  N = 1023; N = 0; pulse widths and the 5 ns `PHASEDIR` set-up; busy
+  over the command; a write while busy ignored, one right after taken;
+  no pulses while idle (2100 `clk`); `rst_n` mid-run, alone (the counter
+  and the model then disagree, reported) and with a lock drop.
 - Checks: `mosi_sel` = 4 is bit-identical to today (the whole
   `kuntur_tb` passes unchanged); for each source and allowed φ, Δ matches
   §3.1; the checker counts injected errors on the right half with the
@@ -277,6 +381,6 @@ That is 2 × SPT points (about 600), each a handful of BLE commands.
 
 ## 7. Open
 
-- O1: Kuntur `pll0` feedback mode and `PHASESEL` code for `CLKOS`
-  (§3.2), from the regenerated IP.
+- ~~O1~~ closed 2026-11-04 (#6 IPs): internal feedback (`INTCLKOP`),
+  `PHASESEL` 001, SPT 336 / 296 (§3.2).
 - O2: the `.sdc` form of the T/4 bound on the `m_early` path (§3.1).
