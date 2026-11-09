@@ -108,10 +108,18 @@ bit N + 1, so the word arrives shifted by one bit and every point fails:
 the map ends there.
 
 **Timing of `m_early`.** It is combinational after `clk` rising, and
-`clk_tx` samples it at least T/4 later. The `.sdc` must bound that path:
-`clk` → the `clk_tx` MOSI register ≤ T/4 − 1 ns (about 4.9 ns at
-42.504 MHz), checked in the `.twr`. The same holds for the falling-edge
-copies.
+`clk_tx` samples it at least T/4 later, so that path is bounded:
+`clk` → the `clk_tx` MOSI register ≤ T/4 − 1 ns, relative to each
+source's launch edge (the falling-edge copies included). *(Built
+2026-11-09, O2.)* It is in `impl_1.pdc`, not the `.sdc`, as
+`set_max_delay -from [get_clocks clk] -to [get_pins
+{scan0/mosi_tx_c.ff_inst/DF}] 4.881`: the register's name exists only
+after synthesis, and map drops the RTL or cell name with only a map
+warning. One `.pdc` serves all builds, so the 28k value (4.881 ns) is
+used at 25k too (5.587 ns would do). `build_kuntur.py` fails a build
+whose `.twr` lacks the Path Exception. Worst path: `regbank_dout1[15]`
+(EBR) → `txsr`'s load mux (`a_next`) → the source mux → `mosi_tx`, +0.78
+ns at 28k and 25k, +1.04 ns on the bench build.
 
 **Not changed:** SCK, CS, the FSM, `txsr`, MISO capture, the capture
 buffer. With `mosi_sel` = 4 the design is today's.
@@ -181,12 +189,17 @@ inputs are constants today; the stepper drives them.
 ### 3.3 Known-answer checker
 
 In the `clk` domain, on sampling transfers (`xfer_done`).
-- The command shifted out in transfer *t* (`cmd_sent`, latched by
-  `spi_master_rhd2164x2` on `tx_load`, S3) goes into a two-deep history,
-  advanced at the end of **every** SPI1 transfer (`done`), config walk
-  included, so the first sampling answers are paired correctly. At the end of transfer *t*,
-  the four answers (`data_rx_a`, `data_rx_b`, `data_rx_a1`,
-  `data_rx_b1`) belong to the command of transfer *t* − 2.
+- The command of each SPI1 transfer, `regbank_dout1` at `rhd_spi1_start`
+  (S3), goes into a history `h0` → `h1` → `h2`, advanced at the
+  **start** of **every** transfer, config walk included, so the first
+  sampling answers are paired correctly. At `xfer_done` of transfer *t*
+  (controller `op1d`, after the answers are loaded in `csbend1` and
+  before transfer *t* + 1 starts), `h0` = command *t*, `h1` = *t* − 1,
+  and the four answers (`data_rx_a`, `data_rx_b`, `data_rx_a1`,
+  `data_rx_b1`) belong to `h2`, the command of transfer *t* − 2.
+  Advancing at the end instead (a rising edge of `done`, which is a
+  level: high while the master is idle) would put the shift one `clk`
+  before `xfer_done` and pair every answer with the wrong command.
 - **Checked commands**, with their expected answer on all four halves:
 
   | Command | Expected |
@@ -198,10 +211,14 @@ In the `clk` domain, on sampling transfers (`xfer_done`).
   Anything else, including `CONVERT`, is not counted. The `WRITE` echo
   is the chip's own copy of the 8 data bits it latched from MOSI. A
   misread opcode turns the answer into something else, which also counts.
-- Counters, saturating at `FFFF`, cleared together: transfers checked;
-  errors on chip0 A, chip0 B, chip1 A, chip1 B; the first wrong answer
-  since the clear, its half, and what was expected.
-- Enabled by `CHK_EN`; when off, the counters hold.
+- Counters, saturating at `FFFF`, cleared together: transfers checked
+  (one per transfer, not per half); errors on chip0 A, chip0 B, chip1 A,
+  chip1 B; the first wrong answer since the clear, its half, and what
+  was expected. If several halves are wrong in that transfer, the first
+  error is the lowest half (chip0 A, chip0 B, chip1 A, chip1 B).
+- Enabled by `CHK_EN`; when off, the counters hold. `CHK_CLEAR` clears
+  everything, the first error's valid bit included; a clear and a count
+  in the same `clk`: the clear wins. Reset by `rst_n_clk` (§3.6).
 
 ### 3.4 Regbank words
 
@@ -210,7 +227,7 @@ as for `ch_a`/`stream_enable`):
 
 | Addr | Name | Bits |
 |---|---|---|
-| 232 | `MOSI_SCAN_CTRL` | [2:0] `mosi_sel` (reset **4**), [3] `CHK_EN` (reset 0), [4] `CHK_CLEAR`: a write with this bit set clears the checker |
+| 232 | `MOSI_SCAN_CTRL` | [2:0] `mosi_sel` (reset **4**; 5–7 also select the bypass), [3] `CHK_EN` (reset 0), [4] `CHK_CLEAR`: a write with this bit set clears the checker; **reads back 0** (RAM and live copy masked, 2026-11-09), so a read-modify-write cannot clear again |
 | 233 | `PHASE_STEP_CMD` | [9:0] N steps (0 = none), [15] direction, 0 = delay (the only one the procedure uses). A write starts the steps |
 
 Read-only, served from logic (writes ignored):
@@ -228,7 +245,9 @@ Read-only, served from logic (writes ignored):
 | 248 | `FIRST_ERR_INFO` | [15] valid, [1:0] half (0 = chip0 A, 1 = chip0 B, 2 = chip1 A, 3 = chip1 B) |
 | 249 | `FIRST_ERR_EXP` | what that answer should have been |
 
-232–239 and 240–255 are unused today (`regbank.v`); 230 is reserved for
+234–239 and 250–255 are unused. 240–249 are served by a read mux on
+`dout0` (the MCU port; `dout1`, the SPI1 command port, stays pure RAM):
+a write to them still lands in the RAM but is never read back. 230 is reserved for
 `rsp_delay` (`fpga-diagnostic-access.md`). #8 (the A.7 counter) can take
 250+.
 
@@ -245,16 +264,24 @@ them (S7). Develop on `impl_25k`; before a push, `scripts/build_kuntur.py`
 
 ### 3.6 RTL structure (S1–S7, agreed 2026-11-04)
 
-- **S1** `m_early` comes from a new `a_next` output of `sr_p2s`
+- **S1** `m_early` is the shift register's own `a_next`
   (`load ? data[n-1] : en ? areg[n-2] : areg[n-1]`), passed up by
-  `spi_master_rhd2164x2`: one definition, the shift register's own.
-  Other `sr_p2s` users leave it open.
-- **S2** Two new modules in the top: `mosi_scan` (sources, mux, the
-  `clk_tx` register, stepper) and `mosi_checker`. `spi_master_rhd2164x2`
-  only gains outputs (`a_next`, `cmd_sent`); its unused `clk90` input
-  can go.
-- **S3** The checker's command is `cmd_sent`, latched on `tx_load`, not
-  `regbank_dout1` sampled at the end (the next command may be on it).
+  `spi_master_rhd2164x2`. *As built (2026-11-09):* in `sr_p2s_1`, a copy
+  of `sr_p2s` plus `a_next`, kept beside `spi_master_rhd2164x2`, so
+  `common/` and the other `sr_p2s` users are unchanged. A change to
+  `sr_p2s` must be made in both.
+- **S2** One shell in the top, `spi1_eye_scan` (`scan0`): sources, mux,
+  the `clk_tx` register, the stepper, and the checker. *(Changed
+  2026-11-09 from two modules, `mosi_scan` and `mosi_checker`.)*
+  `spi_master_rhd2164x2` only gains an output (`a_next`), and its MOSI
+  output now feeds the shell (`spi1_mosi_m0`); the shell drives the pin.
+  Its unused `clk90` input can go.
+- **S3** The checker's command is `regbank_dout1` latched at
+  `rhd_spi1_start`, as `tun_aux` does: `rb_addr1` does not change from
+  `op1a` to `op1d`, so it is the word `tx_load` puts in `txsr` one `clk`
+  later. Not `regbank_dout1` sampled at the end (the next command may be
+  on it). *(Changed 2026-11-09, Manuel: option (a); the earlier
+  `cmd_sent` output of the master is not needed.)*
 - **S4** The bypass mux sits after the `clk_tx` register, before the pad
   (no I/O register): `mosi_sel` = 4 must stay bit-identical to today,
   and a fixed mux delay shifts the whole map, not the window.
@@ -383,4 +410,4 @@ commands.
 
 - ~~O1~~ closed 2026-11-04 (#6 IPs): internal feedback (`INTCLKOP`),
   `PHASESEL` 001, SPT 336 / 296 (§3.2).
-- O2: the `.sdc` form of the T/4 bound on the `m_early` path (§3.1).
+- ~~O2~~ closed 2026-11-09: the T/4 bound is a `set_max_delay` in `impl_1.pdc` (§3.1).

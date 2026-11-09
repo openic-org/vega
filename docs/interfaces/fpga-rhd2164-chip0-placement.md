@@ -14,6 +14,15 @@
 > ruled out by single observations and may need re-testing. The root
 > cause recorded below is *unsupported*, not *disproven*; it may still be
 > right, but the evidence for it does not currently establish that.
+>
+> **2026-11-09: the placement pinning is no longer treated as the fix.**
+> Manuel decided to re-map all macro regions (`mregion0`–`mregion7`)
+> from measured block sizes for #6a, retiring the rule "new placement
+> constraints go alongside `mregion0`–`mregion7`, never by removing
+> them" (`log/2026-08-31.md`, `lvds-tunnel.md` O3). Reasons: chip0 came
+> back with the regions in place, and the #6a eye scan
+> (`spi1-mosi-eye-scan.md`) measures and adjusts the MOSI margin
+> directly. Details: `log/2026-11-09.md`, "Step 6 started".
 
 
 **Status: RESOLVED 2026-08-24.** Root cause: unconstrained FPGA placement of

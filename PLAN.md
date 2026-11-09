@@ -429,8 +429,10 @@ half.
 previous root causes are unsupported. See A.1.2 below.** This is now the
 most serious open item in Phase A: it is an experiment-integrity risk,
 not a bench annoyance, and it invalidates the evidence behind three
-closures. The standing rule still applies to any deskew attempt — (a) add
-any constraint alongside `mregion0`-`mregion7`, never by removing them,
+closures. The standing rule still applies to any deskew attempt — (a) ~~add
+any constraint alongside `mregion0`-`mregion7`, never by removing them~~
+*(retired 2026-11-09, Manuel: the regions are re-mapped from measured
+block sizes for #6a; `log/2026-11-09.md`, "Step 6 started")*,
 and (b) measure rather than guess a phase — but the first task is no
 longer a fix, it is a **measurement of the failure's own behaviour**.
 
@@ -3235,6 +3237,14 @@ Design the **seams**; file layout follows.
       identical to before every fix, 0 negative-slack endpoints all
       corners, constraint coverage 96.4491%. `kuntur` `20523a8`,
       `21a2f34`. See `log/2026-08-26.md`.
+- [ ] **Named word addresses for every used regbank word** *(Manuel, RTL;
+      after the animal test — decided 2026-11-09)*. `regbank_map.vh` has
+      only the section bases, so `regbank.v`'s mirror `case` and the
+      firmware address live words as `RB_CTRL_BASE + 8'dN` / bare numbers
+      (196/197, 228, 229, 232, 233, …). Replaces #6a's R3, which would
+      have named only 232/233 and left the rest inconsistent. Add one
+      define per used word, use them in `regbank.v` and the testbenches,
+      and keep the firmware's numbers in step. See `log/2026-11-09.md`.
 - [ ] **Transport abstraction in firmware.** `stream_app.c` (1,023 lines) is welded to
       BLE while v1 needs the same stream over LVDS.
 - [ ] Move `STREAM_DIAG_*` behind a hook interface — inline diagnostics on the hot

@@ -598,11 +598,19 @@ open item **O3** is about protecting it: SPI1 on this board has a known,
 unresolved marginal-timing story (the chip0 / SCK-MOSI board-level trace
 asymmetry, PLAN.md B.5 and the 2026-08-31 log). Adding a fast serialiser
 and a new PLL near those pins is exactly the kind of change that has
-regressed it twice. The standing rule from that investigation applies
+regressed it twice. The standing rule from that investigation applied
 verbatim here:
 
-> Any new placement constraint must be added **alongside**
-> `mregion0`–`mregion7`, never by removing them.
+> ~~Any new placement constraint must be added **alongside**
+> `mregion0`–`mregion7`, never by removing them.~~
+
+**Rule retired 2026-11-09 (Manuel).** The macro regions are re-mapped
+from measured block sizes for #6a (`log/2026-11-09.md`, "Step 6
+started"). The 08-24 placement cause the regions protected is
+unsupported (chip0 came back with them in place), and the #6a eye scan
+measures and adjusts the MOSI margin at each chip directly. Still
+placement-dependent: MISO capture, timed by STA against placeholder
+input delays.
 
 ---
 
@@ -2592,7 +2600,7 @@ first two and specify the third:
 | ~~**O2**~~ | ~~LIFCL OSERDES/ISERDES gearing ratios~~ — **RESOLVED 2026-09-02**, and **superseded 2026-09-03**. The original question (is 10:1 hardened for 8b/10b, or is an 8→10 fabric gearbox needed?) is moot now the line code is gone. Answer for the record: `ODDRX5`/`IDDRX5` are hardened 10:1. The design now uses **`ODDRX4`/`IDDRX4`, hardened 8:1**, one byte per word. §6.3. | — | done |
 | ~~**O2a**~~ | ~~Does `clk` reach the edge-clock network cleanly as `ECLK`, and is `ECLKSYNC` required?~~ **RESOLVED 2026-10-20** on hardware: `clk` → `ECLKSYNC` → `ECLKDIV ÷4` → `ODDRX4` routes in bank 5 with 0 timing errors, and both pairs toggle at the expected rates. `ECLKSYNC` is required; it is what drives the gearbox edge-clock network. `log/2026-10-20.md`. | — | done |
 | **O2b** | **Companion receiver: bit order and eye centring** (new 2026-10-12; restated 2026-10-21, §6.6). The original question, how many bits one `IDDRX4.ALIGNWD` pulse slips, is **moot**: byte alignment is now done in fabric and `ALIGNWD` is tied to 0. (TN-02097 says one bit; unchecked.) What remains: **(a)** which `IDDRX4` output holds the first bit received, `Q0` or `Q7`. TN-02097 does not say. The link test pattern's `01 80` gives the answer on the bench, or in simulation if the Radiant model is usable. **(b)** Which PLL phase centres the eye on the real pigtail. Start `CLKOS` at 0° and sweep one full turn with `PHASESTEP`; record bit errors per step over 10,000 blocks (a bathtub curve); the operating phase is the centre of the longest error-free run (§6.6). Also check that `PHASESTEP` keeps rotating past 360°. | Companion RTL, link bring-up | Joint |
-| **O3** | **Does adding the tunnel perturb SPI1?** The chip0 / SCK-MOSI marginal timing is unresolved (PLAN.md B.5). Decision 4 reduces this risk materially — **no new PLL output, no second PLL, and 91.08 Mbps instead of 227.7** — but a serialiser near those pins is still the class of change that regressed it twice. Any new placement constraint goes **alongside** `mregion0`–`mregion7`, never by removing them. | Kuntur RTL bring-up | Manuel |
+| **O3** | **Does adding the tunnel perturb SPI1?** The chip0 / SCK-MOSI marginal timing is unresolved (PLAN.md B.5). Decision 4 reduces this risk materially — **no new PLL output, no second PLL, and 91.08 Mbps instead of 227.7** — but a serialiser near those pins is still the class of change that regressed it twice. ~~Any new placement constraint goes **alongside** `mregion0`–`mregion7`, never by removing them.~~ *Rule retired 2026-11-09 (Manuel): regions re-mapped for #6a, see the note in §2.5 and `log/2026-11-09.md`.* | Kuntur RTL bring-up | Manuel |
 | **O4** | **`SLOT_OFFSET` duplication.** Fix at source, or make this spec normative, before the companion becomes the third implementation of one hardware fact. §3.4. **For the tunnel: resolved at source 2026-11-02** (§4.3.1, Kuntur's capture buffer aligns; the companion holds no offset). Still open for the BLE path (pc-app `channel_mapping.py`, MCU `FPGA_SPI_ChannelToRaw()`), Phase B. | BLE path cleanup | Joint |
 | **O5** | **Pigtail wiring must not bridge `VSTIMp`/`VSTIMm` (J1 pads 18/19) or `VCC1`/`VCC2` into the FMC breakout.** The uHDMI carries power and stimulator rails alongside the two pairs. §1.1. | Pigtail assembly | Manuel |
 | **O6** | **Runbook: the operator configures via Vega, not via the Intan software.** Sharpened by decision 4 — absorbed writes are now reported only at the companion's own console (§9.4), not in the pc-app where the operator is looking. | Bench procedure, animal-test runbook | Joint |
