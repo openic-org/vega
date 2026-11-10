@@ -67,6 +67,7 @@ on port 0. Refitting R22 restores it.
   opens the port to the user. The console is
   `/dev/serial/by-id/usb-Lattice_Lattice_CrossLink-NX_Eval_Board_FT6WVUEH-if01-port0`
   (use this name, the `ttyUSB` number changes). Opened at 115,200: works.
+  Radiant still programs the companion over port 0 (Manuel, 2026-11-10).
 - **Port 1 must enumerate as a serial port.** The mode is set by the FTDI
   EEPROM (port 1 normally "RS232 UART" on Lattice boards; port 0 JTAG)
   and by whatever program opens it. On Linux: interface 1 bound to
