@@ -31,7 +31,8 @@ COL_TIME     = 0    # timestamp in microseconds
 COL_CH0      = 1    # first channel
 COL_CH1      = 2    # second channel (set to None to skip)
 
-SAMPLE_RATE  = 30_000          # Hz — used to compute expected Δt
+SAMPLE_RATE  = None            # Hz, expected Δt; None = the sidecar's
+                               # sample_rate.channel_hz (recording-format.md §3a.3)
 GAP_THRESH   = 2.0             # multiples of expected Δt to call a gap
 
 # Zoom window (seconds from start of recording)
@@ -42,7 +43,20 @@ TITLE = "Vega FPGA recording — analysis"
 
 # ── LOAD & PREPARE ───────────────────────────────────────────────────────────
 
-raw        = np.loadtxt(CSV_FILE, delimiter=",", skiprows=1)
+if SAMPLE_RATE is None:
+    import json
+    from pathlib import Path
+    _side = Path(CSV_FILE).with_suffix(".json")
+    try:
+        SAMPLE_RATE = float(json.loads(_side.read_text())["sample_rate"]["channel_hz"])
+    except (OSError, KeyError, ValueError) as e:
+        raise SystemExit(f"{_side}: no sample_rate.channel_hz ({e}); set SAMPLE_RATE by hand")
+
+# format_version 1 files start with a "# vega-recording-format-version"
+# line before the header row (recording-format.md §4); older ones do not.
+with open(CSV_FILE) as _f:
+    _skip = 2 if _f.readline().startswith("#") else 1
+raw        = np.loadtxt(CSV_FILE, delimiter=",", skiprows=_skip, max_rows=None)
 ts_us      = raw[:, COL_TIME]
 ch0        = raw[:, COL_CH0]
 ch1        = raw[:, COL_CH1] if COL_CH1 is not None else None

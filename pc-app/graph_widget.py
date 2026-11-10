@@ -137,5 +137,21 @@ class GraphWidget(QWidget):
         for curve in self._curves:
             curve.setData([], [])
 
+    def set_sample_rate(self, sps: float):
+        """Resize for the operator's rate (kuntur_rate.py): the buffer holds
+        real samples only (underrun padding is dropped in add_batch), so it
+        is sized by the per-channel rate. Clears the plot."""
+        seconds = self._window_pts / self._sps if self._sps else WINDOW_SECONDS
+        self._sps = int(round(sps))
+        self._buf_size = self._sps * BUFFER_SECONDS
+        self._ts  = np.zeros(self._buf_size, dtype=np.int64)
+        self._ch0 = np.zeros(self._buf_size, dtype=np.int16)
+        self._ch1 = np.zeros(self._buf_size, dtype=np.int16)
+        self._head = 0
+        self._size = 0
+        self._window_pts = int(seconds * self._sps)
+        for curve in self._curves:
+            curve.setData([], [])
+
     def set_window_seconds(self, seconds: float):
         self._window_pts = int(seconds * self._sps)

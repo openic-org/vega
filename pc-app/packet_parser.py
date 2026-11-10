@@ -10,7 +10,12 @@ Packet layout (little-endian, 244 bytes total):
 
 Timestamp decode:
   packet_base_us = timestamp_s × 1_000_000 + timestamp_sub_s × 1_000 // 32
-  sample_us[i]   = packet_base_us + i × 1_000_000 // SAMPLE_RATE_HZ
+  sample_us[i]   = packet_base_us + round(i × 1_000_000 / sample_rate_hz)
+
+sample_rate_hz is the operator's rate setting (kuntur_rate.py, PLAN.md R7).
+Rounded, not an integer step: 1e6 // rate is exact at 25k (40 µs) but 2%
+short at 28k (35 for 35.71 µs), which put a packet's last sample 41 µs
+early (recording-format.md §3a.1).
 """
 
 import struct
@@ -19,6 +24,8 @@ from dataclasses import dataclass
 
 HEADER_FMT   = "<IHBBs"   # not used directly — parsed field by field
 HEADER_SIZE  = 8
+# Legacy 30 kS/s (impl_1). Only the default for offline tools that parse
+# without a setting; the live path always passes the operator's rate.
 SAMPLE_RATE_HZ  = 30_000
 MAGIC        = bytes([0xAA, 0x55])
 PACKET_SIZE  = 244
@@ -66,8 +73,16 @@ class ParsedPacket:
     fifo_underruns: int          # samples where ch0 == ch1 == 0x8000 (FPGA FIFO empty)
 
 
-def parse(data: bytes) -> ParsedPacket | None:
-    """Parse a raw 244-byte BLE notification payload. Returns None on error."""
+def sample_offsets_us(n: int, sample_rate_hz: float) -> np.ndarray:
+    """Offsets of a packet's n samples from its base time, in µs, rounded
+    (module docstring)."""
+    return np.rint(np.arange(n, dtype=np.float64) * (1_000_000 / sample_rate_hz)).astype(np.int64)
+
+
+def parse(data: bytes, sample_rate_hz: float = SAMPLE_RATE_HZ) -> ParsedPacket | None:
+    """Parse a raw 244-byte BLE notification payload. Returns None on error.
+    sample_rate_hz spaces the samples inside the packet (the operator's
+    setting on the live path)."""
     if len(data) < HEADER_SIZE:
         return None
 
@@ -86,8 +101,7 @@ def parse(data: bytes) -> ParsedPacket | None:
     ch0 = samples[0::2].copy()
     ch1 = samples[1::2].copy()
 
-    i = np.arange(num_pairs, dtype=np.int64)
-    timestamps_us = packet_base_us + i * 1_000_000 // SAMPLE_RATE_HZ
+    timestamps_us = packet_base_us + sample_offsets_us(num_pairs, sample_rate_hz)
 
     fifo_underruns = int(np.sum(is_fifo_underrun(ch0, ch1)))
 

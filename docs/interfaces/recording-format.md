@@ -518,7 +518,13 @@ was implemented.
 
 ## 3a. Rate setting and live rate measurement (PLAN.md R7) — AGREED 2026-11-04
 
-**Status: agreed by Manuel 2026-11-04 (D1–D3 as recommended). Not implemented.**
+**Status: agreed by Manuel 2026-11-04 (D1–D3 as recommended).
+Implemented 2026-11-10: §3a.1 and the `channel_hz`/`source` of §3a.3
+(`pc-app/kuntur_rate.py`, `test_kuntur_rate.py`). One deviation, stricter
+than written: the selector is fixed while *connected*, not only while
+recording, so the reader, liveness monitor and plot never change rate
+mid-session. §3a.2 and the `measured_*` keys implemented the same day with
+the revised estimator below (`pc-app/rate_meter.py`, `test_rate_meter.py`).**
 
 **Why.** Kuntur will run at two rates from two bitstreams: 25,000 S/s per
 channel (`clk` 37.95 MHz, variants 2/3) and 28,000 (42.504 MHz, variant
@@ -550,7 +556,20 @@ integer step is exact at 25k (40 µs) but 2% short at 28k (35 µs for
 35.71), so the last sample of a packet would sit 41 µs early. (At 30k it
 was 33 for 33.33 µs.)
 
-**3a.2 The live measurement.** The rate Kuntur actually produces,
+**3a.2 The live measurement.** *Estimator revised 2026-11-10 (Manuel):*
+on the first 25k recording (938 s) the least-squares fit read −0.154%
+while every clean 60 s window read 25,000.1 S/s: samples are lost inside
+Kuntur with no `seq_num` gap, which pulls a whole-session fit down and
+would trip the 0.05% alarm. So: packets (header RTC time, real samples,
+`seq_num`) are grouped into **10 s windows**; the rate is the **median of
+the window rates** (last 60 s, and since the start); a window more than
+0.05% below the median counts as **samples lost without a `seq_num` gap**,
+shown live. The median needs ≥ 3 windows (30 s) to outvote one lossy
+window, hence the coarse early alarm. On that recording: 25,000.09 S/s,
+31,041 samples lost in 5 windows, 17 packets.
+
+Otherwise as agreed 2026-11-04 (where it says least-squares, read the
+median above): The rate Kuntur actually produces,
 measured the way `pc-app/measure_rate.py` does it (packet first-row RTC
 times, real samples only, `seq_num` gaps filled, least-squares slope), so
 it is independent of the setting:
@@ -573,9 +592,15 @@ change, and three keys are added at `stop()`:
   "source": "operator setting: 25 kS/s (variant 2/3 build, clk 37.95 MHz, docs/releases.md)",
   "measured_channel_hz": 24999.7,
   "measured_padding": 0.151,
-  "measured_lost_packets": 0
+  "measured_lost_packets": 0,
+  "measured_lost_samples_no_gap": 0,
+  "measured_method": "median of 10 s windows, MCU packet times, real samples (rate_meter.py)"
 }
 ```
+
+(The last two keys added 2026-11-10 with the median estimator.) The
+`measured_*` keys cover the recording only, and are kept current while
+recording, so an auto-stop still leaves them.
 
 `channel_hz` stays the nominal rate the build is designed for (what a
 reader should use); `measured_*` is the evidence that it was the right
