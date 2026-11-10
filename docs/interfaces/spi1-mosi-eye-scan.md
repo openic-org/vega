@@ -367,11 +367,21 @@ commands.
 ### 5.4 Reading the map, choosing the point
 
 - Per half, Δ with zero errors forms the window. Expect A and B of a
-  chip to agree (same MOSI); if they don't, suspect MISO.
+  chip to agree (same MOSI); if they don't, suspect MISO. *Except at a
+  window's edge:* A and B ending one or two steps apart is normal and
+  not flagged (seen 2026-11-10, +28.6 ns at 25k).
 - **Chosen Δ\*:** the middle of the Δ range error-free on all four
   halves, **≥ T/2 (25% of a 2T bit, the G5 rule) from any error on both
   sides**. If the overlap is too narrow for that, report it and stop:
-  that is a finding, not something to work around.
+  that is a finding, not something to work around. *An edge beyond the
+  map* (no error on that side within the scan) gives only a lower bound
+  on that margin, the distance to the end of the map; it passes when
+  that bound is already ≥ T/2 (added 2026-11-10: at 25k the early edge
+  lies below −3T/4).
+- **Today's launch, Δ = 0** (`mosi_sel` 4, up to the fixed `clk_tx` path
+  offset that shifts the whole map): its margins are reported too. If it
+  meets G5 on both sides, no MOSI phase change is needed (25k,
+  2026-11-10: ≥ 19.8 ns below, 28.6 ns above).
 - Δ\* → (`mosi_sel`, static `CLKOS` phase) by the table in §3.1, per
   rate. Each rate is scanned on its own build (#6): the window in ns is
   the board's, but T differs.

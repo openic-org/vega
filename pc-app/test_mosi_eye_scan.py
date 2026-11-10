@@ -175,6 +175,35 @@ assert v.ab_disagree["c1"] > 0 and v.ab_disagree["c0"] == 0
 assert "suspect MISO" in v.text
 print(f"pass  A/B disagreement on chip1 flagged ({v.ab_disagree['c1']} points)")
 
+# 4b. The early edge beyond the map (2026-11-10 bench: chip windows from
+# below -3T/4 to ~+28.5 ns): PASS on the bound, today's launch meets G5,
+# and A/B of one chip ending one step apart is an edge, not MISO.
+fake = FakeRegbank(25, {"c0": (-99.0, 28.5), "c1": (-99.0, 28.5)}, b_only=("c0a", 28.5 - 0.075, 28.5))
+v = m.analyze(run(fake), 10_000)
+assert v.ok, v.text
+assert v.margin_lo is None and v.bound_lo >= v.T / 2 and v.margin_hi >= v.T / 2, v.text
+assert "edge beyond the map" in v.text and "already meets" in v.text
+assert v.bypass_ok and v.bypass_lo_open and not v.bypass_hi_open, v.text
+assert "no MOSI phase change is needed" in v.text
+assert v.ab_disagree == {"c0": 0, "c1": 0} and v.ab_edge["c0"] >= 1, (v.ab_disagree, v.ab_edge)
+assert "suspect MISO" not in v.text
+print(f"pass  edge beyond the map: PASS on the bound (≥ {v.bound_lo:.2f} ns), "
+      f"Δ = 0 meets G5, {v.ab_edge['c0']} A/B edge point(s) not flagged")
+
+# 4c. Same, but the scanned part is too short for G5 on the open side: FAIL.
+fake = FakeRegbank(25, {"c0": (-99.0, -8.0), "c1": (-99.0, -8.0)})
+v = m.analyze(run(fake), 10_000)
+assert not v.ok and v.margin_lo is None and v.bound_lo < v.T / 2, v.text
+assert "does not reach" in v.text and v.bypass_ok is not True
+print(f"pass  edge beyond the map, bound {v.bound_lo:.2f} ns < G5: FAIL")
+
+# 4d. The restore says streaming is left stopped.
+fake = FakeRegbank(25, {"c0": (-14.0, 26.0), "c1": (-12.0, 30.0)})
+said = []
+m.scan(fake, 25, 10_000, [], log=lambda s, *_: said.append(s))
+assert any("STREAMING IS STOPPED" in s for s in said), said[-3:]
+print("pass  restore announces that streaming is left stopped")
+
 # 5. Wrong build: SPT does not match the rate; nothing is touched.
 fake = FakeRegbank(25, {"c0": (-14.0, 26.0), "c1": (-12.0, 30.0)}, spt=296)
 try:

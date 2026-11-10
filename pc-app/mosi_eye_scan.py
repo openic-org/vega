@@ -317,7 +317,10 @@ def scan(port, rate_k: int, dwell: int, rows: list, log=print, max_dwell_s: floa
             log(f"note: MOSI_SCAN_CTRL was {saved_ctrl:04x} before the scan; left at bypass")
         if end != 0:
             log(f"WARNING: PHASE_POS = {end} after the turn, expected 0")
-        log("power-cycle Kuntur before any recording (spec §5.3)")
+        # STOP_STREAMING above is not undone on purpose: §5.3 asks for a
+        # power cycle before any recording, and that restarts streaming.
+        log("STREAMING IS STOPPED (the scan does not restart it): power-cycle "
+            "Kuntur before any recording (spec §5.3); pc-app shows no data until then")
 
 
 # ── Map → verdict (spec §5.4) ───────────────────────────────────────────────
@@ -331,9 +334,60 @@ class Verdict:
     delta_star: float | None
     margin_lo: float | None  # Δ* minus the nearest error below it (None: no error below)
     margin_hi: float | None
-    ab_disagree: dict       # chip -> points where exactly one of A, B erred
+    ab_disagree: dict       # chip -> points where A and B disagree away from a window edge
     invalid: int            # points with fewer checked transfers than the dwell
     text: str
+    # With no error on a side inside the scan, that side's margin is only
+    # bounded: at least the distance to the end of the map.
+    bound_lo: float | None = None   # Δ* minus the lowest Δ scanned, when margin_lo is None
+    bound_hi: float | None = None
+    ab_edge: dict | None = None      # chip -> disagreements at a window edge (not flagged)
+    bypass_ok: bool | None = None    # Δ = 0 (today's launch) has the G5 margin
+    bypass_lo: float | None = None   # its margin below (or bound, see bypass_lo_open)
+    bypass_hi: float | None = None
+    bypass_lo_open: bool = False
+    bypass_hi_open: bool = False
+
+
+def margins(d, deltas, clean):
+    """Margin from Δ = d to the nearest unclean point on each side, as
+    (lo, lo_open, hi, hi_open): when no error lies on a side, the margin
+    is the distance to the end of the map and *_open is True (a lower
+    bound, the edge was not reached)."""
+    bad = [x for x, c in zip(deltas, clean) if not c]
+    below = [x for x in bad if x < d]
+    above = [x for x in bad if x > d]
+    lo, lo_open = (d - max(below), False) if below else (d - deltas[0], True)
+    hi, hi_open = (min(above) - d, False) if above else (deltas[-1] - d, True)
+    return lo, lo_open, hi, hi_open
+
+
+def ab_split(valid, chip):
+    """(away, edge): points where exactly one of chip's A, B erred. A run
+    of at most 2 such points next to a point where both erred is the two
+    halves' windows ending a step or two apart, normal at an edge; any
+    other disagreement is flagged."""
+    a = [getattr(r, chip + "a") == 0 for r in valid]
+    b = [getattr(r, chip + "b") == 0 for r in valid]
+    dis = [x != y for x, y in zip(a, b)]
+    both_bad = [not x and not y for x, y in zip(a, b)]
+    away = edge = 0
+    i = 0
+    while i < len(dis):
+        if not dis[i]:
+            i += 1
+            continue
+        j = i
+        while j + 1 < len(dis) and dis[j + 1]:
+            j += 1
+        n = j - i + 1
+        at_edge = (i > 0 and both_bad[i - 1]) or (j + 1 < len(dis) and both_bad[j + 1])
+        if n <= 2 and at_edge:
+            edge += n
+        else:
+            away += n
+        i = j + 1
+    return away, edge
 
 
 def longest_run(deltas, good):
@@ -362,22 +416,30 @@ def analyze(rows: list[Row], dwell: int | None = None) -> Verdict:
     clean = [all(getattr(r, h) == 0 for h in HALVES) for r in valid]
     overlap = longest_run(deltas, clean)
 
-    star = mlo = mhi = None
+    g5 = T / 2
+    star = mlo = mhi = blo = bhi = None
+    ok = False
     if overlap:
         star = (overlap[0] + overlap[1]) / 2
-        bad = [d for d, c in zip(deltas, clean) if not c]
-        below = [d for d in bad if d < star]
-        above = [d for d in bad if d > star]
-        mlo = star - max(below) if below else None
-        mhi = min(above) - star if above else None
+        lo, lo_open, hi, hi_open = margins(star, deltas, clean)
+        mlo, blo = (None, lo) if lo_open else (lo, None)
+        mhi, bhi = (None, hi) if hi_open else (hi, None)
+        # An edge beyond the map still passes when the part of the window
+        # that was scanned already gives the G5 margin.
+        ok = lo >= g5 and hi >= g5
 
-    ab = {}
+    # Today's launch: Δ = 0 is mosi_sel 4 (§3.1), up to the fixed delay of
+    # the clk_tx path, which shifts the whole map.
+    byp = None
+    bypass_ok = byp_clean = None
+    if deltas and deltas[0] <= 0.0 <= deltas[-1]:
+        byp = margins(0.0, deltas, clean)
+        byp_clean = clean[min(range(len(deltas)), key=lambda i: abs(deltas[i]))]
+        bypass_ok = byp_clean and byp[0] >= g5 and byp[2] >= g5
+
+    ab, ab_edge = {}, {}
     for chip in ("c0", "c1"):
-        ab[chip] = sum((getattr(r, chip + "a") == 0) != (getattr(r, chip + "b") == 0) for r in valid)
-
-    g5 = T / 2
-    ok = (star is not None and mlo is not None and mhi is not None
-          and mlo >= g5 and mhi >= g5)
+        ab[chip], ab_edge[chip] = ab_split(valid, chip)
 
     lines = [f"{rate_k}k: T = {T:.3f} ns, {len(rows)} points"
              + (f", {invalid} short of the dwell (ignored)" if invalid else ""),
@@ -386,23 +448,42 @@ def analyze(rows: list[Row], dwell: int | None = None) -> Verdict:
         w = windows[h]
         lines.append(f"  {h}  window " + (f"{w[0]:+8.3f} … {w[1]:+8.3f} ns ({w[1] - w[0]:.3f} ns)"
                                           if w else "none: errors at every point"))
+    def side(m_, b_, where):
+        return f"{m_:.3f} ns {where}" if m_ is not None else f"≥ {b_:.3f} ns {where} (edge beyond the map)"
+
     if overlap:
         lines.append(f"  overlap  {overlap[0]:+8.3f} … {overlap[1]:+8.3f} ns ({overlap[1] - overlap[0]:.3f} ns)")
         lines.append(f"  Δ*       {star:+8.3f} ns; margin to the nearest error "
-                     + (f"{mlo:.3f} ns below" if mlo is not None else "none below (map ends)") + ", "
-                     + (f"{mhi:.3f} ns above" if mhi is not None else "none above (map ends)")
+                     + side(mlo, blo, "below") + ", " + side(mhi, bhi, "above")
                      + f"; G5 needs ≥ {g5:.3f} ns each side")
     else:
         lines.append("  overlap  none: no Δ where all four halves are clean")
-    for chip, n in ab.items():
-        if n:
-            lines.append(f"  {chip}: A and B disagree at {n} points: suspect MISO, not MOSI")
-    if mlo is None or mhi is None:
-        lines.append("  an edge was not found inside the scan: the margin on that side is not measured")
+    if byp is not None:
+        lo, lo_open, hi, hi_open = byp
+        lines.append("  Δ = 0    (mosi_sel 4, today's launch, ± the clk_tx path offset): "
+                     + ("clean; margin " + side(None if lo_open else lo, lo, "below") + ", "
+                        + side(None if hi_open else hi, hi, "above")
+                        + (" → meets G5" if bypass_ok else " → short of G5")
+                        if byp_clean else "errors there"))
+    for chip in ("c0", "c1"):
+        if ab[chip]:
+            lines.append(f"  {chip}: A and B disagree at {ab[chip]} points away from a window edge: "
+                         "suspect MISO, not MOSI")
+        if ab_edge[chip]:
+            lines.append(f"  {chip}: A and B differ at {ab_edge[chip]} edge point(s): their windows end "
+                         "a step apart (normal)")
+    if overlap and (mlo is None or mhi is None):
+        lines.append("  an edge lies beyond the map: that side's margin is a lower bound, "
+                     "which " + ("already meets" if ok else "does not reach") + " G5")
     lines.append("  " + ("PASS: Δ* has the G5 margin on both sides" if ok else
                          "FAIL: no Δ* with the G5 margin on both sides (a finding, report it; §5.4)"))
+    if ok and bypass_ok:
+        lines.append("  today's launch (mosi_sel 4) also meets G5: no MOSI phase change is needed")
     lines.append("  a pass at Δ* afterwards is not evidence; this map is (A.1.2)")
-    return Verdict(ok, T, windows, overlap, star, mlo, mhi, ab, invalid, "\n".join(lines))
+    return Verdict(ok, T, windows, overlap, star, mlo, mhi, ab, invalid, "\n".join(lines),
+                   bound_lo=blo, bound_hi=bhi, ab_edge=ab_edge, bypass_ok=bypass_ok,
+                   bypass_lo=byp[0] if byp else None, bypass_hi=byp[2] if byp else None,
+                   bypass_lo_open=byp[1] if byp else False, bypass_hi_open=byp[3] if byp else False)
 
 
 def star_setting(delta_star_ns: float, rate_k: int) -> tuple[int, int, float]:
