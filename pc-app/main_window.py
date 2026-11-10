@@ -6,7 +6,7 @@ import csv
 import datetime
 import time
 from pathlib import Path
-from PyQt6.QtCore import Qt, QTimer
+from PyQt6.QtCore import Qt, QTimer, QSettings
 from PyQt6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout,
     QLabel, QPushButton, QComboBox, QGroupBox, QGridLayout,
@@ -20,6 +20,8 @@ from csv_recorder  import CsvRecorder, MAX_DURATION_STR
 from channel_health import ChannelHealthMonitor, DEAD, ALIVE
 from diagnostics   import RUNGS, RungRunner, FilterSettingsReader, RawChannelSetter
 import channel_mapping
+import kuntur_rate
+from rate_meter import RateMeter
 import rhd2164_units
 
 RECORDINGS_DIR = Path(__file__).parent / "recordings"
@@ -33,16 +35,12 @@ DEFAULT_PORT   = "/dev/ttyACM1"
 # operator doesn't need the module split — 2026-08-28 decision.
 CHIP_RANGE_TEXT = "Chip 0: channels 0-63   •   Chip 1: channels 64-127"
 
-# Measured at ~4 500 SPS with current CI (~13 ms). Update when CI is tightened to 7.5 ms.
-DELIVERED_SPS = 5_000
-
-# FPGA production rate, per-channel, current firmware — see
-# docs/interfaces/stream-packet-format.md §1.1 (2026-08-27 PLL retune).
-# Recorded into every sidecar's sample_rate.channel_hz (see
-# _build_sidecar_metadata below). PLAN.md A.7 step 3 is expected to set
-# the actual streaming rate below this deliberately (rate margin) — update
-# this constant when that lands, not before.
-SAMPLE_RATE_CHANNEL_HZ = 29_999.97
+# The per-channel rate is the operator's "Kuntur rate" setting
+# (kuntur_rate.py, PLAN.md R7, recording-format.md §3a): it replaced
+# DELIVERED_SPS (graph size) and SAMPLE_RATE_CHANNEL_HZ (sidecar). No
+# default on first start (§3a.5 D2); remembered under this key.
+SETTINGS_ORG, SETTINGS_APP = "vega", "pc-app"
+RATE_SETTING_KEY = "kuntur_rate"
 
 # How long to wait for a real STOP_STREAMING/START_STREAMING acknowledgment
 # (section 5.6) before giving up and proceeding anyway — same reasoning as
@@ -114,6 +112,9 @@ class MainWindow(QMainWindow):
         # notice, so a recording could silently lose a channel partway
         # through and get it back. This watches for it continuously — a
         # pre-session check is insufficient by construction.
+        # Re-created with the operator's rate at every connect
+        # (_toggle_connection); this one only exists so the panel has
+        # something to show before the first connect.
         from packet_parser import SAMPLE_RATE_HZ as _SR
         self._health = ChannelHealthMonitor(_SR)
         self._health_file = None
@@ -204,7 +205,7 @@ class MainWindow(QMainWindow):
         root.addLayout(self._build_channel_controls())
         root.addWidget(self._build_debug_panel())
         root.addWidget(self._build_diagnostics_panel())
-        self._graph = GraphWidget(DELIVERED_SPS)
+        self._graph = GraphWidget(int(self._rate.channel_hz) if self._rate else 25_000)
         root.addWidget(self._graph, stretch=1)
 
         self.setStatusBar(QStatusBar())
@@ -223,6 +224,34 @@ class MainWindow(QMainWindow):
         self._btn_refresh.setFixedWidth(32)
         self._btn_refresh.clicked.connect(self._refresh_ports)
         row.addWidget(self._btn_refresh)
+
+        # Kuntur rate (PLAN.md R7, recording-format.md §3a.1): which
+        # bitstream is flashed. No default on first start; remembered.
+        self._rate_combo = QComboBox()
+        self._rate_combo.addItem("choose…", None)
+        for r in kuntur_rate.RATES:
+            self._rate_combo.addItem(r.label, r.key)
+        self._rate_combo.setToolTip(
+            "Per-channel rate of the flashed Kuntur build. Sets sample timing, "
+            "liveness timing, the plot and the recording sidecar. "
+            "Fixed while connected.")
+        self._rate = kuntur_rate.from_key(
+            QSettings(SETTINGS_ORG, SETTINGS_APP).value(RATE_SETTING_KEY))
+        if self._rate:
+            self._rate_combo.setCurrentIndex(self._rate_combo.findData(self._rate.key))
+        self._rate_combo.currentIndexChanged.connect(self._on_rate_changed)
+        row.addWidget(QLabel("Kuntur rate:"))
+        row.addWidget(self._rate_combo)
+        # The rate measured from the packets (§3a.2, rate_meter.py), and
+        # its alarms. One meter per connection, one per recording.
+        self._meter = RateMeter()
+        self._rec_meter: RateMeter | None = None
+        self._lbl_rate_meas = QLabel("measured: —")
+        self._lbl_rate_meas.setStyleSheet("font-size: 11px; color: gray;")
+        self._lbl_rate_meas.setToolTip(
+            "Median of 10 s windows, from the MCU's packet times, real samples only. "
+            "'lost' = samples missing with no seq_num gap (lost inside Kuntur).")
+        row.addWidget(self._lbl_rate_meas)
 
         self._btn_connect = QPushButton("Connect")
         self._btn_connect.setCheckable(True)
@@ -541,6 +570,15 @@ class MainWindow(QMainWindow):
         elif DEFAULT_PORT in ports:
             self._port_combo.setCurrentText(DEFAULT_PORT)
 
+    def _on_rate_changed(self, _index: int) -> None:
+        """The operator picked a rate. Only possible while disconnected
+        (the selector is disabled while connected, so never mid-recording,
+        §3a.1); remembered for the next run."""
+        self._rate = kuntur_rate.from_key(self._rate_combo.currentData())
+        if self._rate:
+            QSettings(SETTINGS_ORG, SETTINGS_APP).setValue(RATE_SETTING_KEY, self._rate.key)
+            self._graph.set_sample_rate(self._rate.channel_hz)
+
     def _toggle_connection(self, checked: bool):
         if checked:
             port = self._port_combo.currentText()
@@ -548,27 +586,88 @@ class MainWindow(QMainWindow):
                 self._btn_connect.setChecked(False)
                 self.statusBar().showMessage("No port selected")
                 return
+            if not self._rate:
+                # §3a.5 D2: no session, and so no recording, under a silent
+                # default rate.
+                self._btn_connect.setChecked(False)
+                self.statusBar().showMessage(
+                    "Choose the Kuntur rate first (the build that is flashed)")
+                return
+            self._reader.set_sample_rate(self._rate.channel_hz)
+            self._health = ChannelHealthMonitor(self._rate.channel_hz)
+            self._meter = RateMeter()
+            self._lbl_rate_meas.setText("measured: —")
+            self._lbl_rate_meas.setStyleSheet("font-size: 11px; color: gray;")
+            self._graph.set_sample_rate(self._rate.channel_hz)
+            self._rate_combo.setEnabled(False)
             self._reader.set_port(port)
             self._reader.start()
             self._btn_connect.setText("Disconnect")
         else:
             self._reader.stop()
             self._btn_connect.setText("Connect")
+            self._rate_combo.setEnabled(True)
 
     def _toggle_recording(self, checked: bool):
         if checked:
             RECORDINGS_DIR.mkdir(exist_ok=True)
             path = self._recorder.start(str(RECORDINGS_DIR), metadata=self._build_sidecar_metadata())
+            self._rec_meter = RateMeter()
             self._btn_rec.setText("■ Stop")
             self._lbl_rec_path.setText(f"Recording → {path}")
         else:
+            self._update_rec_rate_metadata()
             self._recorder.stop()
+            self._rec_meter = None
             self._btn_rec.setText("● REC")
             info = self._recorder.info
             reason = f"  ({info.auto_stop_reason})" if info.auto_stop_reason else ""
             self._lbl_rec_path.setText(
                 f"Saved  {info.elapsed_sec}s  ~{info.estimated_mb} MB{reason}  → {info.file_path}"
             )
+
+    def _update_rec_rate_metadata(self) -> None:
+        """sample_rate with the measured_* keys (recording-format.md
+        §3a.3), measured over this recording only. Kept current while
+        recording, so an auto-stop or a crash still leaves it."""
+        if self._rec_meter is None or self._rate is None:
+            return
+        st = self._rec_meter.status(self._rate.channel_hz)
+        sr = dict(self._build_sidecar_metadata()["sample_rate"])
+        sr.update({
+            "measured_channel_hz": round(st.rate_all, 2) if st.rate_all else None,
+            "measured_padding": round(st.padding, 4) if st.padding is not None else None,
+            "measured_lost_packets": st.lost_packets,
+            # samples missing with no seq_num gap (rate_meter.py), added
+            # 2026-11-10 with the median estimator
+            "measured_lost_samples_no_gap": st.lost_samples,
+            "measured_method": "median of 10 s windows, MCU packet times, real samples (rate_meter.py)",
+        })
+        self._recorder.live_metadata["sample_rate"] = sr
+
+    def _update_rate_label(self) -> None:
+        if self._rate is None:
+            return
+        st = self._meter.status(self._rate.channel_hz)
+        if st.rate_all is None:
+            self._lbl_rate_meas.setText("measured: — (first 10 s)")
+            return
+        txt = (f"measured {st.rate_recent or st.rate_all:,.1f} S/s (60 s), "
+               f"{st.rate_all:,.1f} (all) · padding {100 * (st.padding_recent or 0):.1f}%")
+        if st.lost_samples or st.lost_packets:
+            txt += f" · lost {st.lost_samples:,} no-gap, {st.lost_packets} pkts"
+        warn = None
+        if st.alarm:
+            warn = st.alarm
+        elif st.saturated:
+            warn = "padding < 0.5%: transport saturated, fifo0 may be overflowing; rate is a lower bound"
+        if warn:
+            self._lbl_rate_meas.setText(txt + "  ⚠ " + warn)
+            self._lbl_rate_meas.setStyleSheet("font-size: 11px; color: #B71C1C; font-weight: bold;")
+        else:
+            self._lbl_rate_meas.setText(txt)
+            self._lbl_rate_meas.setStyleSheet(
+                "font-size: 11px; color: " + ("#E65100;" if st.lost_samples else "green;"))
 
     def _build_sidecar_metadata(self) -> dict:
         """Everything known at recording-start() time, per
@@ -579,14 +678,10 @@ class MainWindow(QMainWindow):
         return {
             "sample_rate": {
                 "config": "2ch_v1",
-                "channel_hz": SAMPLE_RATE_CHANNEL_HZ,
-                "source": (
-                    "docs/interfaces/stream-packet-format.md §1.1 — "
-                    "2026-08-27 PLL retune. Will be revised after "
-                    "PLAN.md A.7 step 3 sets the rate margin; the actual "
-                    "streaming rate is expected to land below this figure "
-                    "deliberately."
-                ),
+                # The operator's setting: the nominal rate the flashed
+                # build is designed for (recording-format.md §3a.3).
+                "channel_hz": self._rate.channel_hz,
+                "source": self._rate.source,
             },
             "gain": {
                 "amplifier_uv_per_lsb": rhd2164_units.AMPLIFIER_UV_PER_LSB,
@@ -618,6 +713,11 @@ class MainWindow(QMainWindow):
 
     def _on_batch(self, packet):
         self._total_underruns += packet.fifo_underruns
+        h = packet.header
+        for m in (self._meter, self._rec_meter):
+            if m is not None:
+                m.add(h.timestamp_s, h.timestamp_sub_s, h.seq_num, h.num_pairs,
+                      packet.fifo_underruns)
         for t in self._health.update(packet.ch0, packet.ch1, packet.timestamps_us):
             self._on_health_transition(t)
         self._graph.add_batch(packet.timestamps_us, packet.ch0, packet.ch1)
@@ -1116,6 +1216,7 @@ class MainWindow(QMainWindow):
     def _on_error(self, msg: str):
         self._btn_connect.setChecked(False)
         self._btn_connect.setText("Connect")
+        self._rate_combo.setEnabled(True)
         self.statusBar().showMessage(f"Error: {msg}")
 
     def _on_serial_text(self, line: str) -> None:
@@ -1227,6 +1328,9 @@ class MainWindow(QMainWindow):
             kbps         = pps * 244 * 8 / 1000
             sps          = pps * 59
             self._lbl_rate.setText(f"{pps:.1f} pkt/s")
+            self._update_rate_label()
+            if self._recorder.info.is_recording:
+                self._update_rec_rate_metadata()
             self._lbl_thru.setText(f"{kbps:.0f} kbit/s")
             ur_pct = 100.0 * self._total_underruns / max(1, pkts * 59)
             self._lbl_underruns.setText(f"{self._total_underruns:,}  ({ur_pct:.1f}%)")

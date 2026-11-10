@@ -7,7 +7,8 @@ import serial
 import serial.tools.list_ports
 from PyQt6.QtCore import QThread, pyqtSignal
 import numpy as np
-from packet_parser import parse, ParsedPacket, MAGIC, PACKET_SIZE, SAMPLE_RATE_HZ, SeqGapTracker
+from packet_parser import (parse, ParsedPacket, MAGIC, PACKET_SIZE, SAMPLE_RATE_HZ,
+                           SeqGapTracker, sample_offsets_us)
 import telemetry
 
 BAUD_RATE   = 2000000  # must match WB09KE bridge USART1; ST-LINK VCP is baud-sensitive
@@ -92,7 +93,10 @@ class SerialReader(QThread):
         # backwards jumps caused by BLE burst delivery / 1 ms RTC resolution
         # are replaced with a forward-continuing sequence.
         self._last_ts_us: int = 0
-        self._step_us: int = 1_000_000 // SAMPLE_RATE_HZ  # 33 µs at 30 kSPS
+        # The operator's rate (kuntur_rate.py, PLAN.md R7): spaces samples
+        # inside a packet and the clamp's step. Set before start(); the
+        # window refuses to connect without one.
+        self._rate_hz: float = float(SAMPLE_RATE_HZ)
 
     @property
     def dropped_packets(self) -> int:
@@ -105,6 +109,11 @@ class SerialReader(QThread):
 
     def drops_summary(self) -> str:
         return self._gaps.summary()
+
+    def set_sample_rate(self, channel_hz: float):
+        """The operator's per-channel rate (kuntur_rate.py). Call before
+        start(); the window does not change it while connected."""
+        self._rate_hz = float(channel_hz)
 
     def set_port(self, port_name: str):
         self._port_name = port_name
@@ -256,7 +265,7 @@ class SerialReader(QThread):
                         # else: unknown type or short payload — ignore
                     continue
 
-                packet = parse(payload)
+                packet = parse(payload, self._rate_hz)
                 if packet is None:
                     continue
 
@@ -274,12 +283,11 @@ class SerialReader(QThread):
                 # unchanged: there is no timestamp here to advance it to.
                 if len(packet.timestamps_us) > 0:
                     if self._last_ts_us > 0 and packet.timestamps_us[0] <= self._last_ts_us:
-                        new_base = self._last_ts_us + self._step_us
-                        packet.timestamps_us = (
-                            new_base
-                            + np.arange(len(packet.timestamps_us), dtype=np.int64)
-                            * self._step_us
-                        )
+                        n = len(packet.timestamps_us)
+                        offs = sample_offsets_us(n + 1, self._rate_hz)
+                        # one sample step after the last one emitted, then
+                        # the packet's own rounded spacing
+                        packet.timestamps_us = self._last_ts_us + offs[1:]
                     self._last_ts_us = int(packet.timestamps_us[-1])
 
                 # Drop detection — a lower bound once any gap is uncertain;
