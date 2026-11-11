@@ -1419,6 +1419,17 @@ in the same class as B.6's licensed-toolchain problem, not a convenience.
 
 ### A.1.2 — chip0 is intermittent on a timescale of hours  *(Manuel, bench — REOPENED 2026-09-04)*
 
+> **Status 2026-11-10 (`log/2026-11-10.md`).** The #6a MOSI eye scan at
+> 25k rules out MOSI timing: with chip0 dead, `FFFF` at every launch
+> phase while chip1 is clean over 48 ns; with chip0 alive, its window
+> equals chip1's. chip0 works on the Intan controller (RHX detects both).
+> Today's pattern: failures at or soon after a power-on from cool; once it
+> has run a while warm it stays up. Supply: Kuntur gives the chips
+> **3.26 V** at the board (3.2–3.6 V spec), Intan **3.45 V**: the lead.
+> Next: overnight cold start at 3.26 V, and if chip0 is dead, raise `VCC1`
+> live to 3.45 V (resume section of that log). Other suspects left: CS/SCLK
+> reception at chip0, the MISO0 level at the FPGA receiver.
+
 **The single most serious open item in Phase A.** Not because a channel
 is missing today, but because it means **the project cannot currently
 tell whether chip0 works**, and a one-shot animal recording could come
@@ -2709,6 +2720,13 @@ rather than an echo of its own writes. See `docs/interfaces/lvds-tunnel.md`
       mechanical, do next time.
 
 ## A.7 — Loss accounting & rate margin  *(moved into Phase A 2026-08-28)*
+
+> **Found 2026-11-10 (`log/2026-11-10.md`):** at 25k (15% padding, so not
+> the ρ ≥ 1 case below) samples are still lost inside Kuntur **with no
+> `seq_num` gap**: ~36,000 (~1.4 s) over a 938 s recording, up to 1.6% in
+> one minute. Nothing in the recording marks them. pc-app now counts them
+> live (R7, `rate_meter.py`, sidecar `measured_lost_samples_no_gap`); where
+> they are lost (MCU ring during a BLE stall, or `fifo0`) is open.
 
 **Spec:** `docs/interfaces/stream-packet-format.md` (AGREED 2026-08-28), §9
 steps 1–3. **History and the investigation that produced it:** B.5's
