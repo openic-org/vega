@@ -247,7 +247,7 @@ Two rules worth knowing before changing it:
 
 ## CSV Recording
 
-Recordings are written to the device's Downloads folder via MediaStore. Format: `timestamp_us,ch0,ch1` at the full sample rate (30,000 SPS × 2 channels ≈ ~178 KB/s). Auto-stop triggers at 10 minutes or < 200 MB free storage. File names: `vega_YYYYMMDD_HHmmss.csv`.
+Recordings are written to the device's Downloads folder via MediaStore. Format: `timestamp_us,ch0,ch1` at the full sample rate (30,000 SPS × 2 channels ≈ ~178 KB/s). *(Android app. The pc-app's rate follows its "Kuntur rate" selector since 2026-11-10 — 25k, 28k or 30k legacy, matching the flashed build — and writes the measured rate into the sidecar; `recording-format.md` §3a.)* Auto-stop triggers at 10 minutes or < 200 MB free storage. File names: `vega_YYYYMMDD_HHmmss.csv`.
 
 ## Stream Modes
 
