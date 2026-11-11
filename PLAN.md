@@ -1419,6 +1419,18 @@ in the same class as B.6's licensed-toolchain problem, not a convenience.
 
 ### A.1.2 — chip0 is intermittent on a timescale of hours  *(Manuel, bench — REOPENED 2026-09-04)*
 
+> **Status 2026-11-11, later: PARKED until after the animal test
+> (Manuel).** A cold start (off ≥ 2.5 h, `VCC1` 3.45 V, companion
+> powered) ran 55 min with no death, and the eye-scan checker, armed with
+> `READ(40)` in sampling slot 32 (`pc-app/chip0_first_err.py`), counted
+> **0 errors in ~83 M checked answers on all four halves**. The board
+> goes to the animal test as it is. Afterwards: find a way to reproduce
+> the cold-start death, then swap in other `nil` boards (other RHD2164s)
+> and other `ecl` boards; chip0 itself is a candidate. The first-error
+> question (does MISO0 give wrong bits before it dies?) is still open and
+> needs a death. Run and conclusions: `log/2026-11-11.md`, "chip0
+> first-error capture, run 1".
+
 > **Status 2026-11-11 (`log/2026-11-11.md`, summary at the top).**
 > Reproduced on demand: after a clean start chip0 died within 11 s–2.5 min
 > in four runs, then ran ~52 min with no death in the last one. **Ruled
