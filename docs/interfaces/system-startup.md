@@ -55,7 +55,9 @@ Manuel).
 5. **`rstb` (FPGA pin E3) is floating.** E3 connects only to R15 (to the
    MCU's PA10; **not fitted**) and to J2 pin 12, and the `.pdc` sets
    `PULLMODE=NONE`. The FPGA's global asynchronous reset is an open 1.8 V
-   input whenever the programmer is not attached.
+   input whenever the programmer is not attached. (With the programmer
+   attached it has a pull-up and the bench's `rstb` button: §1.6, found
+   2026-11-11.)
 6. Streaming starts when the MCU writes `stream_enable`
    (`START_STREAMING`). The tunnel's clock chain and `block_gen` hang off
    the same `rstb` (T2 fixes those, `lvds-tunnel.md` §6.4).
@@ -198,7 +200,7 @@ stays outside it, in the top.
 | Port | Dir | Active | Domain | Definition |
 |---|---|---|---|---|
 | `clkin` | in | — | — | 32 MHz MCO from the MCU (PB14 → R12 → G8). **May be absent at wake-up, and stops whenever the MCU resets or is reflashed.** Clocks the generator, `lock_sync` and `gddr_sync`. |
-| `rstb` | in | low | async | E3, R15 not fitted, `PULLMODE=UP` (R-K1): always high for now. Low resets everything. |
+| `rstb` | in | low | async | E3, R15 not fitted, `PULLMODE=UP` (R-K1). High unless the programmer board's `rstb` button is pressed (J11, with J12 fitted; §1.6). Low resets everything. |
 | `pll_lock` | in | high | async | `pll0.lock_o`, non-sticky; chatters while the PLL acquires (≤ 10 ms). Falls when `clkin` stops. |
 | `clk` | in | — | — | `pll0` CLKOP, 45.54 MHz. Drifts and stops without `clkin`. |
 | `wclk` | in | — | — | `ECLKDIV` ÷4, 11.4 MHz. Stopped while `DDR_RESET` or `STOP` is high. |
@@ -323,6 +325,32 @@ As built (Manuel, 2026-10-28), against the final BOM of 2024-11-18:
 **PA10's net, re-identified 2026-10-28:** `/PA10` = MCU U1.L5 → R15 →
 FPGA E3 (`/PR7A`), and J2 pin 4. (The 2026-08 search had followed TP5,
 which is PB1.)
+
+**`rstb` and NRST on the programmer board (read from the KiCad PCBs,
+2026-11-11).** E3's other connection, Kuntur J2 pin 12 (`/PR7A`), reaches
+the programmer through `kuntur144-prog-adapter` (J1 mezzanine → J2,
+2×10 1.27 mm) to `kuntur144-prog` J1 pin 12. On `kuntur144-prog`:
+
+| Net | Parts | Effect |
+|---|---|---|
+| `/PR7A` (FPGA `rstb`, E3) | R6 4.7 kΩ to `FPGA_VCCIO_V1P8`, always; jumper **J12** to a node with R5 10 kΩ to 1.8 V, C2 100 nF to GND and pushbutton **J11** to GND | With J12 fitted, J11 is the bench's **`rstb` button**: press holds `rstb` low; release rises with τ ≈ (4.7 k ∥ 10 k) × 100 nF ≈ 0.3 ms, already debounced. |
+| `/RSTN` (MCU NRST) | jumper **J9** to a node with C1 100 nF to GND and pushbutton **J8** to GND; no pull-up on this board (the MCU's own NRST pull-up) | With J9 fitted, J8 is the MCU reset button. |
+| `/PA10` | J10 (2×2): pins 1-2 put LED D4 (via R4 10 Ω) on PA10; pins 3-4 short PA10 to GND | A 3-4 jumper is the "pull-down on PA10" of O-S1, on the bench only. |
+| `/PR7B` (FPGA D1) | R7 4.7 kΩ to 1.8 V; J14 to LED D5 | Debug LED. |
+
+Consequences:
+- **An MCU reset does not reset the FPGA**, and the `rstb` button does not
+  reset the MCU: the two are independent while R15 is not fitted. Neither
+  reconfigures the FPGA (`PROGRAMN` has no button; it reaches only the J3
+  header). So on the bench there are three separate actions: MCU reset
+  (J8), FPGA logic reset (J11), FPGA reprogram.
+- An `rstb` press restores the regbank defaults (stream channels on
+  chip1), like a power-on: re-apply the channels after it.
+- **Without the programmer attached, `rstb` is held only by the FPGA's
+  internal pull-up** (R-K1). Whether the programmer stays attached for
+  the animal test decides whether the 4.7 kΩ is there; R-K1 covers both.
+- J12 was fitted on 2026-11-11: the 05:08 `rstb` press restored the
+  regbank defaults (`log/2026-11-11.md`).
 
 **Later, not v1:**
 - **Fit R15 and an external pull-down on `/PA10`.** PA10 then reads low
