@@ -1419,6 +1419,23 @@ in the same class as B.6's licensed-toolchain problem, not a convenience.
 
 ### A.1.2 — chip0 is intermittent on a timescale of hours  *(Manuel, bench — REOPENED 2026-09-04)*
 
+> **Status 2026-11-11 (`log/2026-11-11.md`, summary at the top).**
+> Reproduced on demand: after a clean start chip0 died within 11 s–2.5 min
+> in four runs, then ran ~52 min with no death in the last one. **Ruled
+> out as the cause on its own:** the supply level (dies at 3.45 V too, and
+> a live raise to 3.47 V does not revive it), the `VCC1`/`VCC2`
+> arrangement, latch-up (no current change at ~10 mA), MOSI timing
+> (again: `mosi_sel` 1/3/4 on a dead chip0), the FPGA's logic and
+> configuration (an MCU reset, `rstb` or a reprogram changes chip0's state
+> in neither direction), the programmers' USB and the companion's power
+> state. A dead chip0 came back after a power cycle in 4 of 5 cases with
+> a known outcome. **Leading reading: a marginal MISO0 LVDS link** (G3/F2,
+> bank 3); next tests aim at its margin (MISO0 receiver settings in a test
+> bitstream, MISO0± levels where reachable, MISO0 vs MISO1 routing).
+> **Bench trap found:** after any power-on or FPGA reset the regbank
+> default channels are both on chip1, so chip0 is only seen after a
+> channel apply.
+
 > **Status 2026-11-10 (`log/2026-11-10.md`).** The #6a MOSI eye scan at
 > 25k rules out MOSI timing: with chip0 dead, `FFFF` at every launch
 > phase while chip1 is clean over 48 ns; with chip0 alive, its window
